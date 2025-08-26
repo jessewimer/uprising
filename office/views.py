@@ -288,7 +288,8 @@ def view_variety(request):
     # --- Get associated products and lots for the current variety ---
     if variety_obj:
         products = Product.objects.filter(variety=variety_obj)
-        # 
+        # sort products based on SKU_SUFFIXES
+        products = products.order_by(*[f"sku_{suffix}" for suffix in settings.SKU_SUFFIXES])
         lots = Lot.objects.filter(variety=variety_obj)
         growers = Grower.objects.all().order_by('code') 
 
@@ -306,8 +307,7 @@ def view_variety(request):
 
     else:
         products = Product.objects.none()
-        # sort products based on SKU_SUFFIXES
-        products = products.order_by(*[f"sku_{suffix}" for suffix in settings.SKU_SUFFIXES])
+
         lots = Lot.objects.none()
     
     context = {
