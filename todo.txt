@@ -1,0 +1,4 @@
+create end of year function to copy all sales data from the OOinlcudes and SOIncludes
+tables and populates the Sales table. This should be run once the website is turned off.
+
+import smarties varieties and stock seed data from the excel spreadsheet
