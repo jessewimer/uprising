@@ -11,6 +11,7 @@ from products.models import Variety, Product, LastSelected, LabelPrint
 from lots.models import Grower, Lot, RetiredLot, StockSeed 
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
+from django.db.models import Case, When, IntegerField
 
 from uprising import settings
 
@@ -289,7 +290,10 @@ def view_variety(request):
     if variety_obj:
         products = Product.objects.filter(variety=variety_obj)
         # sort products based on SKU_SUFFIXES
-        products = products.order_by(*[f"sku_{suffix}" for suffix in settings.SKU_SUFFIXES])
+        products = Product.objects.filter(variety=variety_obj).order_by(
+            Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
+                output_field=IntegerField())
+        )
         lots = Lot.objects.filter(variety=variety_obj)
         growers = Grower.objects.all().order_by('code') 
 
