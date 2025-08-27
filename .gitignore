@@ -26,4 +26,7 @@ backup.json
 *.swo
 *.bak
 *.tmp
-.env
+
+# log files
+*.log
+logs/

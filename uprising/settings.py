@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     'office.apps.OfficeConfig',
-    # add lots app
     'lots.apps.LotsConfig',
 ]
 
@@ -151,5 +150,5 @@ CURRENT_ORDER_YEAR = 25
 PACKET_PRICE = 2.40
 SITE_MAINTENANCE_MODE = True
 
-SKU_SUFFIXES = ["SKU Suffix", "pkt", "1/8oz", "1/4oz", "1/2oz", "1oz", "2oz", "1/4lb", "1/2lb", "1lb", "2.5lb", "5lb",
-                "1g", "1/4g", "50s", "100s", "200s", "250s", "500s", "1Ms", "5Ms", "10Ms", "25Ms"]
+SKU_SUFFIXES = ["SKU Suffix", "pkt", "1/8oz", "1/4oz", "1/2oz", "1oz", "2oz", "1/4lb", "1/2lb", "1lb", "2.5lb", "5lb", "1/4g",
+                "1g", "50s", "100s", "200s", "250s", "500s", "1Ms", "5Ms", "10Ms", "25Ms"]

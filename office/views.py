@@ -294,7 +294,9 @@ def view_variety(request):
             Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
                 output_field=IntegerField())
         )
-        lots = Lot.objects.filter(variety=variety_obj)
+        lots = Lot.objects.filter(variety=variety_obj).order_by("year")
+        # sort lots based on year
+
         growers = Grower.objects.all().order_by('code') 
 
         lots_json = json.dumps([
@@ -638,6 +640,58 @@ def record_germination(request):
             return JsonResponse({'success': True})
         except Lot.DoesNotExist:
             return JsonResponse({'error': 'Lot not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+@login_required
+@user_passes_test(is_employee)
+def edit_front_labels(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            variety_sku = data.get('variety_sku')
+            
+            variety = Variety.objects.get(pk=variety_sku)
+            
+            variety.desc_line1 = data.get('desc_line1', '')
+            variety.desc_line2 = data.get('desc_line2', '')
+            variety.desc_line3 = data.get('desc_line3', '')
+            
+            variety.save()
+            
+            return JsonResponse({'success': True})
+        except Variety.DoesNotExist:
+            return JsonResponse({'error': 'Variety not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+@login_required
+@user_passes_test(is_employee)
+def edit_back_labels(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            variety_sku = data.get('variety_sku')
+            
+            variety = Variety.objects.get(pk=variety_sku)
+            
+            variety.back1 = data.get('back1', '')
+            variety.back2 = data.get('back2', '')
+            variety.back3 = data.get('back3', '')
+            variety.back4 = data.get('back4', '')
+            variety.back5 = data.get('back5', '')
+            variety.back6 = data.get('back6', '')
+            variety.back7 = data.get('back7', '')
+            
+            variety.save()
+            
+            return JsonResponse({'success': True})
+        except Variety.DoesNotExist:
+            return JsonResponse({'error': 'Variety not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     

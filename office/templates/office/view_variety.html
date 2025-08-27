@@ -343,6 +343,7 @@
             gap: 30px;
         }
 
+
         /* Right Side - Label Info Section */
         .label-section {
             background: rgba(255, 255, 255, 0.95);
@@ -393,6 +394,58 @@
         .label-line-empty {
             color: #999;
             font-style: italic;
+        }
+
+        .label-edit-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            background: rgba(102, 126, 234, 0.02);
+        }
+
+        .label-edit-section h4 {
+            margin-bottom: 15px;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+
+        .label-edit-section .form-group {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .label-edit-section .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .label-edit-section .form-group label {
+            width: 60px;
+            text-align: right;
+            font-weight: 500;
+            color: #555;
+            flex-shrink: 0;
+        }
+
+        .label-edit-section input {
+            flex: 1;
+            min-width: 300px;
+        }
+
+
+
+
+        .label-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            position: relative; /* Add this */
         }
 
         .days-line {
@@ -1296,7 +1349,15 @@
             <div class="label-section">
                 <div class="label-content">
                     <div class="label-group">
-                        <div class="label-group-title">Front Label</div>
+                        <div class="label-group-title">
+                            Front Label
+                            <span class="edit-icon" onclick="showEditFrontLabelsPopup()" style="margin-left: 10px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </span>
+                        </div>
                         {% if variety %}
                             <div class="label-line">
                                 {% if variety.desc_line1 %}{{ variety.desc_line1 }}{% else %}<span class="label-line-empty">Line 1 not set</span>{% endif %}
@@ -1315,7 +1376,15 @@
                     </div>
 
                     <div class="label-group">
-                        <div class="label-group-title">Back Label</div>
+                        <div class="label-group-title">
+                            Back Label
+                            <span class="edit-icon" onclick="showEditBackLabelsPopup()" style="margin-left: 10px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </span>
+                        </div>
                         {% if variety %}
                             <div class="label-line">
                                 {% if variety.back1 %}{{ variety.back1 }}{% else %}<span class="label-line-empty">Back line 1 not set</span>{% endif %}
@@ -1632,6 +1701,100 @@
             </div>
         </div>
     </div>
+
+    
+    <!-- Edit Front Labels Popup -->
+    <div class="print-popup-overlay" id="editFrontLabelsPopup">
+        <div class="print-popup" style="max-width: 700px;">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Edit Front Label</h3>
+                <button class="print-popup-close" onclick="hideEditFrontLabelsPopup()">×</button>
+            </div>
+            
+            <form id="editFrontLabelsForm" onsubmit="submitEditFrontLabels(event)">
+                <div class="label-edit-section">
+                    <div class="form-group">
+                        <label>Line 1:</label>
+                        <input type="text" id="editFrontLine1" value="{% if variety %}{{ variety.desc_line1 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 2:</label>
+                        <input type="text" id="editFrontLine2" value="{% if variety %}{{ variety.desc_line2 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 3:</label>
+                        <input type="text" id="editFrontLine3" value="{% if variety %}{{ variety.desc_line3 }}{% endif %}">
+                    </div>
+                </div>
+                
+                <div class="print-actions">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hideEditFrontLabelsPopup()">Cancel</button>
+                    <button type="submit" class="print-action-btn print-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Back Labels Popup -->
+    <div class="print-popup-overlay" id="editBackLabelsPopup">
+        <div class="print-popup" style="max-width: 700px;">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Edit Back Label</h3>
+                <button class="print-popup-close" onclick="hideEditBackLabelsPopup()">×</button>
+            </div>
+            
+            <form id="editBackLabelsForm" onsubmit="submitEditBackLabels(event)">
+                <div class="label-edit-section">
+                    <div class="form-group">
+                        <label>Line 1:</label>
+                        <input type="text" id="editBackLine1" value="{% if variety %}{{ variety.back1 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 2:</label>
+                        <input type="text" id="editBackLine2" value="{% if variety %}{{ variety.back2 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 3:</label>
+                        <input type="text" id="editBackLine3" value="{% if variety %}{{ variety.back3 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 4:</label>
+                        <input type="text" id="editBackLine4" value="{% if variety %}{{ variety.back4 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 5:</label>
+                        <input type="text" id="editBackLine5" value="{% if variety %}{{ variety.back5 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 6:</label>
+                        <input type="text" id="editBackLine6" value="{% if variety %}{{ variety.back6 }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Line 7:</label>
+                        <input type="text" id="editBackLine7" value="{% if variety %}{{ variety.back7 }}{% endif %}">
+                    </div>
+                </div>
+                
+                <div class="print-actions">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hideEditBackLabelsPopup()">Cancel</button>
+                    <button type="submit" class="print-action-btn print-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
     <script>
         const varietyDataString = '{{ all_vars_json|escapejs }}';
         let allVarieties = JSON.parse(varietyDataString);
@@ -1890,6 +2053,123 @@
             }, 4000);
         }
 
+        
+
+        // Front Labels Functions
+        function showEditFrontLabelsPopup() {
+            document.getElementById('editFrontLabelsPopup').classList.add('show');
+        }
+
+        function hideEditFrontLabelsPopup() {
+            document.getElementById('editFrontLabelsPopup').classList.remove('show');
+        }
+
+        function submitEditFrontLabels(event) {
+            event.preventDefault();
+            
+            const labelData = {
+                variety_sku: '{{ variety.sku_prefix }}',
+                desc_line1: document.getElementById('editFrontLine1').value,
+                desc_line2: document.getElementById('editFrontLine2').value,
+                desc_line3: document.getElementById('editFrontLine3').value
+            };
+            
+            fetch('/office/edit-front-labels/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(labelData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('Front labels updated successfully', 'success');
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showMessage('Error updating front labels: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                if (error.error) {
+                    showMessage('Error updating front labels: ' + error.error, 'error');
+                } else {
+                    console.error('Error:', error);
+                    showMessage('Network error occurred', 'error');
+                }
+            });
+            
+            hideEditFrontLabelsPopup();
+        }
+
+        // Back Labels Functions
+        function showEditBackLabelsPopup() {
+            document.getElementById('editBackLabelsPopup').classList.add('show');
+        }
+
+        function hideEditBackLabelsPopup() {
+            document.getElementById('editBackLabelsPopup').classList.remove('show');
+        }
+
+        function submitEditBackLabels(event) {
+            event.preventDefault();
+            
+            const labelData = {
+                variety_sku: '{{ variety.sku_prefix }}',
+                back1: document.getElementById('editBackLine1').value,
+                back2: document.getElementById('editBackLine2').value,
+                back3: document.getElementById('editBackLine3').value,
+                back4: document.getElementById('editBackLine4').value,
+                back5: document.getElementById('editBackLine5').value,
+                back6: document.getElementById('editBackLine6').value,
+                back7: document.getElementById('editBackLine7').value
+            };
+            
+            fetch('/office/edit-back-labels/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(labelData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('Back labels updated successfully', 'success');
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showMessage('Error updating back labels: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                if (error.error) {
+                    showMessage('Error updating back labels: ' + error.error, 'error');
+                } else {
+                    console.error('Error:', error);
+                    showMessage('Network error occurred', 'error');
+                }
+            });
+            
+            hideEditBackLabelsPopup();
+        }
+        
+
         // Print option handlers
         function setupPrintHandlers() {
             document.addEventListener('click', function(e) {
@@ -1980,6 +2260,20 @@
             document.getElementById('germinationPopup').addEventListener('click', function(e) {
                 if (e.target === this) {
                     hideGerminationPopup();
+                }
+            });
+
+            // Front labels popup click outside to close
+            document.getElementById('editFrontLabelsPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideEditFrontLabelsPopup();
+                }
+            });
+
+            // Back labels popup click outside to close
+            document.getElementById('editBackLabelsPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideEditBackLabelsPopup();
                 }
             });
         }

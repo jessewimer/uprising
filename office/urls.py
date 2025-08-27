@@ -41,4 +41,6 @@ urlpatterns = [
     path('retire-lot/', retire_lot, name='retire_lot'),
     path('record-stock-seed/', record_stock_seed, name='record_stock_seed'),
     path('record-germination/', record_germination, name='record_germination'),
+    path('edit-front-labels/', edit_front_labels, name='edit_front_labels'),
+    path('edit-back-labels/', edit_back_labels, name='edit_back_labels'),
 ]
