@@ -1,3 +1,4 @@
+from datetime import timezone
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -113,6 +114,7 @@ def submit_batch(request):
         batch_id = data.get('batch_id')
         sample_ids = data.get('sample_ids', [])  # Array of lot_ids
         tracking_number = data.get('tracking_number', '').strip()  # New tracking number field
+        for_year = data.get('for_year')
         
         batch = GerminationBatch.objects.get(id=batch_id)
         
@@ -125,7 +127,7 @@ def submit_batch(request):
                 defaults={
                     'status': 'pending',
                     'germination_rate': 0,
-                    'for_year': lot.year
+                    'for_year': for_year
                 }
             )
         

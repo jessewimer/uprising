@@ -391,7 +391,13 @@ def import_retired_lots(csv_file_path, dry_run=False):
 
     print(f"Done. Created: {created}, Skipped: {skipped}, Errors: {errors}")
 
-
+def clear_germination_batch_and_test_germinations():
+    """Clear all germination batches and test germinations"""
+    GerminationBatch.objects.all().delete()
+    print("✅ All germination batches cleared.")
+    # filter for germination objects with year == 26
+    Germination.objects.filter(for_year=26).delete()
+    print("✅ All test germinations cleared.")
 
 if __name__ == "__main__":
     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
@@ -403,3 +409,4 @@ if __name__ == "__main__":
     # import_germination_data(germ_file_path)
     # import_inventory_data(inv_file_path)
     # import_retired_lots(ret_file_path)
+    clear_germination_batch_and_test_germinations()

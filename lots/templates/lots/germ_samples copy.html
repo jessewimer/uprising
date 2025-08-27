@@ -283,7 +283,164 @@
             opacity: 0.7;
         }
 
-        /* Modals */
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-left: 5px solid;
+            min-width: 300px;
+            max-width: 400px;
+            transform: translateX(450px);
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left-color: #26de81;
+        }
+
+        .toast.error {
+            border-left-color: #ff6b6b;
+        }
+
+        .toast.warning {
+            border-left-color: #f093fb;
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .toast-message {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            color: #666;
+        }
+
+        /* Confirmation Modal */
+        .confirm-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            text-align: center;
+        }
+
+        .confirm-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .confirm-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .confirm-message {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .confirm-input-group {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .confirm-input-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .confirm-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .confirm-input::placeholder {
+            color: #999;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
         .modal-overlay {
             display: none;
             position: fixed;
@@ -482,6 +639,9 @@
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <!-- New Batch Modal -->
     <div class="modal-overlay" id="newBatchModal">
         <div class="modal-content">
@@ -491,6 +651,24 @@
             <div style="display: flex; gap: 15px; justify-content: center;">
                 <button class="btn btn-primary" onclick="confirmNewBatch()">Create Batch</button>
                 <button class="btn" style="background: #f8f9fa; color: #495057;" onclick="closeModal('newBatchModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="confirm-modal-content">
+            <button class="modal-close" onclick="closeModal('confirmModal')">&times;</button>
+            <div class="confirm-icon" id="confirmIcon">⚠️</div>
+            <h2 class="confirm-title" id="confirmTitle">Confirm Action</h2>
+            <p class="confirm-message" id="confirmMessage">Are you sure?</p>
+            <div class="confirm-input-group" id="confirmInputGroup" style="display: none;">
+                <label class="confirm-input-label" id="confirmInputLabel">Input:</label>
+                <input type="text" class="confirm-input" id="confirmInput" placeholder="Enter value...">
+            </div>
+            <div class="confirm-buttons">
+                <button class="btn btn-primary" id="confirmButton" onclick="handleConfirm()">Confirm</button>
+                <button class="btn" style="background: #f8f9fa; color: #495057;" onclick="closeModal('confirmModal')">Cancel</button>
             </div>
         </div>
     </div>
@@ -524,6 +702,97 @@
             updateUI();
             setupKeyboardListener();
         });
+
+        // Toast notification system
+        function showToast(type, title, message, duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="closeToast(this)">&times;</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Auto remove
+            setTimeout(() => closeToast(toast.querySelector('.toast-close')), duration);
+        }
+
+        function closeToast(button) {
+            const toast = button.closest('.toast');
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 400);
+        }
+
+        // Confirmation dialog system
+        let confirmCallback = null;
+        
+        function showConfirm(title, message, icon, onConfirm, inputConfig = null) {
+            document.getElementById('confirmIcon').textContent = icon;
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            
+            // Handle input field
+            const inputGroup = document.getElementById('confirmInputGroup');
+            const inputLabel = document.getElementById('confirmInputLabel');
+            const inputField = document.getElementById('confirmInput');
+            
+            if (inputConfig) {
+                inputLabel.textContent = inputConfig.label;
+                inputField.placeholder = inputConfig.placeholder || '';
+                inputField.value = inputConfig.value || '';
+                inputField.required = inputConfig.required || false;
+                inputGroup.style.display = 'block';
+                
+                // Focus the input field after modal opens
+                setTimeout(() => inputField.focus(), 200);
+            } else {
+                inputGroup.style.display = 'none';
+            }
+            
+            confirmCallback = onConfirm;
+            document.getElementById('confirmModal').style.display = 'flex';
+        }
+
+        function handleConfirm() {
+            const inputGroup = document.getElementById('confirmInputGroup');
+            let inputValue = null;
+            
+            // Get input value if input field is shown
+            if (inputGroup.style.display !== 'none') {
+                const inputField = document.getElementById('confirmInput');
+                inputValue = inputField.value.trim();
+                
+                // Check if required input is empty
+                if (inputField.required && !inputValue) {
+                    inputField.focus();
+                    showToast('warning', 'Required Field', 'Please fill in the required field.');
+                    return;
+                }
+            }
+            
+            closeModal('confirmModal');
+            if (confirmCallback) {
+                confirmCallback(inputValue);
+                confirmCallback = null;
+            }
+        }
 
         // Populate batch dropdown with real data
         function populateBatchDropdown() {
@@ -584,7 +853,8 @@
             // Check if there's already a pending batch
             const pendingBatch = allBatches.find(b => b.status === 'pending');
             if (pendingBatch) {
-                alert('There is already a pending batch. Please complete or send the current batch before creating a new one.');
+                showToast('warning', 'Batch Already Pending', 
+                    `Batch ${pendingBatch.batch_number} is already pending. Please complete or send it before creating a new one.`);
                 return;
             }
             
@@ -618,14 +888,16 @@
                     // Auto-select the new batch
                     document.getElementById('batchSelect').value = data.batch.id;
                     selectBatch();
-                    alert('New batch created successfully!');
+                    
+                    showToast('success', 'Batch Created', 
+                        `New batch ${data.batch.batch_number} created successfully! You can now start scanning samples.`);
                 } else {
-                    alert('Error creating batch: ' + data.error);
+                    showToast('error', 'Creation Failed', `Error creating batch: ${data.error}`);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error creating batch');
+                showToast('error', 'Network Error', 'Error creating batch. Please check your connection and try again.');
             });
         }
 
@@ -634,7 +906,8 @@
             const button = document.getElementById('scanButton');
             
             if (!currentBatch || currentBatch.status !== 'pending') {
-                alert('Please create or select a pending batch first');
+                showToast('warning', 'No Pending Batch', 
+                    'Please create or select a pending batch before starting to scan.');
                 return;
             }
 
@@ -643,9 +916,12 @@
             if (scanningActive) {
                 button.textContent = 'Stop Scanning';
                 button.className = 'btn btn-info';
+                showToast('info', 'Scanner Active', 
+                    'Barcode scanner is now active. Start scanning samples or type barcodes manually.');
             } else {
                 button.textContent = 'Start Scanning';
                 button.className = 'btn btn-secondary';
+                showToast('info', 'Scanner Stopped', 'Barcode scanning has been deactivated.');
             }
             
             updateUI();
@@ -654,20 +930,20 @@
         // Process scanned barcode
         function processScan(barcode) {
             if (!currentBatch || currentBatch.status !== 'pending') {
-                alert('No pending batch selected');
+                showToast('error', 'No Pending Batch', 'No pending batch selected for scanning.');
                 return;
             }
 
             // Look up barcode in local data
             const lotData = allLots[barcode];
             if (!lotData) {
-                alert(`Barcode "${barcode}" not found in system`);
+                showToast('error', 'Barcode Not Found', `Barcode "${barcode}" was not found in the system.`);
                 return;
             }
 
             // Check if already scanned in this batch
             if (samples.find(s => s.barcode === barcode)) {
-                alert('This sample is already in the current batch');
+                showToast('warning', 'Duplicate Scan', 'This sample is already in the current batch.');
                 return;
             }
 
@@ -691,61 +967,83 @@
             updateSamplesTable();
             updateUI();
             
+            showToast('success', 'Sample Added', 
+                `${lotData.variety_name} (${lotData.sku_prefix}) added to batch.`, 2000);
+            
             console.log('Scanned successfully:', barcode);
         }
 
         // Submit batch to database
         function submitBatch() {
             if (!currentBatch || currentBatch.status !== 'pending' || samples.length === 0) {
-                alert('No pending batch with samples to submit');
+                showToast('warning', 'Cannot Submit', 'No pending batch with samples to submit.');
                 return;
             }
 
-            if (!confirm(`Submit batch with ${samples.length} samples? This cannot be undone.`)) {
-                return;
-            }
+            showConfirm(
+                'Submit Batch for Testing',
+                `Submit batch ${currentBatch.batch_number} with ${samples.length} samples? Please enter a tracking number for the shipment.`,
+                '📤',
+                function(trackingNumber) {
+                    // trackingNumber will be null if no input, or the entered value
+                    const sampleLotIds = samples.map(s => s.lot_id);
 
-            const sampleLotIds = samples.map(s => s.lot_id);
-
-            fetch('{% url "submit_batch" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+                    fetch('{% url "submit_batch" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            batch_id: currentBatch.id,
+                            sample_ids: sampleLotIds,
+                            tracking_number: trackingNumber
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const trackingMsg = trackingNumber ? ` (Tracking: ${trackingNumber})` : '';
+                            showToast('success', 'Batch Submitted', 
+                                `Batch ${currentBatch.batch_number} with ${samples.length} samples submitted successfully!${trackingMsg}`);
+                            
+                            // Update local batch data
+                            currentBatch.germinations = samples.map(s => ({
+                                barcode: s.barcode,
+                                sku_prefix: s.sku_prefix,
+                                lot_code: s.lot_code,
+                                variety_name: s.variety_name,
+                                crop_name: s.crop_name
+                            }));
+                            
+                            // Mark as sent with tracking number
+                            if (trackingNumber) {
+                                currentBatch.tracking_number = trackingNumber;
+                                currentBatch.status = 'sent';
+                            }
+                            
+                            // Clear current selection
+                            currentBatch = null;
+                            samples = [];
+                            document.getElementById('batchSelect').value = '';
+                            
+                            updateUI();
+                            updateSamplesTable();
+                        } else {
+                            showToast('error', 'Submission Failed', `Error submitting batch: ${data.error}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('error', 'Network Error', 'Error submitting batch. Please check your connection and try again.');
+                    });
                 },
-                body: JSON.stringify({
-                    batch_id: currentBatch.id,
-                    sample_ids: sampleLotIds
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Batch submitted successfully!');
-                    
-                    // Update local batch data
-                    currentBatch.germinations = samples.map(s => ({
-                        barcode: s.barcode,
-                        sku_prefix: s.sku_prefix,
-                        lot_code: s.lot_code,
-                        variety_name: s.variety_name,
-                        crop_name: s.crop_name
-                    }));
-                    
-                    // Clear current selection
-                    currentBatch = null;
-                    samples = [];
-                    document.getElementById('batchSelect').value = '';
-                    
-                    updateUI();
-                    updateSamplesTable();
-                } else {
-                    alert('Error submitting batch: ' + data.error);
+                {
+                    label: 'Tracking Number (Optional):',
+                    placeholder: 'Enter tracking number (e.g., 1Z999AA1234567890)',
+                    value: '',
+                    required: false
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error submitting batch');
-            });
+            );
         }
         function selectBatch() {
             const select = document.getElementById('batchSelect');
@@ -777,7 +1075,7 @@
         // Show batch info modal
         function showBatchInfo() {
             if (!currentBatch) {
-                alert('Please select a batch first');
+                showToast('info', 'No Batch Selected', 'Please select a batch first to view its information.');
                 return;
             }
 
@@ -797,7 +1095,7 @@
                 <div style="margin-top: 20px;">
                     <h4 style="color: #333; margin-bottom: 10px;">Varieties in Batch:</h4>
                     <div style="max-height: 150px; overflow-y: auto; font-size: 0.9rem;">
-                        ${uniqueVarieties.map(v => `<div>• ${v}</div>`).join('')}
+                        ${uniqueVarieties.length > 0 ? uniqueVarieties.map(v => `<div>• ${v}</div>`).join('') : '<div style="color: #999;">No varieties yet</div>'}
                     </div>
                 </div>
             `;
@@ -910,6 +1208,11 @@
         // Modal helpers
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
+            // Reset confirm callback and clear input if closing confirm modal
+            if (modalId === 'confirmModal') {
+                confirmCallback = null;
+                document.getElementById('confirmInput').value = '';
+            }
         }
 
         // Close modals when clicking outside
@@ -918,6 +1221,10 @@
             modals.forEach(modal => {
                 if (event.target === modal) {
                     modal.style.display = 'none';
+                    // Reset confirm callback if closing confirm modal
+                    if (modal.id === 'confirmModal') {
+                        confirmCallback = null;
+                    }
                 }
             });
         });
@@ -929,6 +1236,15 @@
                 modals.forEach(modal => {
                     modal.style.display = 'none';
                 });
+                // Reset confirm callback
+                confirmCallback = null;
+                document.getElementById('confirmInput').value = '';
+            }
+            
+            // Handle Enter key in confirm modal input
+            if (event.key === 'Enter' && event.target.id === 'confirmInput') {
+                event.preventDefault();
+                handleConfirm();
             }
         });
     </script>
