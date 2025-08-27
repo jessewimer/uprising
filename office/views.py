@@ -1,7 +1,7 @@
 import json
 from django.contrib import messages
-# from pyexpat.errors import messages
 from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, login_required
@@ -12,11 +12,12 @@ from lots.models import Grower, Lot, RetiredLot, StockSeed
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Case, When, IntegerField
-
+# import utils.auth
+from uprising.utils.auth import is_employee
 from uprising import settings
 
-def is_employee(user):
-    return user.is_authenticated and user.groups.filter(name="employees").exists()
+# def is_employee(user):
+#     return user.is_authenticated and user.groups.filter(name="employees").exists()
 
 class OfficeLoginForm(AuthenticationForm):
     """
@@ -696,3 +697,9 @@ def edit_back_labels(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required
+@staff_member_required
+def admin_dashboard(request):
+    return render(request, 'office/admin_dashboard.html')

@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Uprising Seeds - Send Germ Samples</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Header Section */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: 2px solid transparent;
+            align-self: flex-start;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .page-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #26de81, #20bf6b);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(38, 222, 129, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
+        }
+
+        .batch-dropdown {
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .batch-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .batch-dropdown:hover {
+            border-color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        /* Status Indicators */
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 15px 0;
+            border-top: 1px solid rgba(102, 126, 234, 0.2);
+            margin-top: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-inactive { background: #ddd; }
+        .status-active { background: #26de81; }
+        .status-scanning { background: #f093fb; animation: pulse 2s infinite; }
+
+        /* Main Content */
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* Samples Table */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .samples-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .samples-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            border: none;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .samples-table th:first-child {
+            border-top-left-radius: 15px;
+        }
+
+        .samples-table th:last-child {
+            border-top-right-radius: 15px;
+        }
+
+        .samples-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .samples-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .samples-table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+            transform: scale(1.01);
+        }
+
+        .samples-table tbody tr:nth-child(even) {
+            background: rgba(102, 126, 234, 0.02);
+        }
+
+        .samples-table tbody tr.new-scan {
+            animation: highlightScan 2s ease-out;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-subtext {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-left: 5px solid;
+            min-width: 300px;
+            max-width: 400px;
+            transform: translateX(450px);
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left-color: #26de81;
+        }
+
+        .toast.error {
+            border-left-color: #ff6b6b;
+        }
+
+        .toast.warning {
+            border-left-color: #f093fb;
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .toast-message {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            color: #666;
+        }
+
+        /* Confirmation Modal */
+        .confirm-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            text-align: center;
+        }
+
+        .confirm-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .confirm-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .confirm-message {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .confirm-input-group {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .confirm-input-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .confirm-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .confirm-input::placeholder {
+            color: #999;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            text-align: center;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #333;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes highlightScan {
+            0% { background: rgba(38, 222, 129, 0.3); }
+            100% { background: transparent; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .header-controls {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .page-title {
+                font-size: 1.8rem;
+            }
+
+            .status-bar {
+                flex-wrap: wrap;
+            }
+
+            .samples-table th,
+            .samples-table td {
+                padding: 12px 10px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn, .batch-dropdown {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="header-top">
+                <div class="header-left">
+                    <a href="{% url 'office_landing' %}" class="back-button">
+                        ← Back to Dashboard
+                    </a>
+                    <h1 class="page-title">Send Germ Samples</h1>
+                </div>
+
+                <div class="header-controls">
+                    <button class="btn btn-primary" onclick="createNewBatch()">
+                        New Batch
+                    </button>
+                    
+                    <button class="btn btn-secondary" id="scanButton" onclick="toggleScanning()">
+                        Start Scanning
+                    </button>
+
+                    <button class="btn btn-primary" id="submitButton" onclick="submitBatch()" style="display: none;">
+                        Submit Batch
+                    </button>
+                    
+                    <select class="batch-dropdown" id="batchSelect" onchange="selectBatch()">
+                        <option value="">Select Batch</option>
+                        <option value="pending">Current Batch (Pending)</option>
+                        <option value="2024-01-15">Batch sent 2024-01-15</option>
+                        <option value="2024-01-10">Batch sent 2024-01-10</option>
+                    </select>
+                    
+                    <button class="btn btn-info" onclick="showBatchInfo()">
+                        Batch Info
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot status-inactive" id="batchStatus"></div>
+                    <span>Batch: <span id="batchStatusText">No batch selected</span></span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot status-inactive" id="scanStatus"></div>
+                    <span>Scanner: <span id="scanStatusText">Inactive</span></span>
+                </div>
+                <div class="status-item">
+                    <span>Total Samples: <strong id="sampleCount">0</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="table-container">
+                <table class="samples-table">
+                    <thead>
+                        <tr>
+                            <th>SKU Prefix</th>
+                            <th>Lot</th>
+                            <th>Variety</th>
+                            <th>Crop</th>
+                            <th>Scan Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="samplesTableBody">
+                        <!-- Samples will be populated here -->
+                    </tbody>
+                </table>
+                
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon">🧫</div>
+                    <div class="empty-state-text">No samples scanned yet</div>
+                    <div class="empty-state-subtext">Create a new batch and start scanning to add samples</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- New Batch Modal -->
+    <div class="modal-overlay" id="newBatchModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('newBatchModal')">&times;</button>
+            <h2 class="modal-title">Create New Batch</h2>
+            <p style="margin-bottom: 30px; color: #666;">This will create a new pending batch for germination samples.</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button class="btn btn-primary" onclick="confirmNewBatch()">Create Batch</button>
+                <button class="btn" style="background: #f8f9fa; color: #495057;" onclick="closeModal('newBatchModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="confirm-modal-content">
+            <button class="modal-close" onclick="closeModal('confirmModal')">&times;</button>
+            <div class="confirm-icon" id="confirmIcon">⚠️</div>
+            <h2 class="confirm-title" id="confirmTitle">Confirm Action</h2>
+            <p class="confirm-message" id="confirmMessage">Are you sure?</p>
+            <div class="confirm-input-group" id="confirmInputGroup" style="display: none;">
+                <label class="confirm-input-label" id="confirmInputLabel">Input:</label>
+                <input type="text" class="confirm-input" id="confirmInput" placeholder="Enter value...">
+            </div>
+            <div class="confirm-buttons">
+                <button class="btn btn-primary" id="confirmButton" onclick="handleConfirm()">Confirm</button>
+                <button class="btn" style="background: #f8f9fa; color: #495057;" onclick="closeModal('confirmModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Info Modal -->
+    <div class="modal-overlay" id="batchInfoModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" onclick="closeModal('batchInfoModal')">&times;</button>
+            <h2 class="modal-title">Batch Information</h2>
+            <div id="batchInfoContent" style="text-align: left; color: #666;">
+                <p>Select a batch to view information</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get data from Django
+        const allBatches = JSON.parse('{{ batches_json|escapejs }}');
+        const allLots = JSON.parse('{{ lots_json|escapejs }}');
+        
+        let scanningActive = false;
+        let currentBatch = null;
+        let samples = [];
+        let scanInput = '';
+        let scanTimeout;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupCSRFForFetch(); // Setup CSRF for all fetch requests
+            populateBatchDropdown();
+            updateUI();
+            setupKeyboardListener();
+        });
+
+        // Toast notification system
+        function showToast(type, title, message, duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="closeToast(this)">&times;</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Auto remove
+            setTimeout(() => closeToast(toast.querySelector('.toast-close')), duration);
+        }
+
+        function closeToast(button) {
+            const toast = button.closest('.toast');
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 400);
+        }
+
+        // Confirmation dialog system
+        let confirmCallback = null;
+        
+        function showConfirm(title, message, icon, onConfirm, inputConfig = null) {
+            document.getElementById('confirmIcon').textContent = icon;
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            
+            // Handle input field
+            const inputGroup = document.getElementById('confirmInputGroup');
+            const inputLabel = document.getElementById('confirmInputLabel');
+            const inputField = document.getElementById('confirmInput');
+            
+            if (inputConfig) {
+                inputLabel.textContent = inputConfig.label;
+                inputField.placeholder = inputConfig.placeholder || '';
+                inputField.value = inputConfig.value || '';
+                inputField.required = inputConfig.required || false;
+                inputGroup.style.display = 'block';
+                
+                // Focus the input field after modal opens
+                setTimeout(() => inputField.focus(), 200);
+            } else {
+                inputGroup.style.display = 'none';
+            }
+            
+            confirmCallback = onConfirm;
+            document.getElementById('confirmModal').style.display = 'flex';
+        }
+
+        function handleConfirm() {
+            const inputGroup = document.getElementById('confirmInputGroup');
+            let inputValue = null;
+            
+            // Get input value if input field is shown
+            if (inputGroup.style.display !== 'none') {
+                const inputField = document.getElementById('confirmInput');
+                inputValue = inputField.value.trim();
+                
+                // Check if required input is empty
+                if (inputField.required && !inputValue) {
+                    inputField.focus();
+                    showToast('warning', 'Required Field', 'Please fill in the required field.');
+                    return;
+                }
+            }
+            
+            closeModal('confirmModal');
+            if (confirmCallback) {
+                confirmCallback(inputValue);
+                confirmCallback = null;
+            }
+        }
+
+        // Populate batch dropdown with real data
+        function populateBatchDropdown() {
+            const select = document.getElementById('batchSelect');
+            select.innerHTML = '<option value="">Select Batch</option>';
+            
+            // Find pending batch
+            const pendingBatch = allBatches.find(b => b.status === 'pending');
+            if (pendingBatch) {
+                select.innerHTML += `<option value="${pendingBatch.id}">Current Batch (Pending) - ${pendingBatch.batch_number}</option>`;
+            }
+            
+            // Add sent batches
+            const sentBatches = allBatches.filter(b => b.status === 'sent').slice(0, 10); // Show last 10
+            sentBatches.forEach(batch => {
+                select.innerHTML += `<option value="${batch.id}">Batch ${batch.batch_number} - Sent ${batch.date}</option>`;
+            });
+        }
+
+        // Keyboard listener for barcode scanner
+        function setupKeyboardListener() {
+            document.addEventListener('keydown', function(event) {
+                if (!scanningActive) return;
+
+                // Handle Enter key (end of barcode scan)
+                if (event.key === 'Enter') {
+                    if (scanInput.trim()) {
+                        processScan(scanInput.trim());
+                        scanInput = '';
+                    }
+                    event.preventDefault();
+                    return;
+                }
+
+                // Accumulate scan input
+                if (event.key.length === 1 || event.key === 'Backspace') {
+                    clearTimeout(scanTimeout);
+                    
+                    if (event.key === 'Backspace') {
+                        scanInput = scanInput.slice(0, -1);
+                    } else {
+                        scanInput += event.key;
+                    }
+
+                    // Auto-process if no input for 100ms (typical of barcode scanners)
+                    scanTimeout = setTimeout(() => {
+                        if (scanInput.trim()) {
+                            processScan(scanInput.trim());
+                            scanInput = '';
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        // Create new batch
+        function createNewBatch() {
+            // Check if there's already a pending batch
+            const pendingBatch = allBatches.find(b => b.status === 'pending');
+            if (pendingBatch) {
+                showToast('warning', 'Batch Already Pending', 
+                    `Batch ${pendingBatch.batch_number} is already pending. Please complete or send it before creating a new one.`);
+                return;
+            }
+            
+            document.getElementById('newBatchModal').style.display = 'flex';
+        }
+
+        function confirmNewBatch() {
+            fetch('{% url "create_new_batch" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new batch to local data
+                    const newBatch = {
+                        id: data.batch.id,
+                        batch_number: data.batch.batch_number,
+                        date: data.batch.date,
+                        status: 'pending',
+                        germinations: []
+                    };
+                    
+                    allBatches.unshift(newBatch); // Add to beginning
+                    populateBatchDropdown(); // Refresh dropdown
+                    
+                    closeModal('newBatchModal');
+                    
+                    // Auto-select the new batch
+                    document.getElementById('batchSelect').value = data.batch.id;
+                    selectBatch();
+                    
+                    showToast('success', 'Batch Created', 
+                        `New batch ${data.batch.batch_number} created successfully! You can now start scanning samples.`);
+                } else {
+                    showToast('error', 'Creation Failed', `Error creating batch: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'Network Error', 'Error creating batch. Please check your connection and try again.');
+            });
+        }
+
+        // Toggle scanning mode
+        function toggleScanning() {
+            const button = document.getElementById('scanButton');
+            
+            if (!currentBatch || currentBatch.status !== 'pending') {
+                showToast('warning', 'No Pending Batch', 
+                    'Please create or select a pending batch before starting to scan.');
+                return;
+            }
+
+            scanningActive = !scanningActive;
+            
+            if (scanningActive) {
+                button.textContent = 'Stop Scanning';
+                button.className = 'btn btn-info';
+                showToast('info', 'Scanner Active', 
+                    'Barcode scanner is now active. Start scanning samples or type barcodes manually.');
+            } else {
+                button.textContent = 'Start Scanning';
+                button.className = 'btn btn-secondary';
+                showToast('info', 'Scanner Stopped', 'Barcode scanning has been deactivated.');
+            }
+            
+            updateUI();
+        }
+
+        // Process scanned barcode
+        function processScan(barcode) {
+            if (!currentBatch || currentBatch.status !== 'pending') {
+                showToast('error', 'No Pending Batch', 'No pending batch selected for scanning.');
+                return;
+            }
+
+            // Look up barcode in local data
+            const lotData = allLots[barcode];
+            if (!lotData) {
+                showToast('error', 'Barcode Not Found', `Barcode "${barcode}" was not found in the system.`);
+                return;
+            }
+
+            // Check if already scanned in this batch
+            if (samples.find(s => s.barcode === barcode)) {
+                showToast('warning', 'Duplicate Scan', 'This sample is already in the current batch.');
+                return;
+            }
+
+            // Add to local samples
+            const newSample = {
+                barcode: barcode,
+                sku_prefix: lotData.sku_prefix,
+                lot_code: lotData.lot_code,
+                variety_name: lotData.variety_name,
+                crop_name: lotData.crop_name,
+                lot_id: lotData.lot_id,
+                scan_time: new Date().toLocaleTimeString()
+            };
+
+            samples.push(newSample);
+            
+            // Sort by sku_prefix
+            samples.sort((a, b) => a.sku_prefix.localeCompare(b.sku_prefix));
+            
+            // Update UI
+            updateSamplesTable();
+            updateUI();
+            
+            showToast('success', 'Sample Added', 
+                `${lotData.variety_name} (${lotData.sku_prefix}) added to batch.`, 2000);
+            
+            console.log('Scanned successfully:', barcode);
+        }
+
+        // Submit batch to database
+        function submitBatch() {
+            if (!currentBatch || currentBatch.status !== 'pending' || samples.length === 0) {
+                showToast('warning', 'Cannot Submit', 'No pending batch with samples to submit.');
+                return;
+            }
+
+            showConfirm(
+                'Submit Batch for Testing',
+                `Submit batch ${currentBatch.batch_number} with ${samples.length} samples? Please enter a tracking number for the shipment.`,
+                '📤',
+                function(trackingNumber) {
+                    // trackingNumber will be null if no input, or the entered value
+                    const sampleLotIds = samples.map(s => s.lot_id);
+
+                    fetch('{% url "submit_batch" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            batch_id: currentBatch.id,
+                            sample_ids: sampleLotIds,
+                            tracking_number: trackingNumber
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const trackingMsg = trackingNumber ? ` (Tracking: ${trackingNumber})` : '';
+                            showToast('success', 'Batch Submitted', 
+                                `Batch ${currentBatch.batch_number} with ${samples.length} samples submitted successfully!${trackingMsg}`);
+                            
+                            // Update local batch data
+                            currentBatch.germinations = samples.map(s => ({
+                                barcode: s.barcode,
+                                sku_prefix: s.sku_prefix,
+                                lot_code: s.lot_code,
+                                variety_name: s.variety_name,
+                                crop_name: s.crop_name
+                            }));
+                            
+                            // Mark as sent with tracking number
+                            if (trackingNumber) {
+                                currentBatch.tracking_number = trackingNumber;
+                                currentBatch.status = 'sent';
+                            }
+                            
+                            // Clear current selection
+                            currentBatch = null;
+                            samples = [];
+                            document.getElementById('batchSelect').value = '';
+                            
+                            updateUI();
+                            updateSamplesTable();
+                        } else {
+                            showToast('error', 'Submission Failed', `Error submitting batch: ${data.error}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('error', 'Network Error', 'Error submitting batch. Please check your connection and try again.');
+                    });
+                },
+                {
+                    label: 'Tracking Number (Optional):',
+                    placeholder: 'Enter tracking number (e.g., 1Z999AA1234567890)',
+                    value: '',
+                    required: false
+                }
+            );
+        }
+        function selectBatch() {
+            const select = document.getElementById('batchSelect');
+            const batchId = select.value;
+            
+            if (batchId) {
+                currentBatch = allBatches.find(b => b.id == batchId);
+                if (currentBatch) {
+                    // Load samples for this batch
+                    samples = currentBatch.germinations.map(g => ({
+                        id: g.id,
+                        barcode: g.barcode,
+                        sku_prefix: g.sku_prefix,
+                        lot_code: g.lot_code,
+                        variety_name: g.variety_name,
+                        crop_name: g.crop_name,
+                        scan_time: g.scan_time || 'Previously scanned'
+                    }));
+                }
+            } else {
+                currentBatch = null;
+                samples = [];
+            }
+            
+            updateUI();
+            updateSamplesTable();
+        }
+
+        // Show batch info modal
+        function showBatchInfo() {
+            if (!currentBatch) {
+                showToast('info', 'No Batch Selected', 'Please select a batch first to view its information.');
+                return;
+            }
+
+            const uniqueVarieties = [...new Set(samples.map(s => s.variety_name))];
+            const uniqueCrops = [...new Set(samples.map(s => s.crop_name))];
+
+            const content = document.getElementById('batchInfoContent');
+            content.innerHTML = `
+                <h3 style="margin-bottom: 15px; color: #333;">Batch Details</h3>
+                <p><strong>Batch Number:</strong> ${currentBatch.batch_number}</p>
+                <p><strong>Status:</strong> ${currentBatch.status === 'pending' ? 'Pending' : 'Sent'}</p>
+                <p><strong>Created:</strong> ${currentBatch.date}</p>
+                ${currentBatch.tracking_number ? `<p><strong>Tracking:</strong> ${currentBatch.tracking_number}</p>` : ''}
+                <p><strong>Total Samples:</strong> ${samples.length}</p>
+                <p><strong>Unique Varieties:</strong> ${uniqueVarieties.length}</p>
+                <p><strong>Unique Crops:</strong> ${uniqueCrops.length}</p>
+                <div style="margin-top: 20px;">
+                    <h4 style="color: #333; margin-bottom: 10px;">Varieties in Batch:</h4>
+                    <div style="max-height: 150px; overflow-y: auto; font-size: 0.9rem;">
+                        ${uniqueVarieties.length > 0 ? uniqueVarieties.map(v => `<div>• ${v}</div>`).join('') : '<div style="color: #999;">No varieties yet</div>'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('batchInfoModal').style.display = 'flex';
+        }
+
+        // Update samples table
+        function updateSamplesTable() {
+            const tbody = document.getElementById('samplesTableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (samples.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                tbody.innerHTML = samples.map((sample, index) => `
+                    <tr class="${index === samples.length - 1 ? 'new-scan' : ''}">
+                        <td><strong>${sample.sku_prefix}</strong></td>
+                        <td>${sample.lot_code}</td>
+                        <td>${sample.variety_name}</td>
+                        <td>${sample.crop_name}</td>
+                        <td>${sample.scan_time}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Batch status
+            const batchStatus = document.getElementById('batchStatus');
+            const batchStatusText = document.getElementById('batchStatusText');
+            const submitButton = document.getElementById('submitButton');
+            
+            if (currentBatch) {
+                batchStatus.className = 'status-dot status-active';
+                batchStatusText.textContent = `Batch ${currentBatch.batch_number} (${currentBatch.status})`;
+                
+                // Show submit button only for pending batches with samples
+                if (currentBatch.status === 'pending' && samples.length > 0) {
+                    submitButton.style.display = 'inline-flex';
+                } else {
+                    submitButton.style.display = 'none';
+                }
+            } else {
+                batchStatus.className = 'status-dot status-inactive';
+                batchStatusText.textContent = 'No batch selected';
+                submitButton.style.display = 'none';
+            }
+
+            // Scanner status
+            const scanStatus = document.getElementById('scanStatus');
+            const scanStatusText = document.getElementById('scanStatusText');
+            
+            if (scanningActive) {
+                scanStatus.className = 'status-dot status-scanning';
+                scanStatusText.textContent = 'Scanning active';
+            } else {
+                scanStatus.className = 'status-dot status-inactive';
+                scanStatusText.textContent = 'Inactive';
+            }
+
+            // Sample count
+            document.getElementById('sampleCount').textContent = samples.length;
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Get CSRF token for all requests
+        function getCSRFToken() {
+            // Try to get from cookie first
+            let token = getCookie('csrftoken');
+            // Fallback to meta tag
+            if (!token) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                token = meta ? meta.getAttribute('content') : '';
+            }
+            return token;
+        }
+
+        // Setup CSRF for all fetch requests
+        function setupCSRFForFetch() {
+            const originalFetch = window.fetch;
+            window.fetch = function() {
+                let config = arguments[1] || {};
+                if (config.method && config.method.toUpperCase() !== 'GET') {
+                    config.headers = config.headers || {};
+                    config.headers['X-CSRFToken'] = getCSRFToken();
+                }
+                return originalFetch.apply(this, arguments);
+            };
+        }
+
+        // Modal helpers
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            // Reset confirm callback and clear input if closing confirm modal
+            if (modalId === 'confirmModal') {
+                confirmCallback = null;
+                document.getElementById('confirmInput').value = '';
+            }
+        }
+
+        // Close modals when clicking outside
+        document.addEventListener('click', function(event) {
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    // Reset confirm callback if closing confirm modal
+                    if (modal.id === 'confirmModal') {
+                        confirmCallback = null;
+                    }
+                }
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal-overlay');
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                // Reset confirm callback
+                confirmCallback = null;
+                document.getElementById('confirmInput').value = '';
+            }
+            
+            // Handle Enter key in confirm modal input
+            if (event.key === 'Enter' && event.target.id === 'confirmInput') {
+                event.preventDefault();
+                handleConfirm();
+            }
+        });
+    </script>
+</body>
+</html>

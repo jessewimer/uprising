@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import OfficeLoginView, OfficeLogoutView, office_landing, view_variety, analytics
+from .views import OfficeLoginView, OfficeLogoutView, office_landing, view_variety, analytics, admin_dashboard
 from .views import *
 import products.views as product_views
 import stores.views as store_views
@@ -10,6 +10,7 @@ urlpatterns = [
     # Authentication
     path('login/', OfficeLoginView.as_view(), name='office_login'),
     path('logout/', OfficeLogoutView.as_view(), name='office_logout'),
+    path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
     
     # Main office page
     path('dashboard/', office_landing, name='office_landing'),
@@ -22,10 +23,13 @@ urlpatterns = [
     path('process-store-orders/', store_views.process_store_orders, name='process_store_orders'),
     path('view-stores/', store_views.view_stores, name='view_stores'),
     
-    path('send-germ-samples/', lot_views.send_germ_samples, name='send_germ_samples'),
+    # path('germ-samples/', lot_views.germ_samples, name='germ_samples'),
+    path('germ-samples/', lot_views.send_germ_samples, name='germ_samples'),
+    path('api/create-batch/', lot_views.create_new_batch, name='create_new_batch'),
+    path('api/submit-batch/', lot_views.submit_batch, name='submit_batch'),
+
     path('inventory/', lot_views.inventory, name='inventory'),
     path('process-online-orders/', order_views.process_online_orders, name='process_online_orders'),
-    # Keep your existing inventory page with original name for backward compatibility
     path('inventory-germination/', inventory_germination, name='inventory_germination'),
     
     # JSON API endpoints

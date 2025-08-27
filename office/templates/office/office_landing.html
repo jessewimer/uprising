@@ -354,6 +354,31 @@
             box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
         }
 
+        .admin-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: 2px solid transparent;
+            margin-right: 15px;
+        }
+
+        .admin-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -586,6 +611,9 @@
             <button class="logout-button" onclick="showLogoutVerification()">
                 Logout
             </button>
+            <a href="{% url 'admin_dashboard' %}" class="admin-button">
+                Admin
+            </a>
         </div>
     </div>
 
@@ -595,7 +623,7 @@
             <button class="inventory-menu-close" onclick="closeInventoryMenu()">&times;</button>
             <h2 class="inventory-menu-title">Inventory & Germination</h2>
             <div class="inventory-options">
-                <a href="{% url 'send_germ_samples' %}" class="inventory-option">
+                <a href="{% url 'germ_samples' %}" class="inventory-option">
                     <div class="inventory-option-icon">🧪</div>
                     <div class="inventory-option-text">Send Germ Samples</div>
                 </a>
