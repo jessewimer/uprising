@@ -399,6 +399,14 @@ def clear_germination_batch_and_test_germinations():
     Germination.objects.filter(for_year=26).delete()
     print("✅ All test germinations cleared.")
 
+def view_germination_batches():
+    """View all germination batches"""
+    batches = GerminationBatch.objects.all()
+    for batch in batches:
+        print(f"Batch {batch.batch_number} - {batch.date} (Tracking: {batch.tracking_number})")
+        for germination in batch.germinations.all():
+            print(f"{germination.lot.variety}-{germination.lot.grower.code}{germination.lot.year} - Status: {germination.status}")
+
 if __name__ == "__main__":
     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
@@ -409,4 +417,5 @@ if __name__ == "__main__":
     # import_germination_data(germ_file_path)
     # import_inventory_data(inv_file_path)
     # import_retired_lots(ret_file_path)
-    clear_germination_batch_and_test_germinations()
+    # clear_germination_batch_and_test_germinations()
+    view_germination_batches()
