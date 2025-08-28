@@ -25,6 +25,7 @@ urlpatterns = [
     
     # path('germ-samples/', lot_views.germ_samples, name='germ_samples'),
     path('germ-samples/', lot_views.send_germ_samples, name='germ_samples'),
+    path('api/variety-sales/<str:sku_prefix>/', variety_sales_data, name='variety_sales_data'),
     path('api/create-batch/', lot_views.create_new_batch, name='create_new_batch'),
     path('api/submit-batch/', lot_views.submit_batch, name='submit_batch'),
 

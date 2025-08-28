@@ -97,16 +97,16 @@
         }
 
         .filter-label {
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #333;
         }
 
         .filter-select {
-            padding: 8px 12px;
+            padding: 10px 14px;
             border: 2px solid rgba(102, 126, 234, 0.3);
             border-radius: 8px;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: 500;
             background: rgba(255, 255, 255, 0.9);
             color: #333;
@@ -127,10 +127,10 @@
         }
 
         .clear-filters {
-            padding: 8px 12px;
+            padding: 10px 16px;
             border: none;
             border-radius: 8px;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -227,6 +227,18 @@
             text-align: left !important;
         }
 
+        .variety-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: all 0.3s ease;
+        }
+
+        .variety-link:hover {
+            color: #4c63d2;
+            text-decoration: none;
+        }
+
         .lot-cell {
             font-weight: 500;
             color: #495057;
@@ -309,6 +321,132 @@
         .empty-state-subtext {
             font-size: 1rem;
             opacity: 0.7;
+        }
+
+        /* Sales Modal */
+        .sales-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sales-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        .sales-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #333;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .sales-modal-close:hover {
+            color: #667eea;
+            transform: scale(1.1);
+        }
+
+        .sales-modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .sales-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .sales-data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .sales-data-table th:first-child {
+            border-top-left-radius: 10px;
+        }
+
+        .sales-data-table th:last-child {
+            border-top-right-radius: 10px;
+        }
+
+        .sales-data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            font-size: 0.85rem;
+        }
+
+        .sales-data-table tbody tr:nth-child(even) {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .sales-data-table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .sales-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .sales-loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .sales-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .sales-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
 
         /* Animations */
@@ -395,9 +533,9 @@
 
                 <div class="header-right">
                     <div class="filter-group">
-                        <label class="filter-label">Supergroup:</label>
-                        <select class="filter-select" id="supergroupFilter" onchange="applyFilters()">
-                            <option value="">All Supergroups</option>
+                        <label class="filter-label">Category:</label>
+                        <select class="filter-select" id="categoryFilter" onchange="applyFilters()">
+                            <option value="">All Categories</option>
                         </select>
                     </div>
 
@@ -450,6 +588,41 @@
         </div>
     </div>
 
+    <!-- Sales Data Modal -->
+    <div class="sales-modal" id="salesModal">
+        <div class="sales-modal-content">
+            <button class="sales-modal-close" onclick="closeSalesModal()">&times;</button>
+            <h2 class="sales-modal-title" id="salesModalTitle">Sales Data</h2>
+            
+            <div id="salesContent">
+                <!-- Loading state -->
+                <div class="sales-loading" id="salesLoading">
+                    <div class="sales-loading-spinner"></div>
+                    <div>Loading sales data...</div>
+                </div>
+                
+                <!-- Sales table -->
+                <table class="sales-data-table" id="salesTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Product SKU</th>
+                            <th>Quantity Sold</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
+                        <!-- Sales data will be populated here -->
+                    </tbody>
+                </table>
+                
+                <!-- Empty state -->
+                <div class="sales-empty" id="salesEmpty" style="display: none;">
+                    <div class="sales-empty-icon">📊</div>
+                    <div>No sales data found for this variety</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allData = [];
         let filteredData = [];
@@ -465,11 +638,16 @@
             fetch('{% url "germination_inventory_data" %}')
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Received data:', data);
+                    console.log('Categories:', data.categories);
+                    console.log('Groups:', data.groups);
+                    console.log('Sample inventory data:', data.inventory_data[0]);
+                    
                     allData = data.inventory_data;
                     germYears = data.germ_years;
                     
                     setupTableHeaders();
-                    populateFilters(data.supergroups, data.groups);
+                    populateFilters(data.categories, data.groups);
                     filteredData = [...allData];
                     renderTable();
                     hideLoading();
@@ -494,21 +672,21 @@
         }
 
         // Populate filter dropdowns
-        function populateFilters(supergroups, groups) {
-            const supergroupSelect = document.getElementById('supergroupFilter');
+        function populateFilters(categories, groups) {
+            const categorySelect = document.getElementById('categoryFilter');
             const groupSelect = document.getElementById('groupFilter');
 
             // Clear existing options (except "All")
-            supergroupSelect.innerHTML = '<option value="">All Supergroups</option>';
+            categorySelect.innerHTML = '<option value="">All Categories</option>';
             groupSelect.innerHTML = '<option value="">All Groups</option>';
 
-            // Add supergroup options
-            supergroups.forEach(supergroup => {
-                if (supergroup) { // Filter out null/empty values
+            // Add category options
+            categories.forEach(category => {
+                if (category) { // Filter out null/empty values
                     const option = document.createElement('option');
-                    option.value = supergroup;
-                    option.textContent = supergroup;
-                    supergroupSelect.appendChild(option);
+                    option.value = category;
+                    option.textContent = category;
+                    categorySelect.appendChild(option);
                 }
             });
 
@@ -525,20 +703,30 @@
 
         // Apply filters
         function applyFilters() {
-            const supergroupFilter = document.getElementById('supergroupFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
             const groupFilter = document.getElementById('groupFilter').value;
 
+            console.log('Applying filters - Category:', categoryFilter, 'Group:', groupFilter);
+            console.log('Total data before filtering:', allData.length);
+
             filteredData = allData.filter(item => {
-                return (!supergroupFilter || item.supergroup === supergroupFilter) &&
-                       (!groupFilter || item.group === groupFilter);
+                const categoryMatch = !categoryFilter || item.category === categoryFilter;
+                const groupMatch = !groupFilter || item.group === groupFilter;
+                
+                if (!categoryMatch || !groupMatch) {
+                    console.log('Filtered out:', item.variety_name, 'Category:', item.category, 'Group:', item.group);
+                }
+                
+                return categoryMatch && groupMatch;
             });
 
+            console.log('Filtered data count:', filteredData.length);
             renderTable();
         }
 
         // Clear all filters
         function clearFilters() {
-            document.getElementById('supergroupFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
             document.getElementById('groupFilter').value = '';
             filteredData = [...allData];
             renderTable();
@@ -564,7 +752,14 @@
                 // Variety
                 const varietyCell = document.createElement('td');
                 varietyCell.className = 'variety-cell';
-                varietyCell.textContent = `${item.variety_name} (${item.sku_prefix})`;
+                
+                // Create clickable variety name
+                const varietyLink = document.createElement('span');
+                varietyLink.className = 'variety-link';
+                varietyLink.textContent = `${item.variety_name} (${item.sku_prefix})`;
+                varietyLink.onclick = () => showSalesData(item.sku_prefix, item.variety_name);
+                
+                varietyCell.appendChild(varietyLink);
                 row.appendChild(varietyCell);
 
                 // Lot
@@ -657,6 +852,80 @@
                 </tr>
             `;
         }
+
+        // Sales modal functions
+        function showSalesData(sku_prefix, variety_name) {
+            // Set modal title
+            document.getElementById('salesModalTitle').textContent = `Sales Data - ${variety_name}`;
+            
+            // Show modal
+            document.getElementById('salesModal').style.display = 'flex';
+            
+            // Reset modal content
+            document.getElementById('salesLoading').style.display = 'block';
+            document.getElementById('salesTable').style.display = 'none';
+            document.getElementById('salesEmpty').style.display = 'none';
+            
+            // Fetch sales data
+            fetch(`{% url "variety_sales_data" sku_prefix="PLACEHOLDER" %}`.replace('PLACEHOLDER', sku_prefix))
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('salesLoading').style.display = 'none';
+                    
+                    if (data.sales_data && data.sales_data.length > 0) {
+                        populateSalesTable(data.sales_data, data.display_year);
+                        document.getElementById('salesTable').style.display = 'table';
+                    } else {
+                        document.getElementById('salesEmpty').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sales data:', error);
+                    document.getElementById('salesLoading').style.display = 'none';
+                    document.getElementById('salesEmpty').style.display = 'block';
+                });
+        }
+
+        function populateSalesTable(salesData, displayYear) {
+            const tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+            
+            salesData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Product SKU
+                const skuCell = document.createElement('td');
+                skuCell.textContent = item.sku_suffix || item.sku_prefix;
+                row.appendChild(skuCell);
+                
+                // Quantity with year
+                const qtyCell = document.createElement('td');
+                qtyCell.textContent = `${item.quantity} (${displayYear})`;
+                qtyCell.style.textAlign = 'right';
+                row.appendChild(qtyCell);
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function closeSalesModal() {
+            document.getElementById('salesModal').style.display = 'none';
+        }
+
+        // Close sales modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const salesModal = document.getElementById('salesModal');
+            if (event.target === salesModal) {
+                closeSalesModal();
+            }
+        });
+
+        // Close sales modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeSalesModal();
+            }
+        });
     </script>
 </body>
 </html>
