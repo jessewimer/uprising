@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uprising Seeds - Germination / Inventory</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Header Section */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .back-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: 2px solid transparent;
+            align-self: flex-start;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .page-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Filter Section */
+        .filters {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 20px 0;
+            border-top: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-select:hover {
+            border-color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .clear-filters {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
+            align-self: flex-end;
+        }
+
+        .clear-filters:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        /* Main Content */
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 12px;
+            text-align: center;
+            font-weight: 600;
+            border: none;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            font-size: 0.85rem;
+        }
+
+        .data-table th:first-child {
+            text-align: left;
+        }
+
+        .data-table th:first-child {
+            border-top-left-radius: 15px;
+        }
+
+        .data-table th:last-child {
+            border-top-right-radius: 15px;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .data-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: rgba(102, 126, 234, 0.02);
+        }
+
+        .data-table tbody tr:nth-child(even):hover {
+            background: rgba(102, 126, 234, 0.08);
+        }
+
+        /* Column specific styling */
+        .data-table .variety-cell {
+            font-weight: 600;
+            color: #333;
+            max-width: 200px;
+            text-align: left !important;
+        }
+
+        .lot-cell {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .inventory-cell {
+            font-weight: 500;
+        }
+
+        .positive-diff {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .negative-diff {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .neutral-diff {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .germ-cell {
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .germ-good {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .germ-fair {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .germ-poor {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        /* Loading and Empty States */
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-subtext {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .filters {
+                flex-wrap: wrap;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .page-title {
+                font-size: 1.8rem;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+
+            .filter-select {
+                min-width: auto;
+            }
+
+            .data-table {
+                font-size: 0.75rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="header-top">
+                <div class="header-left">
+                    <a href="{% url 'office_landing' %}" class="back-button">
+                        ← Back to Dashboard
+                    </a>
+                    <h1 class="page-title">Germination / Inventory</h1>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">Supergroup:</label>
+                    <select class="filter-select" id="supergroupFilter" onchange="applyFilters()">
+                        <option value="">All Supergroups</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Group:</label>
+                    <select class="filter-select" id="groupFilter" onchange="applyFilters()">
+                        <option value="">All Groups</option>
+                    </select>
+                </div>
+
+                <button class="clear-filters" onclick="clearFilters()">
+                    Clear Filters
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr id="tableHeader">
+                            <th>Variety</th>
+                            <th>Lot</th>
+                            <th>Current Inv</th>
+                            <th>Previous Inv</th>
+                            <th>Difference</th>
+                            <!-- Germination columns will be added dynamically -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+                
+                <!-- Loading State -->
+                <div class="loading-state" id="loadingState">
+                    <div class="loading-spinner"></div>
+                    <div>Loading germination and inventory data...</div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-state-icon">📊</div>
+                    <div class="empty-state-text">No data found</div>
+                    <div class="empty-state-subtext">Try adjusting your filters or check that data has been entered</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let germYears = [];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
+
+        // Load data from Django backend
+        function loadData() {
+            fetch('{% url "germination_inventory_data" %}')
+                .then(response => response.json())
+                .then(data => {
+                    allData = data.inventory_data;
+                    germYears = data.germ_years;
+                    
+                    setupTableHeaders();
+                    populateFilters(data.supergroups, data.groups);
+                    filteredData = [...allData];
+                    renderTable();
+                    hideLoading();
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    showError('Failed to load data. Please refresh the page.');
+                    hideLoading();
+                });
+        }
+
+        // Setup table headers with dynamic germination columns
+        function setupTableHeaders() {
+            const headerRow = document.getElementById('tableHeader');
+            
+            // Add germination columns
+            germYears.forEach(year => {
+                const th = document.createElement('th');
+                th.textContent = `Germ ${year}`;
+                headerRow.appendChild(th);
+            });
+        }
+
+        // Populate filter dropdowns
+        function populateFilters(supergroups, groups) {
+            const supergroupSelect = document.getElementById('supergroupFilter');
+            const groupSelect = document.getElementById('groupFilter');
+
+            // Clear existing options (except "All")
+            supergroupSelect.innerHTML = '<option value="">All Supergroups</option>';
+            groupSelect.innerHTML = '<option value="">All Groups</option>';
+
+            // Add supergroup options
+            supergroups.forEach(supergroup => {
+                if (supergroup) { // Filter out null/empty values
+                    const option = document.createElement('option');
+                    option.value = supergroup;
+                    option.textContent = supergroup;
+                    supergroupSelect.appendChild(option);
+                }
+            });
+
+            // Add group options
+            groups.forEach(group => {
+                if (group) { // Filter out null/empty values
+                    const option = document.createElement('option');
+                    option.value = group;
+                    option.textContent = group;
+                    groupSelect.appendChild(option);
+                }
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const supergroupFilter = document.getElementById('supergroupFilter').value;
+            const groupFilter = document.getElementById('groupFilter').value;
+
+            filteredData = allData.filter(item => {
+                return (!supergroupFilter || item.supergroup === supergroupFilter) &&
+                       (!groupFilter || item.group === groupFilter);
+            });
+
+            renderTable();
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('supergroupFilter').value = '';
+            document.getElementById('groupFilter').value = '';
+            filteredData = [...allData];
+            renderTable();
+        }
+
+        // Render table with filtered data
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tbody.innerHTML = '';
+
+            filteredData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Variety
+                const varietyCell = document.createElement('td');
+                varietyCell.className = 'variety-cell';
+                varietyCell.textContent = `${item.variety_name} (${item.sku_prefix})`;
+                row.appendChild(varietyCell);
+
+                // Lot
+                const lotCell = document.createElement('td');
+                lotCell.className = 'lot-cell';
+                lotCell.textContent = item.lot_code;
+                row.appendChild(lotCell);
+
+                // Current Inventory
+                const currentInvCell = document.createElement('td');
+                currentInvCell.className = 'inventory-cell';
+                currentInvCell.textContent = item.current_inventory ? `${item.current_inventory} lbs` : '-';
+                row.appendChild(currentInvCell);
+
+                // Previous Inventory
+                const previousInvCell = document.createElement('td');
+                previousInvCell.className = 'inventory-cell';
+                previousInvCell.textContent = item.previous_inventory ? `${item.previous_inventory} lbs` : '-';
+                row.appendChild(previousInvCell);
+
+                // Difference
+                const diffCell = document.createElement('td');
+                diffCell.className = 'inventory-cell';
+                if (item.inventory_difference !== null) {
+                    const diff = parseFloat(item.inventory_difference);
+                    diffCell.textContent = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} lbs`;
+                    
+                    if (diff > 0) {
+                        diffCell.className += ' positive-diff';
+                    } else if (diff < 0) {
+                        diffCell.className += ' negative-diff';
+                    } else {
+                        diffCell.className += ' neutral-diff';
+                    }
+                } else {
+                    diffCell.textContent = '-';
+                    diffCell.className += ' neutral-diff';
+                }
+                row.appendChild(diffCell);
+
+                // Germination columns
+                germYears.forEach(year => {
+                    const germCell = document.createElement('td');
+                    germCell.className = 'germ-cell';
+                    
+                    const germRate = item.germination_rates[year];
+                    if (germRate !== null && germRate !== undefined) {
+                        germCell.textContent = `${germRate}%`;
+                        
+                        // Add color coding based on germination rate
+                        if (germRate >= 85) {
+                            germCell.className += ' germ-good';
+                        } else if (germRate >= 70) {
+                            germCell.className += ' germ-fair';
+                        } else {
+                            germCell.className += ' germ-poor';
+                        }
+                    } else {
+                        germCell.textContent = '-';
+                    }
+                    
+                    row.appendChild(germCell);
+                });
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="100%" style="text-align: center; color: #dc3545; padding: 40px;">
+                        ${message}
+                    </td>
+                </tr>
+            `;
+        }
+    </script>
+</body>
+</html>

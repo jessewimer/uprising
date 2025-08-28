@@ -19,7 +19,6 @@ urlpatterns = [
     # Action card destinations (matching the landing page links)
     path('edit-products/', product_views.edit_products, name='edit_products'),
     path('view-variety/', view_variety, name='view_variety'),
-    path('inventory/', inventory_germination, name='inventory'),
     path('analytics/', analytics, name='analytics'),
     path('process-store-orders/', store_views.process_store_orders, name='process_store_orders'),
     path('view-stores/', store_views.view_stores, name='view_stores'),
@@ -31,7 +30,8 @@ urlpatterns = [
 
     path('inventory/', lot_views.inventory, name='inventory'),
     path('process-online-orders/', order_views.process_online_orders, name='process_online_orders'),
-    path('inventory-germination/', inventory_germination, name='inventory_germination'),
+    path('germination-inventory/', germination_inventory_view, name='germination_inventory'),
+    path('api/germination-inventory-data/', germination_inventory_data, name='germination_inventory_data'),
     
     # JSON API endpoints
     path('varieties-json/', varieties_json, name='varieties_json'),

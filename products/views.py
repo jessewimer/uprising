@@ -10,13 +10,12 @@ from stores.models import StoreOrder
 from products.models import Product, Variety
 from uprising.utils.auth import is_employee
 
-def is_admin(user):
-    return user.is_authenticated and user.is_staff and user.is_superuser
+# def is_admin(user):
+#     return user.is_authenticated and user.is_staff and user.is_superuser
 
 # Handles requests from the admin user to edit the available products for a store
 @login_required
 @user_passes_test(is_employee)
-# @user_passes_test(is_admin)
 def edit_products(request):
     if request.method == 'POST':
         print("POST request received in edit_products view")
