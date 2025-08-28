@@ -137,90 +137,6 @@
             color: #555;
         }
 
-        /* Toast Notifications */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .toast {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            border-left: 5px solid;
-            min-width: 300px;
-            max-width: 400px;
-            transform: translateX(450px);
-            transition: all 0.4s ease;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .toast.show {
-            transform: translateX(0);
-        }
-
-        .toast.success {
-            border-left-color: #26de81;
-        }
-
-        .toast.error {
-            border-left-color: #ff6b6b;
-        }
-
-        .toast.warning {
-            border-left-color: #f093fb;
-        }
-
-        .toast-icon {
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .toast-content {
-            flex-grow: 1;
-        }
-
-        .toast-title {
-            font-weight: 600;
-            font-size: 1rem;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .toast-message {
-            font-size: 0.9rem;
-            color: #666;
-            line-height: 1.4;
-        }
-
-        .toast-close {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #999;
-            cursor: pointer;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .toast-close:hover {
-            color: #666;
-        }
-
         /* Inventory Menu Modal */
         .inventory-modal {
             display: none;
@@ -690,19 +606,16 @@
             </a>
         </div>
 
-        <!-- Footer with Logout and Admin -->
+        <!-- Footer with Logout -->
         <div class="footer">
-            <button class="admin-button" onclick="checkAdminAccess()">
-                Admin
-            </button>
             <button class="logout-button" onclick="showLogoutVerification()">
                 Logout
             </button>
+            <a href="{% url 'admin_dashboard' %}" class="admin-button">
+                Admin
+            </a>
         </div>
     </div>
-
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
 
     <!-- Inventory Menu Modal -->
     <div class="inventory-modal" id="inventoryMenu">
@@ -711,7 +624,7 @@
             <h2 class="inventory-menu-title">Inventory & Germination</h2>
             <div class="inventory-options">
                 <a href="{% url 'germ_samples' %}" class="inventory-option">
-                    <div class="inventory-option-icon">🧫</div>
+                    <div class="inventory-option-icon">🧪</div>
                     <div class="inventory-option-text">Send Germ Samples</div>
                 </a>
                 <a href="{% url 'inventory' %}" class="inventory-option">
@@ -761,43 +674,6 @@
         // Set the logout URL using Django template tag
         window.logoutUrl = "{% url 'office_logout' %}";
 
-        // Toast notification system
-        function showToast(type, title, message, duration = 5000) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            
-            const icons = {
-                success: '✅',
-                error: '❌',
-                warning: '⚠️',
-                info: 'ℹ️'
-            };
-            
-            toast.innerHTML = `
-                <div class="toast-icon">${icons[type] || icons.info}</div>
-                <div class="toast-content">
-                    <div class="toast-title">${title}</div>
-                    <div class="toast-message">${message}</div>
-                </div>
-                <button class="toast-close" onclick="closeToast(this)">&times;</button>
-            `;
-            
-            container.appendChild(toast);
-            
-            // Animate in
-            setTimeout(() => toast.classList.add('show'), 100);
-            
-            // Auto remove
-            setTimeout(() => closeToast(toast.querySelector('.toast-close')), duration);
-        }
-
-        function closeToast(button) {
-            const toast = button.closest('.toast');
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 400);
-        }
-
         // Function to get CSRF token
         function getCookie(name) {
             let cookieValue = null;
@@ -812,30 +688,6 @@
                 }
             }
             return cookieValue;
-        }
-
-        // Admin access check function
-        function checkAdminAccess() {
-            fetch('{% url "check_admin_access" %}', {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.is_admin) {
-                    // Redirect to admin dashboard
-                    window.location.href = '{% url "admin_dashboard" %}';
-                } else {
-                    // Show unauthorized toast
-                    showToast('error', 'Access Denied', 'You are not authorized to access the admin dashboard. Please contact an administrator if you need access.');
-                }
-            })
-            .catch(error => {
-                console.error('Error checking admin access:', error);
-                showToast('error', 'Error', 'Unable to verify admin access. Please try again.');
-            });
         }
 
         // Inventory menu handlers

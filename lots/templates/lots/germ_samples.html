@@ -777,6 +777,8 @@
         let confirmCallback = null;
         
         function showConfirm(title, message, icon, onConfirm, inputConfig = null) {
+            console.log('showConfirm called with:', { title, message, icon, inputConfig });
+            
             document.getElementById('confirmIcon').textContent = icon;
             document.getElementById('confirmTitle').textContent = title;
             document.getElementById('confirmMessage').textContent = message;
@@ -788,21 +790,33 @@
             const batchInputs = document.getElementById('batchSubmissionInputs');
             
             if (inputConfig) {
+                console.log('Input config provided:', inputConfig);
+                
                 if (inputConfig.type === 'batch_submission') {
+                    console.log('Setting up batch submission inputs');
+                    
                     // Show batch submission inputs
                     singleInputLabel.style.display = 'none';
                     singleInputField.style.display = 'none';
                     batchInputs.style.display = 'block';
                     inputGroup.style.display = 'block';
                     
-                    // Set default year to current 2-digit year
-                    const currentYear = new Date().getFullYear().toString().slice(-2);
-                    document.getElementById('yearInput').value = currentYear;
+                    // Set default year to next 2-digit year (for testing next year's crop)
+                    const nextYear = (new Date().getFullYear() + 1).toString().slice(-2);
+                    console.log('Setting default year to next year:', nextYear);
+                    
+                    document.getElementById('yearInput').value = nextYear;
                     document.getElementById('trackingInput').value = '';
                     
+                    console.log('Batch inputs setup complete');
+                    
                     // Focus the tracking input
-                    setTimeout(() => document.getElementById('trackingInput').focus(), 200);
+                    setTimeout(() => {
+                        document.getElementById('trackingInput').focus();
+                        console.log('Focused tracking input');
+                    }, 200);
                 } else {
+                    console.log('Setting up single input');
                     // Show single input
                     singleInputLabel.textContent = inputConfig.label;
                     singleInputField.placeholder = inputConfig.placeholder || '';
@@ -817,10 +831,14 @@
                     setTimeout(() => singleInputField.focus(), 200);
                 }
             } else {
+                console.log('No input config, hiding input group');
                 inputGroup.style.display = 'none';
             }
             
+            console.log('Setting confirmCallback');
             confirmCallback = onConfirm;
+            
+            console.log('Showing modal');
             document.getElementById('confirmModal').style.display = 'flex';
         }
 
@@ -831,19 +849,32 @@
         }
 
         function handleConfirm() {
+            console.log('handleConfirm called');
+            
             const inputGroup = document.getElementById('confirmInputGroup');
             const batchInputs = document.getElementById('batchSubmissionInputs');
+            console.log('inputGroup display:', inputGroup.style.display);
+            console.log('batchInputs display:', batchInputs.style.display);
+            
             let inputValue = null;
             
             // Get input value if input field is shown
             if (inputGroup.style.display !== 'none') {
+                console.log('Input group is visible');
+                
                 if (batchInputs.style.display !== 'none') {
+                    console.log('Batch inputs are visible, processing...');
+                    
                     // Handle batch submission inputs
                     const trackingNumber = document.getElementById('trackingInput').value.trim();
                     const year = document.getElementById('yearInput').value.trim();
                     
+                    console.log('trackingNumber:', trackingNumber);
+                    console.log('year:', year);
+                    
                     // Validate year is 2 digits
                     if (!validateYear(year)) {
+                        console.log('Year validation failed');
                         // Show error styling
                         const yearInput = document.getElementById('yearInput');
                         yearInput.classList.add('error');
@@ -854,12 +885,17 @@
                         return;
                     }
                     
+                    console.log('Year validation passed');
+                    
                     // Return both values as an object
                     inputValue = {
                         tracking_number: trackingNumber,
                         year: year
                     };
+                    
+                    console.log('inputValue created:', inputValue);
                 } else {
+                    console.log('Single input mode, processing...');
                     // Handle single input
                     const inputField = document.getElementById('confirmInput');
                     inputValue = inputField.value.trim();
@@ -871,12 +907,23 @@
                         return;
                     }
                 }
+            } else {
+                console.log('No input group visible');
             }
             
+            console.log('About to call callback');
+            console.log('confirmCallback exists:', !!confirmCallback);
+            
+            // SAVE the callback BEFORE closing the modal
+            const savedCallback = confirmCallback;
+            
             closeModal('confirmModal');
-            if (confirmCallback) {
-                confirmCallback(inputValue);
-                confirmCallback = null;
+            
+            if (savedCallback) {
+                console.log('Calling savedCallback with:', inputValue);
+                savedCallback(inputValue);
+            } else {
+                console.log('No confirmCallback was set!');
             }
         }
 
@@ -1054,16 +1101,30 @@
             updateUI();
             
             showToast('success', 'Sample Added', 
-                `${lotData.variety_name} (${lotData.sku_prefix}) added to batch.`, 2000);
+                `${lotData.variety_name} (${lotData.sku_prefix}) - ${lotData.lot_code} added successfully`, 2000);
             
             console.log('Scanned successfully:', barcode);
         }
 
         // Submit batch to database
         function submitBatch() {
+            console.log('submitBatch called');
+            console.log('currentBatch:', currentBatch);
+            console.log('samples:', samples);
+            
             if (!currentBatch || currentBatch.status !== 'pending' || samples.length === 0) {
                 showToast('warning', 'Cannot Submit', 'No pending batch with samples to submit.');
                 return;
+            }
+
+            // Deactivate scanner when submitting
+            if (scanningActive) {
+                scanningActive = false;
+                const scanButton = document.getElementById('scanButton');
+                scanButton.textContent = 'Start Scanning';
+                scanButton.className = 'btn btn-secondary';
+                updateUI();
+                showToast('info', 'Scanner Stopped', 'Scanner deactivated for batch submission.');
             }
 
             showConfirm(
@@ -1071,29 +1132,68 @@
                 `Submit batch ${currentBatch.batch_number} with ${samples.length} samples? Please enter tracking information and the testing year.`,
                 '📤',
                 function(inputData) {
+                    console.log('Confirm callback called with inputData:', inputData);
+                    
                     // inputData will be an object with tracking_number and year
                     const sampleLotIds = samples.map(s => s.lot_id);
+                    console.log('sampleLotIds:', sampleLotIds);
+                    
+                    // Check if lot_ids exist
+                    if (sampleLotIds.includes(undefined) || sampleLotIds.includes(null)) {
+                        console.error('Missing lot_id in samples:', samples);
+                        showToast('error', 'Data Error', 'Some samples are missing lot IDs. Please refresh and try again.');
+                        return;
+                    }
+
+                    const requestData = {
+                        batch_id: currentBatch.id,
+                        sample_ids: sampleLotIds,
+                        tracking_number: inputData.tracking_number,
+                        for_year: parseInt(inputData.year) // Send 2-digit year directly to match DB storage
+                    };
+                    
+                    console.log('Sending request with data:', requestData);
 
                     fetch('{% url "submit_batch" %}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({
-                            batch_id: currentBatch.id,
-                            sample_ids: sampleLotIds,
-                            tracking_number: inputData.tracking_number,
-                            for_year: parseInt(`20${inputData.year}`) // Convert 25 to 2025 for backend
-                        })
+                        body: JSON.stringify(requestData)
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('Response received:', response);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Response data:', data);
                         if (data.success) {
                             const trackingMsg = inputData.tracking_number ? ` (Tracking: ${inputData.tracking_number})` : '';
                             showToast('success', 'Batch Submitted', 
                                 `Batch ${currentBatch.batch_number} with ${samples.length} samples submitted for 20${inputData.year} testing!${trackingMsg}`);
                             
-                            // Update local batch data
+                            // Update the batch in the master allBatches array
+                            const batchIndex = allBatches.findIndex(b => b.id === currentBatch.id);
+                            if (batchIndex !== -1) {
+                                allBatches[batchIndex].status = 'sent';
+                                allBatches[batchIndex].date = new Date().toISOString().split('T')[0]; // Today's date
+                                if (inputData.tracking_number) {
+                                    allBatches[batchIndex].tracking_number = inputData.tracking_number;
+                                }
+                                // Update germinations in the master array
+                                allBatches[batchIndex].germinations = samples.map(s => ({
+                                    barcode: s.barcode,
+                                    sku_prefix: s.sku_prefix,
+                                    lot_code: s.lot_code,
+                                    variety_name: s.variety_name,
+                                    crop_name: s.crop_name
+                                }));
+                            }
+                            
+                            // Update local currentBatch data
                             currentBatch.germinations = samples.map(s => ({
                                 barcode: s.barcode,
                                 sku_prefix: s.sku_prefix,
@@ -1103,10 +1203,13 @@
                             }));
                             
                             // Mark as sent with tracking number
+                            currentBatch.status = 'sent';
                             if (inputData.tracking_number) {
                                 currentBatch.tracking_number = inputData.tracking_number;
-                                currentBatch.status = 'sent';
                             }
+                            
+                            // Refresh the dropdown with updated data
+                            populateBatchDropdown();
                             
                             // Clear current selection
                             currentBatch = null;
@@ -1116,11 +1219,12 @@
                             updateUI();
                             updateSamplesTable();
                         } else {
+                            console.error('Server returned error:', data.error);
                             showToast('error', 'Submission Failed', `Error submitting batch: ${data.error}`);
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Fetch error:', error);
                         showToast('error', 'Network Error', 'Error submitting batch. Please check your connection and try again.');
                     });
                 },

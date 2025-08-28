@@ -1,4 +1,5 @@
-from datetime import timezone
+# from datetime import timezone
+from django.utils import timezone 
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -109,38 +110,135 @@ def create_new_batch(request):
 @user_passes_test(is_employee)
 def submit_batch(request):
     """Submit completed batch to database"""
+    
     try:
+        print(f"=== submit_batch called by user: {request.user} ===")
+        
         data = json.loads(request.body)
+        print(f"Request data: {data}")
+        
         batch_id = data.get('batch_id')
         sample_ids = data.get('sample_ids', [])  # Array of lot_ids
-        tracking_number = data.get('tracking_number', '').strip()  # New tracking number field
-        for_year = data.get('for_year')
+        tracking_number = data.get('tracking_number', '').strip()
+        for_year = data.get('for_year')  # This will be the 4-digit year (e.g., 2025)
         
-        batch = GerminationBatch.objects.get(id=batch_id)
+        print(f"Parsed: batch_id={batch_id}, sample_ids={sample_ids}, tracking={tracking_number}, year={for_year}")
+        
+        if not batch_id:
+            print("ERROR: No batch_id provided")
+            return JsonResponse({'success': False, 'error': 'No batch ID provided'})
+            
+        if not sample_ids:
+            print("ERROR: No sample_ids provided")
+            return JsonResponse({'success': False, 'error': 'No sample IDs provided'})
+            
+        if not for_year:
+            print("ERROR: No for_year provided")
+            return JsonResponse({'success': False, 'error': 'No year provided'})
+        
+        try:
+            batch = GerminationBatch.objects.get(id=batch_id)
+            print(f"Found batch: {batch} (ID: {batch.id})")
+        except GerminationBatch.DoesNotExist:
+            print(f"ERROR: Batch {batch_id} does not exist")
+            return JsonResponse({'success': False, 'error': f'Batch {batch_id} not found'})
         
         # Create germination entries for each scanned sample
+        created_germinations = []
+        print(f"Processing {len(sample_ids)} sample IDs...")
+        
         for lot_id in sample_ids:
-            lot = Lot.objects.get(id=lot_id)
-            Germination.objects.get_or_create(
-                lot=lot,
-                batch=batch,
-                defaults={
-                    'status': 'pending',
-                    'germination_rate': 0,
-                    'for_year': for_year
-                }
-            )
+            print(f"Processing lot_id: {lot_id}")
+            
+            try:
+                lot = Lot.objects.get(id=lot_id)
+                print(f"Found lot: {lot} (ID: {lot.id})")
+                
+                germination, created = Germination.objects.get_or_create(
+                    lot=lot,
+                    batch=batch,
+                    defaults={
+                        'status': 'pending',
+                        'germination_rate': 0,
+                        'for_year': for_year
+                    }
+                )
+                
+                if created:
+                    print(f"✓ Created new germination: {germination} (ID: {germination.id})")
+                    created_germinations.append(germination)
+                else:
+                    print(f"→ Germination already exists: {germination} (ID: {germination.id})")
+                    
+            except Lot.DoesNotExist:
+                print(f"ERROR: Lot {lot_id} does not exist")
+                return JsonResponse({'success': False, 'error': f'Lot {lot_id} not found'})
+        
+        print(f"Created {len(created_germinations)} new germinations")
         
         # Update batch with submission details
+        old_date = batch.date
         batch.date = timezone.now().date()  # Set to current date
         if tracking_number:
             batch.tracking_number = tracking_number
         batch.save()
         
-        return JsonResponse({'success': True})
+        print(f"Updated batch: date changed from {old_date} to {batch.date}, tracking={batch.tracking_number}")
+        
+        # Verify germinations were created
+        total_germinations = batch.germinations.count()
+        print(f"Total germinations in batch now: {total_germinations}")
+        
+        for germ in batch.germinations.all():
+            print(f"  - {germ.lot.variety.var_name} ({germ.lot.variety.sku_prefix}) - Lot: {germ.lot.grower.code if germ.lot.grower else 'UNK'}{germ.lot.year} - Status: {germ.status}")
+        
+        print("=== submit_batch completed successfully ===")
+        
+        return JsonResponse({
+            'success': True, 
+            'germinations_created': len(created_germinations),
+            'total_germinations': total_germinations
+        })
         
     except Exception as e:
+        print(f"EXCEPTION in submit_batch: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)})
+# def submit_batch(request):
+#     """Submit completed batch to database"""
+#     try:
+#         data = json.loads(request.body)
+#         batch_id = data.get('batch_id')
+#         sample_ids = data.get('sample_ids', [])  # Array of lot_ids
+#         tracking_number = data.get('tracking_number', '').strip()  # New tracking number field
+#         for_year = data.get('for_year')
+        
+#         batch = GerminationBatch.objects.get(id=batch_id)
+        
+#         # Create germination entries for each scanned sample
+#         for lot_id in sample_ids:
+#             lot = Lot.objects.get(id=lot_id)
+#             Germination.objects.get_or_create(
+#                 lot=lot,
+#                 batch=batch,
+#                 defaults={
+#                     'status': 'pending',
+#                     'germination_rate': 0,
+#                     'for_year': for_year
+#                 }
+#             )
+        
+#         # Update batch with submission details
+#         batch.date = timezone.now().date()  # Set to current date
+#         if tracking_number:
+#             batch.tracking_number = tracking_number
+#         batch.save()
+        
+#         return JsonResponse({'success': True})
+        
+#     except Exception as e:
+#         return JsonResponse({'success': False, 'error': str(e)})
 
 
 # Update your existing process_orders and view_stores views if needed:

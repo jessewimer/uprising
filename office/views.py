@@ -12,13 +12,16 @@ from lots.models import Grower, Lot, RetiredLot, StockSeed
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Case, When, IntegerField
-# import utils.auth
 from uprising.utils.auth import is_employee
 from uprising import settings
+from django.views.decorators.http import require_http_methods
 
-# def is_employee(user):
-#     return user.is_authenticated and user.groups.filter(name="employees").exists()
-
+@login_required
+@require_http_methods(["GET"])
+def check_admin_access(request):
+    """Check if user has admin access"""
+    is_admin = request.user.is_staff or request.user.is_superuser
+    return JsonResponse({'is_admin': is_admin})
 class OfficeLoginForm(AuthenticationForm):
     """
     Custom login form that keeps the standard AuthenticationForm behavior.

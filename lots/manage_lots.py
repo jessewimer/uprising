@@ -417,5 +417,5 @@ if __name__ == "__main__":
     # import_germination_data(germ_file_path)
     # import_inventory_data(inv_file_path)
     # import_retired_lots(ret_file_path)
-    # clear_germination_batch_and_test_germinations()
+    clear_germination_batch_and_test_germinations()
     view_germination_batches()

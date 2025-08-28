@@ -10,6 +10,7 @@ urlpatterns = [
     # Authentication
     path('login/', OfficeLoginView.as_view(), name='office_login'),
     path('logout/', OfficeLogoutView.as_view(), name='office_logout'),
+    path('api/check-admin-access/', check_admin_access, name='check_admin_access'),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
     
     # Main office page
