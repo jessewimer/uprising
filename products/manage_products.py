@@ -478,12 +478,65 @@ def import_sales(csv_file, dry_run=False):
 
     print(f"🎉 Import complete. Created {created_count} sales records, {error_count} errors.")
 
-# ####  MAIN PROGRAM BEGINS HERE  #### #
-full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
-prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
-import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
+def export_variety_csv(filepath="varieties_export.csv"):
+    """
+    Export all Variety records into a CSV file with sku_prefix and category.
+    """
+    varieties = Variety.objects.values_list("sku_prefix", "category")
+    with open(filepath, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["sku_prefix", "category"])  # header row
+        for sku_prefix, category in varieties:
+            writer.writerow([sku_prefix, category])
+    print(f"✅ Exported {varieties.count()} varieties to {filepath}")
 
-import_sales(import_sales_csv)
+
+def import_variety_csv(filepath="varieties_export.csv"):
+    """
+    Import a CSV of sku_prefix and category into the Variety table.
+    - Updates category if sku_prefix already exists.
+    - Creates new Variety if sku_prefix does not exist.
+    """
+    with open(filepath, mode="r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        count_new, count_updated = 0, 0
+        for row in reader:
+            sku_prefix = row["sku_prefix"].strip()
+            category = row["category"].strip() if row["category"] else None
+
+            variety, created = Variety.objects.update_or_create(
+                sku_prefix=sku_prefix,
+                defaults={"category": category},
+            )
+            if created:
+                count_new += 1
+            else:
+                count_updated += 1
+
+    print(f"✅ Import complete: {count_new} new, {count_updated} updated")
+
+
+def print_var_sku_prefixes_and_categories():
+    varieties = Variety.objects.all().order_by('sku_prefix').values('sku_prefix', 'category')
+
+    table = PrettyTable()
+    table.field_names = ["SKU Prefix", "Category"]
+
+    for v in varieties:
+        table.add_row([v['sku_prefix'], v['category'] or ''])
+
+    print(table)
+
+
+# ####  MAIN PROGRAM BEGINS HERE  #### #
+# export_variety_csv()
+# import_variety_csv()
+print_var_sku_prefixes_and_categories()
+# full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
+# prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
+# import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
+
+# import_sales(import_sales_csv)
 
 # update_varieties_from_csv(full_file_path)
 # import_products_from_csv(full_file_path)

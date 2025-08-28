@@ -576,21 +576,13 @@
                 // Current Inventory
                 const currentInvCell = document.createElement('td');
                 currentInvCell.className = 'inventory-cell';
-                if (item.current_inventory_weight && item.current_inventory_date) {
-                    currentInvCell.textContent = `${item.current_inventory_weight} lbs (${item.current_inventory_date})`;
-                } else {
-                    currentInvCell.textContent = '-';
-                }
+                currentInvCell.textContent = item.current_inventory ? `${item.current_inventory} lbs` : '-';
                 row.appendChild(currentInvCell);
 
                 // Previous Inventory
                 const previousInvCell = document.createElement('td');
                 previousInvCell.className = 'inventory-cell';
-                if (item.previous_inventory_weight && item.previous_inventory_date) {
-                    previousInvCell.textContent = `${item.previous_inventory_weight} lbs (${item.previous_inventory_date})`;
-                } else {
-                    previousInvCell.textContent = '-';
-                }
+                previousInvCell.textContent = item.previous_inventory ? `${item.previous_inventory} lbs` : '-';
                 row.appendChild(previousInvCell);
 
                 // Difference

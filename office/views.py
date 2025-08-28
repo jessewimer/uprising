@@ -722,6 +722,119 @@ def germination_inventory_view(request):
     """Render the germination/inventory page"""
     return render(request, 'office/germination_inventory.html')
 
+# @login_required
+# @user_passes_test(is_employee)
+# @require_http_methods(["GET"])
+# def germination_inventory_data(request):
+#     """API endpoint to get germination and inventory data"""
+    
+#     try:
+#         # Find the most recent germination year across all lots
+#         max_germ_year = Germination.objects.aggregate(
+#             max_year=Max('for_year')
+#         )['max_year']
+        
+#         if max_germ_year is None:
+#             max_germ_year = 25  # Default if no germination data
+            
+#         # Calculate the 4 germination years to display
+#         germ_years = []
+#         for i in range(3, -1, -1):  # 3, 2, 1, 0 (last 4 years)
+#             year = max_germ_year - i
+#             if year >= 0:  # Don't go negative
+#                 germ_years.append(f"{year:02d}")  # Format as 2-digit string
+        
+#         print(f"Max germ year: {max_germ_year}, Displaying years: {germ_years}")
+        
+#         # Get all lots with related data, EXCLUDING retired lots
+#         lots = Lot.objects.select_related(
+#             'variety', 'grower'
+#         ).prefetch_related(
+#             'inventory', 'germinations'
+#         ).filter(
+#             variety__isnull=False
+#         ).exclude(
+#             retired_info__isnull=False  # Exclude lots that have a RetiredLot record
+#         ).order_by(
+#             'variety__supergroup', 
+#             'variety__group', 
+#             'variety__sku_prefix', 
+#             'year'
+#         )
+        
+#         inventory_data = []
+#         supergroups = set()
+#         groups = set()
+        
+#         for lot in lots:
+#             variety = lot.variety
+            
+#             # Add to filter sets
+#             if variety.supergroup:
+#                 supergroups.add(variety.supergroup)
+#             if variety.group:
+#                 groups.add(variety.group)
+            
+#             # Get inventory data for this lot
+#             inventories = lot.inventory.order_by('-inv_date')
+            
+#             current_inventory = None
+#             previous_inventory = None
+#             inventory_difference = None
+            
+#             if inventories.exists():
+#                 current_inventory = float(inventories.first().weight)
+#                 if inventories.count() > 1:
+#                     previous_inventory = float(inventories[1].weight)
+#                     inventory_difference = current_inventory - previous_inventory
+            
+#             # Get germination data for the display years
+#             germination_rates = {}
+#             for year_str in germ_years:
+#                 year_int = int(year_str)  # Convert back to 4-digit year for database lookup
+                
+#                 germ = lot.germinations.filter(for_year=year_int).first()
+#                 if germ:
+#                     germination_rates[year_str] = germ.germination_rate
+#                 else:
+#                     germination_rates[year_str] = None
+            
+#             # Create lot code
+#             grower_code = lot.grower.code if lot.grower else 'UNK'
+#             lot_code = f"{grower_code}{lot.year}"
+            
+#             inventory_data.append({
+#                 'variety_name': variety.var_name,
+#                 'sku_prefix': variety.sku_prefix,
+#                 'supergroup': variety.supergroup,
+#                 'group': variety.group,
+#                 'lot_code': lot_code,
+#                 'current_inventory': current_inventory,
+#                 'previous_inventory': previous_inventory,
+#                 'inventory_difference': inventory_difference,
+#                 'germination_rates': germination_rates
+#             })
+        
+#         # Convert sets to sorted lists
+#         supergroups = sorted(list(supergroups))
+#         groups = sorted(list(groups))
+        
+#         print(f"Returning {len(inventory_data)} active lot records (retired lots excluded)")
+#         print(f"Supergroups: {supergroups}")
+#         print(f"Groups: {groups}")
+        
+#         return JsonResponse({
+#             'inventory_data': inventory_data,
+#             'germ_years': germ_years,
+#             'supergroups': supergroups,
+#             'groups': groups
+#         })
+        
+#     except Exception as e:
+#         print(f"Error in germination_inventory_data: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         return JsonResponse({'error': str(e)}, status=500)
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
@@ -778,22 +891,29 @@ def germination_inventory_data(request):
             # Get inventory data for this lot
             inventories = lot.inventory.order_by('-inv_date')
             
-            current_inventory = None
-            previous_inventory = None
+            current_inventory_weight = None
+            current_inventory_date = None
+            previous_inventory_weight = None
+            previous_inventory_date = None
             inventory_difference = None
             
             if inventories.exists():
-                current_inventory = float(inventories.first().weight)
+                current_inv = inventories.first()
+                current_inventory_weight = float(current_inv.weight)
+                current_inventory_date = current_inv.inv_date.strftime('%m/%Y')  # Format as MM/YYYY
+                
                 if inventories.count() > 1:
-                    previous_inventory = float(inventories[1].weight)
-                    inventory_difference = current_inventory - previous_inventory
+                    previous_inv = inventories[1]
+                    previous_inventory_weight = float(previous_inv.weight)
+                    previous_inventory_date = previous_inv.inv_date.strftime('%m/%Y')  # Format as MM/YYYY
+                    inventory_difference = current_inventory_weight - previous_inventory_weight
             
             # Get germination data for the display years
             germination_rates = {}
             for year_str in germ_years:
-                year_int = int(year_str)  # Convert back to 4-digit year for database lookup
+                year_for_lookup = int(year_str)  # Use 2-digit year directly
                 
-                germ = lot.germinations.filter(for_year=year_int).first()
+                germ = lot.germinations.filter(for_year=year_for_lookup).first()
                 if germ:
                     germination_rates[year_str] = germ.germination_rate
                 else:
@@ -809,8 +929,10 @@ def germination_inventory_data(request):
                 'supergroup': variety.supergroup,
                 'group': variety.group,
                 'lot_code': lot_code,
-                'current_inventory': current_inventory,
-                'previous_inventory': previous_inventory,
+                'current_inventory_weight': current_inventory_weight,
+                'current_inventory_date': current_inventory_date,
+                'previous_inventory_weight': previous_inventory_weight,
+                'previous_inventory_date': previous_inventory_date,
                 'inventory_difference': inventory_difference,
                 'germination_rates': germination_rates
             })
@@ -820,8 +942,6 @@ def germination_inventory_data(request):
         groups = sorted(list(groups))
         
         print(f"Returning {len(inventory_data)} active lot records (retired lots excluded)")
-        print(f"Supergroups: {supergroups}")
-        print(f"Groups: {groups}")
         
         return JsonResponse({
             'inventory_data': inventory_data,
