@@ -205,40 +205,6 @@ def submit_batch(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)})
-# def submit_batch(request):
-#     """Submit completed batch to database"""
-#     try:
-#         data = json.loads(request.body)
-#         batch_id = data.get('batch_id')
-#         sample_ids = data.get('sample_ids', [])  # Array of lot_ids
-#         tracking_number = data.get('tracking_number', '').strip()  # New tracking number field
-#         for_year = data.get('for_year')
-        
-#         batch = GerminationBatch.objects.get(id=batch_id)
-        
-#         # Create germination entries for each scanned sample
-#         for lot_id in sample_ids:
-#             lot = Lot.objects.get(id=lot_id)
-#             Germination.objects.get_or_create(
-#                 lot=lot,
-#                 batch=batch,
-#                 defaults={
-#                     'status': 'pending',
-#                     'germination_rate': 0,
-#                     'for_year': for_year
-#                 }
-#             )
-        
-#         # Update batch with submission details
-#         batch.date = timezone.now().date()  # Set to current date
-#         if tracking_number:
-#             batch.tracking_number = tracking_number
-#         batch.save()
-        
-#         return JsonResponse({'success': True})
-        
-#     except Exception as e:
-#         return JsonResponse({'success': False, 'error': str(e)})
 
 
 # Update your existing process_orders and view_stores views if needed:

@@ -783,7 +783,7 @@
         let currentStoreNum = null;
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Enhanced store directory loaded');
+            // console.log('Enhanced store directory loaded');
             
             // Handle column toggle buttons
             const toggleBtns = document.querySelectorAll('.toggle-btn');
@@ -839,13 +839,13 @@
         });
 
         function editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName) {
-            console.log('editStore called with:', {storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName});
+            // console.log('editStore called with:', {storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName});
             
             // Use storeNum as the identifier since that's what has the actual values
             currentStoreId = storeNum;
             currentStoreNum = storeNum;
             
-            console.log('Set currentStoreId to:', currentStoreId);
+            // console.log('Set currentStoreId to:', currentStoreId);
             
             // Populate form fields with current values
             document.getElementById('storeName').value = storeName || '';
@@ -869,7 +869,7 @@
         function saveStoreChanges() {
             // Use currentStoreNum since that has the correct value
             const storeIdentifier = currentStoreNum || currentStoreId;
-            console.log('Using store identifier:', storeIdentifier);
+            // console.log('Using store identifier:', storeIdentifier);
             
             const formData = {
                 store_num: storeIdentifier,
@@ -889,14 +889,14 @@
                 first_order: document.getElementById('firstOrder').value
             };
 
-            console.log('Saving store changes:', formData);
+            // console.log('Saving store changes:', formData);
             
             // Use the store_num directly
             const storeNum = parseInt(storeIdentifier);
             const updateUrl = `/accounts/${storeNum}/update/`;
             
-            console.log('Using store number:', storeNum);
-            console.log('Final URL:', updateUrl);
+            // console.log('Using store number:', storeNum);
+            // console.log('Final URL:', updateUrl);
 
             // Send data to Django backend
             fetch(updateUrl, {
@@ -908,12 +908,12 @@
                 body: JSON.stringify(formData)
             })
             .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response ok:', response.ok);
+                // console.log('Response status:', response.status);
+                // console.log('Response ok:', response.ok);
                 
                 if (response.status === 500) {
                     return response.text().then(text => {
-                        console.log('Server error response:', text);
+                        // console.log('Server error response:', text);
                         throw new Error(`Server error (500): Check Django logs for details`);
                     });
                 }
@@ -925,7 +925,7 @@
                 return response.json();
             })
             .then(data => {
-                console.log('Response data:', data);
+                // console.log('Response data:', data);
                 
                 if (data.success) {
                     updateTableRow(formData);
@@ -947,8 +947,8 @@
         function updateTableRow(data) {
             // Use currentStoreNum since that has the correct value
             const storeIdentifier = currentStoreNum || currentStoreId;
-            console.log('Looking for store with store_num:', storeIdentifier, 'Type:', typeof storeIdentifier);
-            console.log('Data to update with:', data);
+            // console.log('Looking for store with store_num:', storeIdentifier, 'Type:', typeof storeIdentifier);
+            // console.log('Data to update with:', data);
             
             // Find the table row for this store and update it
             const rows = document.querySelectorAll('.stores-table tbody tr');
@@ -959,17 +959,17 @@
                 if (editBtn) {
                     // Use storeNum to match since that's what has the actual values
                     if (editBtn.dataset.storeNum === String(storeIdentifier)) {
-                        console.log('Found matching row at index:', index);
+                        // console.log('Found matching row at index:', index);
                         foundMatch = true;
                         
                         // Update the row data
                         const cells = row.querySelectorAll('td');
-                        console.log('Found', cells.length, 'cells in the row');
+                        // console.log('Found', cells.length, 'cells in the row');
                         
                         // Update store name (index 1)
                         const storeNameCell = cells[1]?.querySelector('.store-name');
                         if (storeNameCell) {
-                            console.log('Updating store name from', storeNameCell.textContent, 'to', data.name || 'Unnamed Store');
+                            // console.log('Updating store name from', storeNameCell.textContent, 'to', data.name || 'Unnamed Store');
                             storeNameCell.textContent = data.name || 'Unnamed Store';
                         }
                         
@@ -1025,7 +1025,7 @@
                         editBtn.dataset.storeSlots = data.slots || '';
                         editBtn.dataset.contactName = data.contact_name || '';
                         
-                        console.log('Row updated successfully - all changes applied');
+                        // console.log('Row updated successfully - all changes applied');
                         return; // Exit the forEach loop early since we found our match
                     }
                 }

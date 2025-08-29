@@ -1013,7 +1013,7 @@
                 const formData = new FormData();
                 formData.append('store_id', storeId);
                 formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
-                console.log("Loading availability for store:", storeId);
+                // console.log("Loading availability for store:", storeId);
                 
                 const response = await fetch('', {
                     method: 'POST',
@@ -1025,7 +1025,7 @@
                 }
 
                 const data = await response.json();
-                console.log('Store availability data:', data);
+                // console.log('Store availability data:', data);
 
                 if (data.success) {
                     // Clear current selections
@@ -1045,7 +1045,7 @@
                     });
                     
                     updateSelectedItemCount();
-                    console.log(`Loaded ${Object.keys(selectedItems).length} available items for store ${storeId}`);
+                    // console.log(`Loaded ${Object.keys(selectedItems).length} available items for store ${storeId}`);
                 } else {
                     showErrorMessage(data.error || 'Failed to load store availability');
                 }
@@ -1389,7 +1389,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard loaded');
+            // console.log('Dashboard loaded');
 
             // Clear all checkboxes immediately on page load
             document.querySelectorAll('.product-checkbox').forEach(checkbox => {
@@ -1487,7 +1487,7 @@
                 }
             });
 
-            console.log('All event listeners attached');
+            // console.log('All event listeners attached');
         });
 
     </script>

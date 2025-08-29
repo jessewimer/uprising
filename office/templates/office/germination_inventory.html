@@ -230,7 +230,7 @@
         .variety-link {
             color: #667eea;
             cursor: pointer;
-            text-decoration: underline;
+            text-decoration: none;
             transition: all 0.3s ease;
         }
 
@@ -405,6 +405,8 @@
 
         .sales-data-table th:last-child {
             border-top-right-radius: 10px;
+            text-align: center;
+            width: 35%;
         }
 
         .sales-data-table td {
@@ -413,12 +415,43 @@
             font-size: 0.85rem;
         }
 
+        .sales-data-table td:last-child {
+            text-align: center;
+            width: 35%;
+        }
+
         .sales-data-table tbody tr:nth-child(even) {
             background: rgba(102, 126, 234, 0.05);
         }
 
         .sales-data-table tbody tr:hover {
             background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Sales table row styling - no borders, just colors */
+        .sales-total-row {
+            background: rgba(102, 126, 234, 0.1) !important;
+            font-weight: 600;
+            border-top: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .sales-total-row:hover {
+            background: rgba(102, 126, 234, 0.15) !important;
+        }
+
+        .sales-packet-text {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .sales-bulk-text {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .sales-total-text {
+            color: #667eea;
+            font-weight: 600;
         }
 
         .sales-loading {
@@ -467,6 +500,13 @@
         }
 
         /* Responsive Design */
+        @media (max-width: 1400px) {
+            .header-right {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+        }
+        
         @media (max-width: 1200px) {
             .header-right {
                 flex-wrap: wrap;
@@ -546,6 +586,13 @@
                         </select>
                     </div>
 
+                    <div class="filter-group">
+                        <label class="filter-label">Veg Type:</label>
+                        <select class="filter-select" id="vegTypeFilter" onchange="applyFilters()">
+                            <option value="">All Veg Types</option>
+                        </select>
+                    </div>
+
                     <button class="clear-filters" onclick="clearFilters()">
                         Clear Filters
                     </button>
@@ -604,9 +651,9 @@
                 <!-- Sales table -->
                 <table class="sales-data-table" id="salesTable" style="display: none;">
                     <thead>
-                        <tr>
+                        <tr id="salesTableHeader">
                             <th>Product SKU</th>
-                            <th>Quantity Sold</th>
+                            <th id="quantityHeader">Quantity Sold</th>
                         </tr>
                     </thead>
                     <tbody id="salesTableBody">
@@ -638,16 +685,17 @@
             fetch('{% url "germination_inventory_data" %}')
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Received data:', data);
-                    console.log('Categories:', data.categories);
-                    console.log('Groups:', data.groups);
-                    console.log('Sample inventory data:', data.inventory_data[0]);
+                    // console.log('Received data:', data);
+                    // console.log('Categories:', data.categories);
+                    // console.log('Groups:', data.groups);
+                    // console.log('Veg Types:', data.veg_types);
+                    // console.log('Sample inventory data:', data.inventory_data[0]);
                     
                     allData = data.inventory_data;
                     germYears = data.germ_years;
                     
                     setupTableHeaders();
-                    populateFilters(data.categories, data.groups);
+                    populateFilters(data.categories, data.groups, data.veg_types);
                     filteredData = [...allData];
                     renderTable();
                     hideLoading();
@@ -672,13 +720,15 @@
         }
 
         // Populate filter dropdowns
-        function populateFilters(categories, groups) {
+        function populateFilters(categories, groups, vegTypes) {
             const categorySelect = document.getElementById('categoryFilter');
             const groupSelect = document.getElementById('groupFilter');
+            const vegTypeSelect = document.getElementById('vegTypeFilter');
 
             // Clear existing options (except "All")
             categorySelect.innerHTML = '<option value="">All Categories</option>';
             groupSelect.innerHTML = '<option value="">All Groups</option>';
+            vegTypeSelect.innerHTML = '<option value="">All Veg Types</option>';
 
             // Add category options
             categories.forEach(category => {
@@ -699,28 +749,40 @@
                     groupSelect.appendChild(option);
                 }
             });
+
+            // Add veg type options
+            vegTypes.forEach(vegType => {
+                if (vegType) { // Filter out null/empty values
+                    const option = document.createElement('option');
+                    option.value = vegType;
+                    option.textContent = vegType;
+                    vegTypeSelect.appendChild(option);
+                }
+            });
         }
 
         // Apply filters
         function applyFilters() {
             const categoryFilter = document.getElementById('categoryFilter').value;
             const groupFilter = document.getElementById('groupFilter').value;
+            const vegTypeFilter = document.getElementById('vegTypeFilter').value;
 
-            console.log('Applying filters - Category:', categoryFilter, 'Group:', groupFilter);
-            console.log('Total data before filtering:', allData.length);
+            // console.log('Applying filters - Category:', categoryFilter, 'Group:', groupFilter, 'VegType:', vegTypeFilter);
+            // console.log('Total data before filtering:', allData.length);
 
             filteredData = allData.filter(item => {
                 const categoryMatch = !categoryFilter || item.category === categoryFilter;
                 const groupMatch = !groupFilter || item.group === groupFilter;
+                const vegTypeMatch = !vegTypeFilter || item.veg_type === vegTypeFilter;
                 
-                if (!categoryMatch || !groupMatch) {
-                    console.log('Filtered out:', item.variety_name, 'Category:', item.category, 'Group:', item.group);
+                if (!categoryMatch || !groupMatch || !vegTypeMatch) {
+                    console.log('Filtered out:', item.variety_name, 'Category:', item.category, 'Group:', item.group, 'VegType:', item.veg_type);
                 }
                 
-                return categoryMatch && groupMatch;
+                return categoryMatch && groupMatch && vegTypeMatch;
             });
 
-            console.log('Filtered data count:', filteredData.length);
+            // console.log('Filtered data count:', filteredData.length);
             renderTable();
         }
 
@@ -728,6 +790,7 @@
         function clearFilters() {
             document.getElementById('categoryFilter').value = '';
             document.getElementById('groupFilter').value = '';
+            document.getElementById('vegTypeFilter').value = '';
             filteredData = [...allData];
             renderTable();
         }
@@ -888,20 +951,46 @@
 
         function populateSalesTable(salesData, displayYear) {
             const tbody = document.getElementById('salesTableBody');
+            const quantityHeader = document.getElementById('quantityHeader');
             tbody.innerHTML = '';
+            
+            // Update the header to include the year
+            quantityHeader.textContent = `Quantity Sold (${displayYear})`;
             
             salesData.forEach(item => {
                 const row = document.createElement('tr');
                 
-                // Product SKU
+                // Apply total row styling if it's a total
+                if (item.is_total) {
+                    row.className = 'sales-total-row';
+                }
+                
+                // Product SKU with appropriate text styling
                 const skuCell = document.createElement('td');
-                skuCell.textContent = item.sku_suffix || item.sku_prefix;
+                skuCell.textContent = item.display_name;
+                
+                if (item.is_total) {
+                    skuCell.className = 'sales-total-text';
+                } else if (item.is_packet) {
+                    skuCell.className = 'sales-packet-text';
+                } else {
+                    skuCell.className = 'sales-bulk-text';
+                }
+                
                 row.appendChild(skuCell);
                 
-                // Quantity with year
+                // Quantity (centered)
                 const qtyCell = document.createElement('td');
-                qtyCell.textContent = `${item.quantity} (${displayYear})`;
-                qtyCell.style.textAlign = 'right';
+                qtyCell.textContent = item.quantity;
+                
+                if (item.is_total) {
+                    qtyCell.className = 'sales-total-text';
+                } else if (item.is_packet) {
+                    qtyCell.className = 'sales-packet-text';
+                } else {
+                    qtyCell.className = 'sales-bulk-text';
+                }
+                
                 row.appendChild(qtyCell);
                 
                 tbody.appendChild(row);

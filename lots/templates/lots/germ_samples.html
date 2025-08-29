@@ -777,7 +777,7 @@
         let confirmCallback = null;
         
         function showConfirm(title, message, icon, onConfirm, inputConfig = null) {
-            console.log('showConfirm called with:', { title, message, icon, inputConfig });
+            // console.log('showConfirm called with:', { title, message, icon, inputConfig });
             
             document.getElementById('confirmIcon').textContent = icon;
             document.getElementById('confirmTitle').textContent = title;
@@ -790,10 +790,10 @@
             const batchInputs = document.getElementById('batchSubmissionInputs');
             
             if (inputConfig) {
-                console.log('Input config provided:', inputConfig);
+                // console.log('Input config provided:', inputConfig);
                 
                 if (inputConfig.type === 'batch_submission') {
-                    console.log('Setting up batch submission inputs');
+                    // console.log('Setting up batch submission inputs');
                     
                     // Show batch submission inputs
                     singleInputLabel.style.display = 'none';
@@ -803,20 +803,20 @@
                     
                     // Set default year to next 2-digit year (for testing next year's crop)
                     const nextYear = (new Date().getFullYear() + 1).toString().slice(-2);
-                    console.log('Setting default year to next year:', nextYear);
+                    // console.log('Setting default year to next year:', nextYear);
                     
                     document.getElementById('yearInput').value = nextYear;
                     document.getElementById('trackingInput').value = '';
                     
-                    console.log('Batch inputs setup complete');
+                    // console.log('Batch inputs setup complete');
                     
                     // Focus the tracking input
                     setTimeout(() => {
                         document.getElementById('trackingInput').focus();
-                        console.log('Focused tracking input');
+                        // console.log('Focused tracking input');
                     }, 200);
                 } else {
-                    console.log('Setting up single input');
+                    // console.log('Setting up single input');
                     // Show single input
                     singleInputLabel.textContent = inputConfig.label;
                     singleInputField.placeholder = inputConfig.placeholder || '';
@@ -831,14 +831,14 @@
                     setTimeout(() => singleInputField.focus(), 200);
                 }
             } else {
-                console.log('No input config, hiding input group');
+                // console.log('No input config, hiding input group');
                 inputGroup.style.display = 'none';
             }
             
-            console.log('Setting confirmCallback');
+            // console.log('Setting confirmCallback');
             confirmCallback = onConfirm;
             
-            console.log('Showing modal');
+            // console.log('Showing modal');
             document.getElementById('confirmModal').style.display = 'flex';
         }
 
@@ -849,32 +849,32 @@
         }
 
         function handleConfirm() {
-            console.log('handleConfirm called');
+            // console.log('handleConfirm called');
             
             const inputGroup = document.getElementById('confirmInputGroup');
             const batchInputs = document.getElementById('batchSubmissionInputs');
-            console.log('inputGroup display:', inputGroup.style.display);
-            console.log('batchInputs display:', batchInputs.style.display);
+            // console.log('inputGroup display:', inputGroup.style.display);
+            // console.log('batchInputs display:', batchInputs.style.display);
             
             let inputValue = null;
             
             // Get input value if input field is shown
             if (inputGroup.style.display !== 'none') {
-                console.log('Input group is visible');
+                // console.log('Input group is visible');
                 
                 if (batchInputs.style.display !== 'none') {
-                    console.log('Batch inputs are visible, processing...');
+                    // console.log('Batch inputs are visible, processing...');
                     
                     // Handle batch submission inputs
                     const trackingNumber = document.getElementById('trackingInput').value.trim();
                     const year = document.getElementById('yearInput').value.trim();
                     
-                    console.log('trackingNumber:', trackingNumber);
-                    console.log('year:', year);
+                    // console.log('trackingNumber:', trackingNumber);
+                    // console.log('year:', year);
                     
                     // Validate year is 2 digits
                     if (!validateYear(year)) {
-                        console.log('Year validation failed');
+                        // console.log('Year validation failed');
                         // Show error styling
                         const yearInput = document.getElementById('yearInput');
                         yearInput.classList.add('error');
@@ -885,7 +885,7 @@
                         return;
                     }
                     
-                    console.log('Year validation passed');
+                    // console.log('Year validation passed');
                     
                     // Return both values as an object
                     inputValue = {
@@ -893,9 +893,9 @@
                         year: year
                     };
                     
-                    console.log('inputValue created:', inputValue);
+                    // console.log('inputValue created:', inputValue);
                 } else {
-                    console.log('Single input mode, processing...');
+                    // console.log('Single input mode, processing...');
                     // Handle single input
                     const inputField = document.getElementById('confirmInput');
                     inputValue = inputField.value.trim();
@@ -908,11 +908,11 @@
                     }
                 }
             } else {
-                console.log('No input group visible');
+                // console.log('No input group visible');
             }
             
-            console.log('About to call callback');
-            console.log('confirmCallback exists:', !!confirmCallback);
+            // console.log('About to call callback');
+            // console.log('confirmCallback exists:', !!confirmCallback);
             
             // SAVE the callback BEFORE closing the modal
             const savedCallback = confirmCallback;
@@ -920,10 +920,10 @@
             closeModal('confirmModal');
             
             if (savedCallback) {
-                console.log('Calling savedCallback with:', inputValue);
+                // console.log('Calling savedCallback with:', inputValue);
                 savedCallback(inputValue);
             } else {
-                console.log('No confirmCallback was set!');
+                // console.log('No confirmCallback was set!');
             }
         }
 
@@ -1103,14 +1103,14 @@
             showToast('success', 'Sample Added', 
                 `${lotData.variety_name} (${lotData.sku_prefix}) - ${lotData.lot_code} added successfully`, 2000);
             
-            console.log('Scanned successfully:', barcode);
+            // console.log('Scanned successfully:', barcode);
         }
 
         // Submit batch to database
         function submitBatch() {
-            console.log('submitBatch called');
-            console.log('currentBatch:', currentBatch);
-            console.log('samples:', samples);
+            // console.log('submitBatch called');
+            // console.log('currentBatch:', currentBatch);
+            // console.log('samples:', samples);
             
             if (!currentBatch || currentBatch.status !== 'pending' || samples.length === 0) {
                 showToast('warning', 'Cannot Submit', 'No pending batch with samples to submit.');
@@ -1132,15 +1132,15 @@
                 `Submit batch ${currentBatch.batch_number} with ${samples.length} samples? Please enter tracking information and the testing year.`,
                 '📤',
                 function(inputData) {
-                    console.log('Confirm callback called with inputData:', inputData);
+                    // console.log('Confirm callback called with inputData:', inputData);
                     
                     // inputData will be an object with tracking_number and year
                     const sampleLotIds = samples.map(s => s.lot_id);
-                    console.log('sampleLotIds:', sampleLotIds);
+                    // console.log('sampleLotIds:', sampleLotIds);
                     
                     // Check if lot_ids exist
                     if (sampleLotIds.includes(undefined) || sampleLotIds.includes(null)) {
-                        console.error('Missing lot_id in samples:', samples);
+                        // console.error('Missing lot_id in samples:', samples);
                         showToast('error', 'Data Error', 'Some samples are missing lot IDs. Please refresh and try again.');
                         return;
                     }
@@ -1152,7 +1152,7 @@
                         for_year: parseInt(inputData.year) // Send 2-digit year directly to match DB storage
                     };
                     
-                    console.log('Sending request with data:', requestData);
+                    // console.log('Sending request with data:', requestData);
 
                     fetch('{% url "submit_batch" %}', {
                         method: 'POST',
@@ -1162,14 +1162,14 @@
                         body: JSON.stringify(requestData)
                     })
                     .then(response => {
-                        console.log('Response received:', response);
+                        // console.log('Response received:', response);
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
-                        console.log('Response data:', data);
+                        // console.log('Response data:', data);
                         if (data.success) {
                             const trackingMsg = inputData.tracking_number ? ` (Tracking: ${inputData.tracking_number})` : '';
                             showToast('success', 'Batch Submitted', 

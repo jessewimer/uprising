@@ -1836,7 +1836,7 @@
 
             searchInput.addEventListener('input', function() {
                 const query = this.value.toLowerCase().trim();
-                console.log('Searching for:', query);
+                // console.log('Searching for:', query);
                 
                 if (query.length < 2) {
                     searchDropdown.classList.remove('show');
@@ -1853,7 +1853,7 @@
                         matches.push([skuPrefix, data]);
                     }
                 }
-                console.log('Found matches:', matches.length);
+                // console.log('Found matches:', matches.length);
 
                 if (matches.length > 0) {
 
@@ -1916,12 +1916,12 @@
                 return lotDisplay === lotText;
             });
             
-            console.log('Lot text from table:', lotText); // Debug
-            console.log('Matching lot found:', matchingLot); // Debug
+            // console.log('Lot text from table:', lotText); // Debug
+            // console.log('Matching lot found:', matchingLot); // Debug
             
             if (matchingLot) {
-                console.log('Lot retired:', matchingLot.is_retired); // Debug
-                console.log('Lot low inventory:', matchingLot.low_inv); // Debug
+                // console.log('Lot retired:', matchingLot.is_retired); // Debug
+                // console.log('Lot low inventory:', matchingLot.low_inv); // Debug
                 
                 // Check if retired (blocks printing)
                 if (matchingLot.is_retired) {
@@ -1933,7 +1933,7 @@
                 if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
                     currentProductId = productId;
                     currentProductName = productName;
-                    console.log('Low inventory warning for:', currentProductName);
+                    // console.log('Low inventory warning for:', currentProductName);
                     document.getElementById('lowInventoryWarning').classList.add('show');
                     return;
                 }
@@ -1979,7 +1979,7 @@
             const productId = currentProductId;
             const productName = currentProductName;
             hideLowInventoryWarning();
-            console.log('Continuing print despite low inventory for:', productName);
+            // console.log('Continuing print despite low inventory for:', productName);
             proceedWithPrintPopup(productId, productName);
         }
 
@@ -2581,7 +2581,7 @@
 
         function recordInventory(lotId) {
             hideLotActionsPopup();
-            console.log('Record inventory:', lotId);
+            // console.log('Record inventory:', lotId);
             // TODO: Implement inventory popup
         }
 
@@ -2663,7 +2663,7 @@
         function deleteLot(lotId) {
             hideLotActionsPopup();
             if (confirm('Are you sure you want to delete this lot? This action cannot be undone.')) {
-                console.log('Delete lot:', lotId);
+                // console.log('Delete lot:', lotId);
                 // TODO: Implement delete lot API call
             }
         }

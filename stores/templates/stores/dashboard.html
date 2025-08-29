@@ -952,7 +952,7 @@
 
 
         function populatePreviousOrders() {
-            console.log('Previous items data:', previousItems);
+            // console.log('Previous items data:', previousItems);
 
             // Convert to lookup dictionary by SKU prefix
             if (Array.isArray(previousItems) && previousItems.length > 0 && typeof previousItems[0] === 'string') {
@@ -1025,7 +1025,7 @@
 
 
         function showViewOrdersModal() {
-            console.log('inside showViewOrdersModal')
+            // console.log('inside showViewOrdersModal')
             document.getElementById('viewOrdersModal').style.display = 'flex';
         }
 
@@ -1154,7 +1154,7 @@
 
 
         function submitOrder(submittedData) {
-            console.log('Submitting order data as FormData:', submittedData);
+            // console.log('Submitting order data as FormData:', submittedData);
     
             var submitButtonModal = document.getElementById('modalSubmitButton');
             submitButtonModal.classList.add('loading');
@@ -1162,7 +1162,7 @@
 
             var storeName = '{{ store.store_user.username }}';
             var url = '/accounts/' + storeName + '/';
-            console.log('Store name:', storeName); 
+            // console.log('Store name:', storeName); 
             // Create FormData object
             var formData = new FormData();
             
@@ -1187,8 +1187,8 @@
                     submitButtonModal.disabled = false;
                     submitButtonModal.classList.remove('loading');
                     
-                    console.log('Response status:', xhr.status);
-                    console.log('Response text:', xhr.responseText);
+                    // console.log('Response status:', xhr.status);
+                    // console.log('Response text:', xhr.responseText);
                     
                     if (xhr.status === 200) {
                         handleOrderSuccess(submittedData);
@@ -1210,7 +1210,7 @@
         function generatePDF(orderNumber) {
             // First, get the order ID from the order number
             // You'll need to make an AJAX call to get the order ID
-            console.log('Generating PDF for order number:', orderNumber);
+            // console.log('Generating PDF for order number:', orderNumber);
             fetch(`/orders/api/get-order-id/${orderNumber}/`, {
                 method: 'GET',
                 headers: {
@@ -1222,9 +1222,9 @@
             .then(data => {
                 if (data.order_id) {
                     // Open the PDF in a new tab
-                    console.log('Order ID found:', data.order_id); // Add this line
+                    // console.log('Order ID found:', data.order_id); // Add this line
                     const pdfUrl = `/orders/generate-pdf/${data.order_id}/`;
-                    console.log('Trying to open PDF URL:', pdfUrl); // Add this line
+                    // console.log('Trying to open PDF URL:', pdfUrl); // Add this line
                     window.open(pdfUrl, '_blank');
                 } else {
                     alert('Order not found');
@@ -1365,14 +1365,14 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard loaded');
+            // console.log('Dashboard loaded');
 
             // const previousItems = {{ previous_items|safe }};
             const hasPreviousItems = previousItems && Object.keys(previousItems).length > 0;
 
             // Logout functionality
             function logout() {
-                console.log('Logout function called'); // Debug log
+                // console.log('Logout function called'); // Debug log
 
                 // Create a form and submit it to Django's logout URL
                 const form = document.createElement('form');
@@ -1396,7 +1396,7 @@
                     }
                 }
 
-                console.log('CSRF token found:', csrfToken); // Debug log
+                // console.log('CSRF token found:', csrfToken); // Debug log
 
                 if (csrfToken) {
                     const csrfHidden = document.createElement('input');
@@ -1441,18 +1441,18 @@
             // Logout submit button - use event delegation in case modal loads later
             const submitLogout = document.getElementById('submitLogout');
             if (submitLogout) {
-                console.log('Found submitLogout button, attaching event'); // Debug log
+                // console.log('Found submitLogout button, attaching event'); // Debug log
                 submitLogout.addEventListener('click', function(e) {
-                    console.log('Logout button clicked'); // Debug log
+                    // console.log('Logout button clicked'); // Debug log
                     e.preventDefault();
                     logout();
                 });
             } else {
-                console.log('submitLogout button not found'); // Debug log
+                // console.log('submitLogout button not found'); // Debug log
                 // Use event delegation as backup
                 document.addEventListener('click', function(e) {
                     if (e.target && e.target.id === 'submitLogout') {
-                        console.log('Logout button clicked via delegation'); // Debug log
+                        // console.log('Logout button clicked via delegation'); // Debug log
                         e.preventDefault();
                         logout();
                     }
@@ -1473,7 +1473,7 @@
             updateUniqueItemCount();
 
             requestAnimationFrame(() => {
-                console.log('First RAF: setting dropdowns');
+                // console.log('First RAF: setting dropdowns');
 
                 if (categoryFilter) {
                     categoryFilter.value = "";
@@ -1484,7 +1484,7 @@
                 }
 
                 requestAnimationFrame(() => {
-                    console.log('Second RAF: filtering table');
+                    // console.log('Second RAF: filtering table');
                     filterTable();
                 });
             });
@@ -1519,7 +1519,7 @@
                 }
             });
 
-            console.log('All event listeners attached');
+            // console.log('All event listeners attached');
         });
 
     </script>
