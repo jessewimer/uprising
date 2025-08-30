@@ -28,12 +28,14 @@ if ENVIRONMENT == 'production':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-
             'NAME': DATABASE_NAME,
             'USER': DATABASE_USER,
             'PASSWORD': DATABASE_PASSWORD,
             'HOST': 'uprising.mysql.pythonanywhere-services.com',
             'PORT': '3306',  # Leave empty for the default MySQL port (3306)
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
+            },
         }
     }
 else:
