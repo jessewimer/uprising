@@ -604,11 +604,14 @@
                 </div>
                 <div class="card-content">
                     {% if envelope_total > 0 %}
-                        <div class="metric-value" id="envelope-total-display">{{ envelope_total|floatformat:0 }}</div>
+                        <div class="metric-value">{{ envelope_total|floatformat:0 }}</div>
                         <div class="metric-label">Total Envelopes Used</div>
                         {% if last_sales_year %}
-                            <div class="year-label" id="card-year-display">{{ last_sales_year }} Sales Data</div>
+                            <div class="year-label">{{ last_sales_year }} Sales Data</div>
                         {% endif %}
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: #667eea; font-weight: 500;">
+                            👆 Click for detailed breakdown
+                        </div>
                     {% else %}
                         <div class="chart-placeholder">
                             <p style="color: #999; font-size: 1rem;">No Data Available</p>
@@ -624,11 +627,16 @@
     <div class="modal-overlay" id="envelope-modal">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title" id="modal-title-display">Envelope Usage Details {{ last_sales_year }}</h2>
+                <h2 class="modal-title">Envelope Usage Details</h2>
                 <button class="modal-close" id="close-modal">&times;</button>
             </div>
             
             {% if envelope_total > 0 %}
+                <div class="modal-summary">
+                    <div class="summary-total">{{ envelope_total|floatformat:0 }}</div>
+                    <div class="summary-label">Total Envelopes Used in {{ last_sales_year }}</div>
+                </div>
+
                 <table class="envelope-table">
                     <thead>
                         <tr>
@@ -682,28 +690,6 @@
         
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing envelope functionality...');
-            
-            // Format the envelope total with commas
-            const envelopeTotalDisplay = document.getElementById('envelope-total-display');
-            if (envelopeTotalDisplay && envelopeTotal > 0) {
-                envelopeTotalDisplay.textContent = envelopeTotal.toLocaleString();
-            }
-            
-            // Format years to be 4-digit
-            const cardYearDisplay = document.getElementById('card-year-display');
-            const modalTitleDisplay = document.getElementById('modal-title-display');
-            
-            if (lastSalesYear) {
-                const fullYear = lastSalesYear.toString().length === 2 ? '20' + lastSalesYear : lastSalesYear;
-                
-                if (cardYearDisplay) {
-                    cardYearDisplay.textContent = fullYear + ' Sales Data';
-                }
-                
-                if (modalTitleDisplay) {
-                    modalTitleDisplay.textContent = 'Envelope Usage Details ' + fullYear;
-                }
-            }
             
             const envelopeCard = document.getElementById('envelope-card');
             const modal = document.getElementById('envelope-modal');

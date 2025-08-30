@@ -421,24 +421,132 @@ def set_lot_low_inv(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
+# @login_required
+# @user_passes_test(is_employee)
+# def analytics(request):
+#     """
+#     View for displaying analytics and business performance metrics
+#     """
+#     context = {
+#         'page_title': 'Analytics Dashboard',
+#         # Add any data you want to pass to the template
+#         # For example:
+#         # 'sales_data': get_sales_data(),
+#         # 'inventory_metrics': get_inventory_metrics(),
+#         # 'popular_products': get_popular_products(),
+#     }
+    
+#     # Render the template from the products app
+#     return render(request, 'products/analytics.html', context)
+
+
 @login_required
 @user_passes_test(is_employee)
 def analytics(request):
     """
     View for displaying analytics and business performance metrics
     """
+    # Get envelope count data for the most recent sales year
+    envelope_data = get_envelope_count_data()
+    
+    # print(f"DEBUG VIEW: envelope_data = {envelope_data}")
+    # print(f"DEBUG VIEW: envelope_counts = {envelope_data['envelope_counts']}")
+    # print(f"DEBUG VIEW: total = {envelope_data['total']}")
+    
+    # Ensure we serialize the JSON properly
+    envelope_json = json.dumps(envelope_data['envelope_counts'])
+    print(f"DEBUG VIEW: envelope_json = {envelope_json}")
+    
     context = {
         'page_title': 'Analytics Dashboard',
-        # Add any data you want to pass to the template
+        'envelope_data_json': envelope_json,
+        'envelope_data': envelope_data['envelope_counts'],  # Keep original for template display
+        'envelope_total': envelope_data['total'],
+        'last_sales_year': envelope_data['year'],
+        # Add any other data you want to pass to the template
         # For example:
         # 'sales_data': get_sales_data(),
         # 'inventory_metrics': get_inventory_metrics(),
         # 'popular_products': get_popular_products(),
     }
     
-    # Render the template from the products app
+    print(f"DEBUG VIEW: final context envelope_data_json = {context['envelope_data_json']}")
+   
     return render(request, 'products/analytics.html', context)
 
+def get_envelope_count_data():
+    """
+    Calculate envelope usage for the most recent sales year
+    """
+    # Find the most recent sales year
+    latest_year = Sales.objects.aggregate(max_year=Max('year'))['max_year']
+    print(f"DEBUG: Latest sales year: {latest_year}")
+    
+    if not latest_year:
+        return {
+            'envelope_counts': {},
+            'total': 0,
+            'year': None
+        }
+    
+    # Get all sales for the latest year
+    sales_data = Sales.objects.filter(year=latest_year).select_related('product')
+    # print(f"DEBUG: Found {sales_data.count()} sales records for {latest_year}")
+    
+    # Group by product and sum quantities (combining wholesale and retail)
+    product_totals = {}
+    for sale in sales_data:
+        product_id = sale.product.id
+        if product_id not in product_totals:
+            product_totals[product_id] = {
+                'product': sale.product,
+                'total_quantity': 0
+            }
+        product_totals[product_id]['total_quantity'] += sale.quantity
+    
+    # print(f"DEBUG: Found {len(product_totals)} unique products")
+    
+    # Group by envelope type and calculate totals
+    envelope_counts = {}
+    total_envelopes = 0
+    products_with_env_type = 0
+    products_without_env_type = 0
+    
+    for product_data in product_totals.values():
+        product = product_data['product']
+        quantity = product_data['total_quantity']
+        
+        # print(f"DEBUG: Product {product.id} - env_type: '{product.env_type}' - quantity: {quantity}")
+        
+        # Skip if product doesn't have env_type or it's empty
+        if not product.env_type:
+            products_without_env_type += 1
+            print(f"DEBUG: Skipping product {product.id} - no env_type")
+            continue
+            
+        products_with_env_type += 1
+        envelope_type = product.env_type
+        
+        if envelope_type not in envelope_counts:
+            envelope_counts[envelope_type] = 0
+        
+        envelope_counts[envelope_type] += quantity
+        total_envelopes += quantity
+        # print(f"DEBUG: Added {quantity} to envelope type '{envelope_type}'")
+    
+    # print(f"DEBUG: Products WITH env_type: {products_with_env_type}")
+    # print(f"DEBUG: Products WITHOUT env_type: {products_without_env_type}")
+    # print(f"DEBUG: Final envelope_counts: {envelope_counts}")
+    # print(f"DEBUG: Total envelopes: {total_envelopes}")
+    
+    # Sort envelope counts by quantity (descending)
+    envelope_counts = dict(sorted(envelope_counts.items(), key=lambda x: x[1], reverse=True))
+    
+    return {
+        'envelope_counts': envelope_counts,
+        'total': total_envelopes,
+        'year': latest_year
+    }
 
 @login_required
 @user_passes_test(is_employee)

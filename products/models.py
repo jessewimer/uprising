@@ -105,28 +105,8 @@ class Product(models.Model):
             wholesale=True
         ).aggregate(total=Sum('quantity'))['total'] or 0
 
-
-        # if wholesale_total == 0 and retail_total == 0:
-        #     return None  # Will display as "--"
-
         return f"{retail_total} ({wholesale_total})"
-        # last_year = timezone.now().year - 1
         
-        # # Get OOIncludes total for last year
-        # oo_total = self.ooincludes_set.filter(
-        #     order__date__year=last_year
-        # ).aggregate(total=Sum('qty'))['total'] or 0
-        
-        # # Get SOIncludes total for last year
-        # so_total = self.soincludes_set.filter(
-        #     store_order__date__year=last_year,
-        #     store_order__fulfilled_date__isnull=False
-        # ).aggregate(total=Sum('quantity'))['total'] or 0
-                
-        # if oo_total == 0 and so_total == 0:
-        #     return None  # Will display as "--"
-            
-        # return f"{oo_total} ({so_total})"
     
     def get_total_printed(self):
         total = self.label_prints.aggregate(

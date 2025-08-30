@@ -1,5 +1,5 @@
 from django.db import models
-# from products.models import Variety
+from datetime import date
 from django.utils import timezone
 
 
@@ -32,6 +32,44 @@ class Lot(models.Model):
     def __str__(self):
         return f"{self.variety.sku_prefix}-{self.grower}{self.year}{self.harvest if self.harvest else ''}"
     
+    # ✅ Build lot code from fields
+    def build_lot_code(self):
+        """
+        Build lot code string like: 'CAR-DR-TR23' or 'CAR-DR-TR23A'
+        """
+        base_code = f"{self.sku_prefix}-{self.grower_id}{self.year:02d}"
+        if self.harvest:
+            base_code += str(self.harvest)
+        return base_code
+
+    # ✅ Parse lot code into parts
+    @staticmethod
+    def parse_lot_code(lot_code):
+        """
+        Parse a lot code string into its components.
+        Returns dict: {sku_prefix, grower_id, year, harvest}
+        """
+        parts = lot_code.split("-")
+        if len(parts) < 3:
+            raise ValueError(f"Invalid lot code format: {lot_code}")
+
+        sku_prefix = "-".join(parts[:2])      # everything before 2nd dash
+        grower_and_year = parts[2]
+
+        if len(grower_and_year) < 4:
+            raise ValueError(f"Invalid grower/year section: {grower_and_year}")
+
+        grower_id = grower_and_year[:2]       # first 2 chars
+        year = int(grower_and_year[2:4])      # 3rd + 4th chars only
+        harvest = grower_and_year[4:] if len(grower_and_year) > 4 else None
+
+        return {
+            "sku_prefix": sku_prefix,
+            "grower_id": grower_id,
+            "year": year,
+            "harvest": harvest
+        }
+
     # method to return most recent germination record that has a non null test date
     def get_most_recent_germination(self):
         return self.germinations.filter(test_date__isnull=False).order_by("-test_date").first()
@@ -101,7 +139,8 @@ class GermSamplePrint(models.Model):
 
 class GerminationBatch(models.Model):
     batch_number = models.CharField(max_length=10)
-    date = models.DateField(auto_now_add=True)
+    # date = models.DateField(auto_now_add=True)
+    date = models.DateField(null=True, blank=True)
     tracking_number = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):

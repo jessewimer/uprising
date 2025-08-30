@@ -3,6 +3,8 @@ import django
 import csv
 import sys
 from django.db import transaction
+from datetime import datetime
+
 # Get the current directory path
 current_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,7 +17,7 @@ sys.path.append(project_path)
 # Set the DJANGO_SETTINGS_MODULE
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
-from lots.models import Grower, Lot, StockSeed, Inventory, GermSamplePrint
+from lots.models import Grower, Lot, StockSeed, Inventory, GermSamplePrint, Germination, GerminationBatch
 from products.models import Variety
 
 
@@ -407,15 +409,96 @@ def view_germination_batches():
         for germination in batch.germinations.all():
             print(f"{germination.lot.variety}-{germination.lot.grower.code}{germination.lot.year} - Status: {germination.status}")
 
+def add_germ_batch_to_db():
+    # add a germination batch to the db for testing with date 08/04/2025, use 2025-08-04
+    batch1 = GerminationBatch(batch_number="001", date=datetime.strptime("08/04/2025", "%m/%d/%Y").date(), tracking_number="")
+    batch1.save()
+    batch2 = GerminationBatch(batch_number="002", date=datetime.strptime("08/18/2025", "%m/%d/%Y").date(), tracking_number="")
+    batch2.save()
+    batch3 = GerminationBatch(batch_number="003", date=datetime.strptime("08/25/2025", "%m/%d/%Y").date(), tracking_number="")
+    batch3.save()
+    # confirmation
+    print("✅ Added 3 germination batches to the database.")
+
+ # adjust if models are in different apps
+
+def import_germs_26(csv_file_path, dry_run=False):
+    print(f"{'Dry run' if dry_run else 'Actual run'} starting for CSV: {csv_file_path}")
+    from django.utils.dateparse import parse_date
+
+    with open(csv_file_path, newline='', encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=",")
+
+        for row in reader:
+            try:
+                # Extract row values
+                germ_sent_date = row.get("germ_sent_date")
+                status = row.get("status")
+                year = int(row.get("year"))
+                lot_code = row.get("lot")
+                batch_id = int(row.get("batch_id"))
+
+                # Parse batch number (001, 002, etc.)
+                batch_number = f"{batch_id:03d}"
+                batch = GerminationBatch.objects.filter(batch_number=batch_number).first()
+
+                # Use the Lot.parse_lot_code helper
+                try:
+                    parsed = Lot.parse_lot_code(lot_code)
+                    sku_prefix = parsed['sku_prefix']
+                    grower_code = parsed['grower_id']
+                    lot_year = parsed['year']
+                    harvest = parsed.get('harvest')
+                except Exception as e:
+                    print(f"⚠️ Could not parse lot code '{lot_code}': {e}")
+                    continue
+
+                # Find the Lot object
+                lot = Lot.objects.filter(
+                    variety__sku_prefix=sku_prefix,
+                    grower__code=grower_code,
+                    year=lot_year
+                ).first()
+
+                if not lot:
+                    print(f"❌ Lot not found for {lot_code}")
+                    continue
+
+                if dry_run:
+                    print(f"Would create Germination: Lot={lot_code}, Batch={batch_number}, "
+                          f"Status={status}, For Year=26")
+                else:
+                    Germination.objects.create(
+                        lot=lot,
+                        batch=batch,
+                        status=status,
+                        germination_rate=0,  # default, since not provided
+                        test_date=parse_date(germ_sent_date) if germ_sent_date else None,
+                        notes="Imported via CSV",
+                        for_year=26,
+                    )
+                    print(f"✅ Created Germination for Lot={lot_code} in Batch={batch_number}")
+
+            except Exception as e:
+                print(f"❌ Error processing row {row}: {e}")
+
+
+            
+
 if __name__ == "__main__":
-    germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
-    inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
-    ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
-    
+#     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
+#     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
+#     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
+
     # import_growers(full_file_path)
     # import_lots(full_file_path)
     # import_germination_data(germ_file_path)
     # import_inventory_data(inv_file_path)
     # import_retired_lots(ret_file_path)
-    clear_germination_batch_and_test_germinations()
-    view_germination_batches()
+    # clear_germination_batch_and_test_germinations()
+    # view_germination_batches()
+
+    # THESE ADD 3 BATCHES TO THE DB AND POPULATE WITH 26 GERMS SENT VIA THE OTHER DB
+    add_germ_batch_to_db()
+    germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
+    import_germs_26(germ_26_file_path)

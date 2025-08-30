@@ -602,9 +602,6 @@
                     
                     <select class="batch-dropdown" id="batchSelect" onchange="selectBatch()">
                         <option value="">Select Batch</option>
-                        <option value="pending">Current Batch (Pending)</option>
-                        <option value="2024-01-15">Batch sent 2024-01-15</option>
-                        <option value="2024-01-10">Batch sent 2024-01-10</option>
                     </select>
                     
                     <button class="btn btn-info" onclick="showBatchInfo()">
@@ -777,8 +774,6 @@
         let confirmCallback = null;
         
         function showConfirm(title, message, icon, onConfirm, inputConfig = null) {
-            // console.log('showConfirm called with:', { title, message, icon, inputConfig });
-            
             document.getElementById('confirmIcon').textContent = icon;
             document.getElementById('confirmTitle').textContent = title;
             document.getElementById('confirmMessage').textContent = message;
@@ -790,11 +785,7 @@
             const batchInputs = document.getElementById('batchSubmissionInputs');
             
             if (inputConfig) {
-                // console.log('Input config provided:', inputConfig);
-                
                 if (inputConfig.type === 'batch_submission') {
-                    // console.log('Setting up batch submission inputs');
-                    
                     // Show batch submission inputs
                     singleInputLabel.style.display = 'none';
                     singleInputField.style.display = 'none';
@@ -803,20 +794,14 @@
                     
                     // Set default year to next 2-digit year (for testing next year's crop)
                     const nextYear = (new Date().getFullYear() + 1).toString().slice(-2);
-                    // console.log('Setting default year to next year:', nextYear);
-                    
                     document.getElementById('yearInput').value = nextYear;
                     document.getElementById('trackingInput').value = '';
-                    
-                    // console.log('Batch inputs setup complete');
                     
                     // Focus the tracking input
                     setTimeout(() => {
                         document.getElementById('trackingInput').focus();
-                        // console.log('Focused tracking input');
                     }, 200);
                 } else {
-                    // console.log('Setting up single input');
                     // Show single input
                     singleInputLabel.textContent = inputConfig.label;
                     singleInputField.placeholder = inputConfig.placeholder || '';
@@ -831,14 +816,10 @@
                     setTimeout(() => singleInputField.focus(), 200);
                 }
             } else {
-                // console.log('No input config, hiding input group');
                 inputGroup.style.display = 'none';
             }
             
-            // console.log('Setting confirmCallback');
             confirmCallback = onConfirm;
-            
-            // console.log('Showing modal');
             document.getElementById('confirmModal').style.display = 'flex';
         }
 
@@ -849,32 +830,20 @@
         }
 
         function handleConfirm() {
-            // console.log('handleConfirm called');
-            
             const inputGroup = document.getElementById('confirmInputGroup');
             const batchInputs = document.getElementById('batchSubmissionInputs');
-            // console.log('inputGroup display:', inputGroup.style.display);
-            // console.log('batchInputs display:', batchInputs.style.display);
             
             let inputValue = null;
             
             // Get input value if input field is shown
             if (inputGroup.style.display !== 'none') {
-                // console.log('Input group is visible');
-                
                 if (batchInputs.style.display !== 'none') {
-                    // console.log('Batch inputs are visible, processing...');
-                    
                     // Handle batch submission inputs
                     const trackingNumber = document.getElementById('trackingInput').value.trim();
                     const year = document.getElementById('yearInput').value.trim();
                     
-                    // console.log('trackingNumber:', trackingNumber);
-                    // console.log('year:', year);
-                    
                     // Validate year is 2 digits
                     if (!validateYear(year)) {
-                        // console.log('Year validation failed');
                         // Show error styling
                         const yearInput = document.getElementById('yearInput');
                         yearInput.classList.add('error');
@@ -885,17 +854,12 @@
                         return;
                     }
                     
-                    // console.log('Year validation passed');
-                    
                     // Return both values as an object
                     inputValue = {
                         tracking_number: trackingNumber,
                         year: year
                     };
-                    
-                    // console.log('inputValue created:', inputValue);
                 } else {
-                    // console.log('Single input mode, processing...');
                     // Handle single input
                     const inputField = document.getElementById('confirmInput');
                     inputValue = inputField.value.trim();
@@ -907,12 +871,7 @@
                         return;
                     }
                 }
-            } else {
-                // console.log('No input group visible');
             }
-            
-            // console.log('About to call callback');
-            // console.log('confirmCallback exists:', !!confirmCallback);
             
             // SAVE the callback BEFORE closing the modal
             const savedCallback = confirmCallback;
@@ -920,10 +879,7 @@
             closeModal('confirmModal');
             
             if (savedCallback) {
-                // console.log('Calling savedCallback with:', inputValue);
                 savedCallback(inputValue);
-            } else {
-                // console.log('No confirmCallback was set!');
             }
         }
 
@@ -932,16 +888,17 @@
             const select = document.getElementById('batchSelect');
             select.innerHTML = '<option value="">Select Batch</option>';
             
-            // Find pending batch
+            // Find pending batch (date is null)
             const pendingBatch = allBatches.find(b => b.status === 'pending');
             if (pendingBatch) {
                 select.innerHTML += `<option value="${pendingBatch.id}">Current Batch (Pending) - ${pendingBatch.batch_number}</option>`;
             }
             
-            // Add sent batches
-            const sentBatches = allBatches.filter(b => b.status === 'sent').slice(0, 10); // Show last 10
+            // Add sent batches (have dates)
+            const sentBatches = allBatches.filter(b => b.status === 'sent');
             sentBatches.forEach(batch => {
-                select.innerHTML += `<option value="${batch.id}">Batch ${batch.batch_number} - Sent ${batch.date}</option>`;
+                const displayDate = batch.date || 'No date';
+                select.innerHTML += `<option value="${batch.id}">Batch ${batch.batch_number} - Sent ${displayDate}</option>`;
             });
         }
 
@@ -1008,7 +965,7 @@
                     const newBatch = {
                         id: data.batch.id,
                         batch_number: data.batch.batch_number,
-                        date: data.batch.date,
+                        date: null, // null for pending batches
                         status: 'pending',
                         germinations: []
                     };
@@ -1102,16 +1059,10 @@
             
             showToast('success', 'Sample Added', 
                 `${lotData.variety_name} (${lotData.sku_prefix}) - ${lotData.lot_code} added successfully`, 2000);
-            
-            // console.log('Scanned successfully:', barcode);
         }
 
         // Submit batch to database
         function submitBatch() {
-            // console.log('submitBatch called');
-            // console.log('currentBatch:', currentBatch);
-            // console.log('samples:', samples);
-            
             if (!currentBatch || currentBatch.status !== 'pending' || samples.length === 0) {
                 showToast('warning', 'Cannot Submit', 'No pending batch with samples to submit.');
                 return;
@@ -1132,15 +1083,11 @@
                 `Submit batch ${currentBatch.batch_number} with ${samples.length} samples? Please enter tracking information and the testing year.`,
                 '📤',
                 function(inputData) {
-                    // console.log('Confirm callback called with inputData:', inputData);
-                    
                     // inputData will be an object with tracking_number and year
                     const sampleLotIds = samples.map(s => s.lot_id);
-                    // console.log('sampleLotIds:', sampleLotIds);
                     
                     // Check if lot_ids exist
                     if (sampleLotIds.includes(undefined) || sampleLotIds.includes(null)) {
-                        // console.error('Missing lot_id in samples:', samples);
                         showToast('error', 'Data Error', 'Some samples are missing lot IDs. Please refresh and try again.');
                         return;
                     }
@@ -1151,8 +1098,6 @@
                         tracking_number: inputData.tracking_number,
                         for_year: parseInt(inputData.year) // Send 2-digit year directly to match DB storage
                     };
-                    
-                    // console.log('Sending request with data:', requestData);
 
                     fetch('{% url "submit_batch" %}', {
                         method: 'POST',
@@ -1162,14 +1107,12 @@
                         body: JSON.stringify(requestData)
                     })
                     .then(response => {
-                        // console.log('Response received:', response);
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
-                        // console.log('Response data:', data);
                         if (data.success) {
                             const trackingMsg = inputData.tracking_number ? ` (Tracking: ${inputData.tracking_number})` : '';
                             showToast('success', 'Batch Submitted', 
@@ -1233,6 +1176,7 @@
                 }
             );
         }
+
         function selectBatch() {
             const select = document.getElementById('batchSelect');
             const batchId = select.value;
@@ -1275,17 +1219,11 @@
                 <h3 style="margin-bottom: 15px; color: #333;">Batch Details</h3>
                 <p><strong>Batch Number:</strong> ${currentBatch.batch_number}</p>
                 <p><strong>Status:</strong> ${currentBatch.status === 'pending' ? 'Pending' : 'Sent'}</p>
-                <p><strong>Created:</strong> ${currentBatch.date}</p>
-                ${currentBatch.tracking_number ? `<p><strong>Tracking:</strong> ${currentBatch.tracking_number}</p>` : ''}
+                <p><strong>Date:</strong> ${currentBatch.date || 'Not sent yet'}</p>
+                <p><strong>Tracking Number:</strong> ${currentBatch.tracking_number || 'None'}</p>
                 <p><strong>Total Samples:</strong> ${samples.length}</p>
                 <p><strong>Unique Varieties:</strong> ${uniqueVarieties.length}</p>
                 <p><strong>Unique Crops:</strong> ${uniqueCrops.length}</p>
-                <div style="margin-top: 20px;">
-                    <h4 style="color: #333; margin-bottom: 10px;">Varieties in Batch:</h4>
-                    <div style="max-height: 150px; overflow-y: auto; font-size: 0.9rem;">
-                        ${uniqueVarieties.length > 0 ? uniqueVarieties.map(v => `<div>• ${v}</div>`).join('') : '<div style="color: #999;">No varieties yet</div>'}
-                    </div>
-                </div>
             `;
             
             document.getElementById('batchInfoModal').style.display = 'flex';
