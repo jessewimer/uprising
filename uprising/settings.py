@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     'office.apps.OfficeConfig',
     'lots.apps.LotsConfig',
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -76,6 +77,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "uprising.middleware.MaintenanceModeMiddleware",
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = "uprising.urls"
@@ -146,6 +148,12 @@ LOGIN_REDIRECT_URL = '/accounts/dashboard/'
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_SCRIPT_SRC = ("'self'", "https://code.jquery.com")
 CSP_CONNECT_SRC = ("'self'", "http://localhost:8000")  # Add your domain or source here
+
+# Axes config
+AXES_FAILURE_LIMIT = 3
+AXES_COOLOFF_TIME = 0.5  # 30 minutes
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True
 
 FOR_YEAR = 26
 CURRENT_ORDER_YEAR = 25
