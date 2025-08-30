@@ -85,7 +85,7 @@ ROOT_URLCONF = "uprising.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'templates'], 
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -149,11 +149,19 @@ CSP_DEFAULT_SRC = ("'self'",)
 CSP_SCRIPT_SRC = ("'self'", "https://code.jquery.com")
 CSP_CONNECT_SRC = ("'self'", "http://localhost:8000")  # Add your domain or source here
 
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Axes config
 AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = 0.5  # 30 minutes
 AXES_RESET_ON_SUCCESS = True
-AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True
+AXES_LOCK_OUT_BY_USER = True
+AXES_LOCK_OUT_BY_IP = True
+AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' 
 
 FOR_YEAR = 26
 CURRENT_ORDER_YEAR = 25
