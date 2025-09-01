@@ -283,21 +283,6 @@
             color: #dc3545;
         }
 
-        /* New germination status styles */
-        .germ-label-printed {
-            background: rgba(108, 117, 125, 0.1);
-            color: #6c757d;
-            font-weight: 600;
-            font-style: italic;
-        }
-
-        .germ-sent {
-            background: rgba(255, 133, 27, 0.1);
-            color: #ff851b;
-            font-weight: 600;
-            font-style: italic;
-        }
-
         /* Loading and Empty States */
         .loading-state {
             text-align: center;
@@ -689,7 +674,6 @@
         let allData = [];
         let filteredData = [];
         let germYears = [];
-        let currentYear = null;
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
@@ -704,7 +688,6 @@
                     
                     allData = data.inventory_data;
                     germYears = data.germ_years;
-                    currentYear = data.current_year; // New field needed from backend
                     
                     setupTableHeaders();
                     populateFilters(data.categories, data.groups, data.veg_types);
@@ -803,71 +786,6 @@
             renderTable();
         }
 
-        // Get germination display text and class for a given year
-        function getGerminationDisplay(item, year) {
-            const isCurrentYear = year === currentYear;
-            const germRate = item.germination_rates[year];
-            const labelPrinted = item.germ_sample_prints && item.germ_sample_prints[year];
-            const germRecord = item.germination_records && item.germination_records[year];
-            
-            if (isCurrentYear) {
-                // Special logic for current year
-                if (germRecord && germRecord.germination_rate !== null && germRecord.germination_rate !== undefined) {
-                    if (germRecord.germination_rate === 0) {
-                        return {
-                            text: 'Germ Sent',
-                            className: 'germ-sent'
-                        };
-                    } else {
-                        // Show actual percentage with normal color coding
-                        let className = 'germ-cell';
-                        if (germRecord.germination_rate >= 85) {
-                            className += ' germ-good';
-                        } else if (germRecord.germination_rate >= 70) {
-                            className += ' germ-fair';
-                        } else {
-                            className += ' germ-poor';
-                        }
-                        return {
-                            text: `${germRecord.germination_rate}%`,
-                            className: className
-                        };
-                    }
-                } else if (labelPrinted) {
-                    return {
-                        text: 'Label Printed',
-                        className: 'germ-label-printed'
-                    };
-                } else {
-                    return {
-                        text: '-',
-                        className: 'germ-cell'
-                    };
-                }
-            } else {
-                // Original logic for non-current years
-                if (germRate !== null && germRate !== undefined) {
-                    let className = 'germ-cell';
-                    if (germRate >= 85) {
-                        className += ' germ-good';
-                    } else if (germRate >= 70) {
-                        className += ' germ-fair';
-                    } else {
-                        className += ' germ-poor';
-                    }
-                    return {
-                        text: `${germRate}%`,
-                        className: className
-                    };
-                } else {
-                    return {
-                        text: '-',
-                        className: 'germ-cell'
-                    };
-                }
-            }
-        }
-
         // Render table with filtered data
         function renderTable() {
             const tbody = document.getElementById('tableBody');
@@ -947,10 +865,23 @@
                 // Germination columns
                 germYears.forEach(year => {
                     const germCell = document.createElement('td');
-                    const displayInfo = getGerminationDisplay(item, year);
+                    germCell.className = 'germ-cell';
                     
-                    germCell.className = displayInfo.className;
-                    germCell.textContent = displayInfo.text;
+                    const germRate = item.germination_rates[year];
+                    if (germRate !== null && germRate !== undefined) {
+                        germCell.textContent = `${germRate}%`;
+                        
+                        // Add color coding based on germination rate
+                        if (germRate >= 85) {
+                            germCell.className += ' germ-good';
+                        } else if (germRate >= 70) {
+                            germCell.className += ' germ-fair';
+                        } else {
+                            germCell.className += ' germ-poor';
+                        }
+                    } else {
+                        germCell.textContent = '-';
+                    }
                     
                     row.appendChild(germCell);
                 });
