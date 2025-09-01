@@ -7,12 +7,14 @@ from django.contrib.auth.decorators import user_passes_test, login_required
 from django.http import JsonResponse
 from django.contrib.auth import login
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales
+from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Case, When, IntegerField, Max, Sum
 from uprising.utils.auth import is_employee
 from uprising import settings
 from django.views.decorators.http import require_http_methods
+
 
 @login_required
 @require_http_methods(["GET"])
@@ -1071,4 +1073,341 @@ def variety_sales_data(request, sku_prefix):
         # print(f"Error getting sales data for {sku_prefix}: {str(e)}")
         import traceback
         traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+
+
+
+
+# VIEW FUNCTONS FOR MANAGING WHOLESALE STORE ORDERS
+@login_required
+@user_passes_test(is_employee)
+def process_store_orders(request):
+    """
+    View for processing wholesale orders
+    """
+    variety_data = {}
+   
+    # Build the variety data in the expected format - only wholesale varieties
+    varieties = Variety.objects.filter(wholesale=True)
+    for variety in varieties:
+        variety_data[variety.sku_prefix] = {
+            'common_spelling': variety.common_spelling,
+            'var_name': variety.var_name,
+            'veg_type': variety.veg_type,  # or variety.veg_type if that's the field name
+            'category': variety.category 
+        }
+   
+    stores = Store.objects.all()
+   
+    context = {
+        'stores': stores,
+        'variety_data': json.dumps(variety_data)  # Convert to JSON string for the template
+    }
+    return render(request, 'office/store_orders.html', context)
+
+
+@login_required
+@user_passes_test(is_employee)
+def view_stores(request):
+    """
+    View for displaying all store locations and their details
+    """
+    # fetch all store objects from the database, excluding ones whose name attribute start with "PCC"
+    stores = Store.objects.exclude(store_name__startswith="Ballard")
+    context = {'stores': stores}
+    
+    return render(request, 'office/view_stores.html', context)
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_store(request, store_num):
+    print(f"Updating store with number: {store_num}")
+    try:
+        # Get the store object
+        store = get_object_or_404(Store, store_num=store_num)
+        
+        # Parse the JSON data from the request
+        data = json.loads(request.body)
+        
+        # Update the store fields
+        if 'name' in data:
+            store.store_name = data['name']
+        if 'email' in data:
+            store.store_email = data['email']
+        if 'slots' in data:
+            store.slots = int(data['slots']) if data['slots'] else None
+        if 'contact_name' in data:
+            store.store_contact_name = data['contact_name']
+
+        # Save the changes to the database
+        store.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Store updated successfully'
+        })
+        
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in update_store: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+
+
+@login_required
+@user_passes_test(is_employee)
+@login_required
+def get_store_orders(request, store_id):
+    try:
+        orders = StoreOrder.objects.filter(store__store_num=store_id).order_by('-date')
+        
+        formatted_orders = []
+        for order in orders:
+            formatted_orders.append({
+                'id': order.id,
+                'order_number': order.order_number,
+                'date': order.date.strftime('%Y-%m-%d') if order.date else 'No date',
+                'is_pending': order.fulfilled_date is None  # Add this line
+            })
+        
+        return JsonResponse({'orders': formatted_orders})
+        
+    except Exception as e:
+        print(f"ERROR in get_store_orders: {e}")
+        return JsonResponse({'error': str(e)}, status=400)
+    
+
+@login_required
+@user_passes_test(is_employee)
+def get_pending_orders(request):
+    try:
+        # Get orders where fulfilled_date is None
+        pending_orders = StoreOrder.objects.filter(
+            fulfilled_date__isnull=True
+        ).select_related('store').order_by('-date')
+
+        formatted_orders = []
+        for order in pending_orders:
+            formatted_orders.append({
+                'id': order.id,
+                'order_number': order.order_number,
+                'store_name': order.store.store_name,
+                'date': order.date.strftime('%Y-%m-%d') if order.date else 'No date'
+            })
+        
+        return JsonResponse({'orders': formatted_orders})
+        
+    except Exception as e:
+        print(f"ERROR in get_pending_orders: {e}")
+        return JsonResponse({'error': str(e)}, status=400)
+    
+
+@login_required
+@user_passes_test(is_employee)
+def get_order_details(request, order_id):
+    try:
+        # Get the order and its items
+        order = StoreOrder.objects.get(id=order_id)
+        order_items = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
+       
+        # Format the items for the frontend
+        formatted_items = []
+        for item in order_items:
+            # Access variety data through the product relationship
+            variety = item.product.variety
+            print(f"DEBUG: item.product = {item.product}, variety = {variety}")
+            if variety:  # Make sure variety exists
+                formatted_items.append({
+                    'sku_prefix': variety.sku_prefix,
+                    'var_name': variety.var_name,
+                    'veg_type': variety.veg_type,
+                    'quantity': item.quantity,
+                    'category': variety.category,
+                    'has_photo': item.photo  # Use the stored preference
+                })
+       
+        return JsonResponse({
+            'order': {  # Add the order object
+                'id': order.id,
+                'order_number': order.order_number,
+                'fulfilled_date': order.fulfilled_date.strftime('%Y-%m-%d %H:%M:%S') if order.fulfilled_date else None
+            },
+            'items': formatted_items
+        })
+       
+    except StoreOrder.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        print(f"ERROR in get_order_details: {e}")
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+
+
+# def get_order_details(request, order_id):
+#     try:
+#         # Get the order and its items
+#         order = StoreOrder.objects.get(id=order_id)
+#         order_items = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
+        
+#         # Format the items for the frontend
+#         formatted_items = []
+#         for item in order_items:
+#             # Access variety data through the product relationship
+#             variety = item.product.variety
+#             print(f"DEBUG: item.product = {item.product}, variety = {variety}")
+#             if variety:  # Make sure variety exists
+#                 formatted_items.append({
+#                     'sku_prefix': variety.sku_prefix,
+#                     'var_name': variety.var_name,
+#                     'veg_type': variety.veg_type,
+#                     'quantity': item.quantity,
+#                     'category': variety.category,
+#                     'has_photo': item.photo  # Use the stored preference
+#                 })
+        
+#         return JsonResponse({
+#             'order_number': order.order_number,
+#             'items': formatted_items
+#         })
+        
+#     except StoreOrder.DoesNotExist:
+#         return JsonResponse({'error': 'Order not found'}, status=404)
+#     except Exception as e:
+#         print(f"ERROR in get_order_details: {e}")
+#         return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_employee)
+def save_order_changes(request):
+    try:
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        items = data.get('items', [])
+        
+        # Get the order
+        order = StoreOrder.objects.get(id=order_id)
+        
+        # Clear existing SOIncludes for this order
+        SOIncludes.objects.filter(store_order=order).delete()
+        pkt_price = settings.PACKET_PRICE
+        # Add new items
+        for item_data in items:
+            # Find the product based on variety with sku_suffix="pkt"
+            variety = Variety.objects.get(sku_prefix=item_data['sku_prefix'])
+            product = Product.objects.filter(variety=variety, sku_suffix="pkt").first()
+            
+            if product:
+                SOIncludes.objects.create(
+                    store_order=order,
+                    product=product,
+                    quantity=item_data['quantity'],
+                    price=pkt_price,  # You'll need to set appropriate price logic
+                    photo=item_data.get('has_photo', False)
+                )
+            else:
+                # Log or handle case where no "pkt" product exists for this variety
+                print(f"Warning: No 'pkt' product found for variety {variety.sku_prefix}")
+        
+        return JsonResponse({'success': True, 'message': f'Order updated with {len(items)} items'})
+        
+    except StoreOrder.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+    except Variety.DoesNotExist:
+        return JsonResponse({'error': 'Variety not found'}, status=404)
+    except Exception as e:
+        print(f"ERROR in save_order_changes: {e}")
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def finalize_order(request):
+    try:
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        items = data.get('items', [])
+        
+        # Get the order
+        order = StoreOrder.objects.get(id=order_id)
+        
+        # Set fulfilled_date to current timezone-aware datetime
+        from django.utils import timezone
+        order.fulfilled_date = timezone.now()
+        order.save()
+        pkt_price = settings.PACKET_PRICE   
+        # Validate all products exist first (safer approach)
+        new_so_includes = []
+        for item in items:
+            try:
+                # Get Variety by sku_prefix
+                variety = Variety.objects.get(sku_prefix=item['sku_prefix'])
+                
+                # Find the associated Product with sku_suffix == "pkt"
+                # Adjust the relationship field name as needed (e.g., variety__sku_prefix or however they're connected)
+                product = Product.objects.get(
+                    variety=variety,  # Adjust this field name based on your Product model
+                    sku_suffix="pkt"
+                )
+                
+                new_so_includes.append({
+                    'product': product,
+                    'variety': variety,  # Keep variety reference for response
+                    'quantity': item['quantity'],
+                    'photo': item.get('has_photo', False),
+                    'price': pkt_price  # Set price here if needed
+                })
+                
+            except Variety.DoesNotExist:
+                return JsonResponse({'error': f'Variety with sku_prefix {item["sku_prefix"]} not found'}, status=400)
+            except Product.DoesNotExist:
+                return JsonResponse({'error': f'Packet product not found for variety {item["sku_prefix"]}'}, status=400)
+        
+        # Only delete existing ones after validating all new ones can be created
+        SOIncludes.objects.filter(store_order=order).delete()
+        
+        # Create new SOIncludes
+        for include_data in new_so_includes:
+            SOIncludes.objects.create(
+                store_order=order,
+                product=include_data['product'],
+                quantity=include_data['quantity'],
+                price=pkt_price,
+                photo=include_data['photo']
+            )
+        
+        # Get store and return response
+        store = order.store
+        so_includes = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
+        
+        return JsonResponse({
+            'success': True,
+            'order': {
+                'id': order.id,
+                'order_number': order.order_number,
+                'fulfilled_date': order.fulfilled_date.strftime('%Y-%m-%d %H:%M:%S')
+            },
+            'store': {
+                'name': store.store_name,
+            },
+            'items': [
+                {
+                    'sku_prefix': include.product.variety.sku_prefix,
+                    'var_name': include.product.variety.var_name,
+                    'quantity': include.quantity,
+                    'has_photo': include.photo
+                }
+                for include in so_includes
+            ]
+        })
+        
+    except Exception as e:
+        print(f"Error in finalize_order: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)

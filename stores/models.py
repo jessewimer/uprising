@@ -10,7 +10,6 @@ class Store(models.Model):
     store_name = models.CharField(max_length=100, default="default")
     store_contact_name = models.CharField(max_length=100, blank=True, null=True)
     store_contact_phone = models.CharField(max_length=100, blank=True, null=True)
-    # store_contact_email = models.EmailField(blank=True, null=True)
     store_contact_email = models.TextField(blank=True, null=True)
     store_address = models.TextField(blank=True, null=True)
     store_address2 = models.TextField(blank=True, null=True)
@@ -57,7 +56,7 @@ class StoreNote(models.Model):
 class StoreOrder(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="orders", to_field='store_num')
     order_number = models.CharField(max_length=100, unique=True, default="XXXXX-XX")
-    date = models.DateTimeField()
+    date = models.DateTimeField(null=True, blank=True)
     fulfilled_date = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
 
@@ -70,6 +69,7 @@ class SOIncludes(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    photo = models.BooleanField(default=False, blank=True, null=True)
 
     class Meta:
         verbose_name = "SO Include"

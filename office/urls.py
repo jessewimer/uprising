@@ -2,9 +2,10 @@ from django.urls import path
 from .views import OfficeLoginView, OfficeLogoutView, office_landing, view_variety, analytics, admin_dashboard
 from .views import *
 import products.views as product_views
-import stores.views as store_views
+# import stores.views as store_views
 import lots.views as lot_views
 import orders.views as order_views
+# from stores.models import Store
 
 urlpatterns = [
     # Authentication
@@ -20,8 +21,15 @@ urlpatterns = [
     path('edit-products/', product_views.edit_products, name='edit_products'),
     path('view-variety/', view_variety, name='view_variety'),
     path('analytics/', analytics, name='analytics'),
-    path('process-store-orders/', store_views.process_store_orders, name='process_store_orders'),
-    path('view-stores/', store_views.view_stores, name='view_stores'),
+
+    path('<int:store_num>/update/', update_store, name='update_store'),
+    path('get-store-orders/<int:store_id>/', get_store_orders, name='get_store_orders'),
+    path('process-store-orders/', process_store_orders, name='process_store_orders'),
+    path('get-pending-orders/', get_pending_orders, name='get_pending_orders'),
+    path('view-stores/', view_stores, name='view_stores'),
+    path('get-order-details/<int:order_id>/', get_order_details, name='get_order_details'),
+    path('save-order-changes/', save_order_changes, name='save_order_changes'),
+    path('finalize-order/', finalize_order, name='finalize_order'),
     
     # path('germ-samples/', lot_views.germ_samples, name='germ_samples'),
     path('germ-samples/', lot_views.send_germ_samples, name='germ_samples'),

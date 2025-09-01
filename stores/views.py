@@ -19,6 +19,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.http.request import RawPostDataException
+from uprising.utils.auth import is_employee
+from django.contrib.admin.views.decorators import user_passes_test
 
 
 class CustomLogoutView(LogoutView):
@@ -122,7 +124,7 @@ def dashboard(request, store_name):
                 
                 pacific_tz = pytz.timezone('US/Pacific')
                 pacific_now = timezone.now().astimezone(pacific_tz).date()
-                print(f"Pacific now: {pacific_now}")
+                # print(f"Pacific now: {pacific_now}")
                 
                 order = StoreOrder.objects.create(
                     store=store,
@@ -579,74 +581,3 @@ def dashboard(request, store_name):
     # }
     # return render(request, 'stores/dashboard.html', context)
 
-
-@login_required
-def process_store_orders(request):
-    """
-    View for processing wholesale orders
-    """
-
-    variety_lookup = {}
-    
-    # Example with a Variety model:
-    varieties = Variety.objects.all()
-    for variety in varieties:
-        variety_lookup[variety.common_spelling] = [
-            variety.var_name,     # Index 0: variety name
-            variety.group,    # Index 1: group
-            variety.crop      # Index 2: crop
-        ]
-
-    stores = Store.objects.all()
-
-    context = {'stores': stores, 'variety_lookup': variety_lookup}
-
-    return render(request, 'stores/store_orders.html', context)
-
-@login_required
-def view_stores(request):
-    """
-    View for displaying all store locations and their details
-    """
-    # fetch all store objects from the database, excluding ones whose name attribute start with "PCC"
-    stores = Store.objects.exclude(store_name__startswith="Ballard")
-    context = {'stores': stores}
-    
-    return render(request, 'stores/view_stores.html', context)
-
-
-@require_http_methods(["POST"])
-def update_store(request, store_num):
-    print(f"Updating store with number: {store_num}")
-    try:
-        # Get the store object
-        store = get_object_or_404(Store, store_num=store_num)
-        
-        # Parse the JSON data from the request
-        data = json.loads(request.body)
-        
-        # Update the store fields
-        if 'name' in data:
-            store.store_name = data['name']
-        if 'email' in data:
-            store.store_email = data['email']
-        if 'slots' in data:
-            store.slots = int(data['slots']) if data['slots'] else None
-        if 'contact_name' in data:
-            store.store_contact_name = data['contact_name']
-
-        # Save the changes to the database
-        store.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Store updated successfully'
-        })
-        
-    except Exception as e:
-        # Log the error for debugging
-        print(f"Error in update_store: {e}")
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
