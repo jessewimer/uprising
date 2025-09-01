@@ -685,11 +685,6 @@
             fetch('{% url "germination_inventory_data" %}')
                 .then(response => response.json())
                 .then(data => {
-                    // console.log('Received data:', data);
-                    // console.log('Categories:', data.categories);
-                    // console.log('Groups:', data.groups);
-                    // console.log('Veg Types:', data.veg_types);
-                    // console.log('Sample inventory data:', data.inventory_data[0]);
                     
                     allData = data.inventory_data;
                     germYears = data.germ_years;
@@ -767,9 +762,6 @@
             const groupFilter = document.getElementById('groupFilter').value;
             const vegTypeFilter = document.getElementById('vegTypeFilter').value;
 
-            // console.log('Applying filters - Category:', categoryFilter, 'Group:', groupFilter, 'VegType:', vegTypeFilter);
-            // console.log('Total data before filtering:', allData.length);
-
             filteredData = allData.filter(item => {
                 const categoryMatch = !categoryFilter || item.category === categoryFilter;
                 const groupMatch = !groupFilter || item.group === groupFilter;
@@ -782,7 +774,6 @@
                 return categoryMatch && groupMatch && vegTypeMatch;
             });
 
-            // console.log('Filtered data count:', filteredData.length);
             renderTable();
         }
 

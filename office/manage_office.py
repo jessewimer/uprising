@@ -48,4 +48,5 @@ def import_office_supplies(csv_file):
 
     
 if __name__ == "__main__":
-    import_office_supplies(CSV_FILE)
+    # import_office_supplies(CSV_FILE)
+    print("This script is for importing office supplies. Uncomment the import line to run it.")
