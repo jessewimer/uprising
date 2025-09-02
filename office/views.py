@@ -940,6 +940,7 @@ def germination_inventory_data(request):
                 'category': variety.category,
                 'group': variety.group,
                 'veg_type': variety.veg_type,
+                'species': variety.species,
                 'lot_code': lot_code,
                 'current_inventory_weight': current_inventory_weight,
                 'current_inventory_date': current_inventory_date,
