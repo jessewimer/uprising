@@ -1109,6 +1109,10 @@ def germination_inventory_data(request):
 #         traceback.print_exc()
 #         return JsonResponse({'error': str(e)}, status=500)
 
+
+
+
+
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -1163,6 +1167,7 @@ def create_germ_sample_print(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
+
 
 
 @login_required
