@@ -542,7 +542,7 @@ def import_germ_sample_prints_from_csv(csv_file_path, dry_run=False):
                 GermSamplePrint.objects.create(
                     lot=lot,
                     print_date=printed_date,
-                    for_year=printed_date.year
+                    for_year=26
                 )
                 print(f"[CREATED] GermSamplePrint for Lot ID {lot.id}, print_date {printed_date}")
 
@@ -550,7 +550,11 @@ def import_germ_sample_prints_from_csv(csv_file_path, dry_run=False):
 
         print(f"Processing complete. {processed_count} rows processed.")
     
-
+def clear_germ_sample_print_table():
+    """Clear all entries in the GermSamplePrint table"""
+    GermSamplePrint.objects.all().delete()
+    print("✅ All germ sample prints cleared.")
+    
 if __name__ == "__main__":
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
@@ -562,6 +566,7 @@ if __name__ == "__main__":
     # import_germination_data(germ_file_path)
     # import_inventory_data(inv_file_path)
     # import_retired_lots(ret_file_path)
+    clear_germ_sample_print_table()
     import_germ_sample_prints_from_csv(germ_print_file_path)
     # clear_germination_batch_and_test_germinations()
     # view_germination_batches()
