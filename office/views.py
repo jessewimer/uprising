@@ -817,8 +817,9 @@ def germination_inventory_view(request):
 
 
 
-
-
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
 def germination_inventory_data(request):
     """API endpoint to get germination and inventory data"""
     
