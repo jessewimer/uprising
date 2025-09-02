@@ -4,6 +4,7 @@ import csv
 import sys
 from django.db import transaction
 from datetime import datetime
+from django.utils import timezone
 
 # Get the current directory path
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -483,22 +484,89 @@ def import_germs_26(csv_file_path, dry_run=False):
                 print(f"❌ Error processing row {row}: {e}")
 
 
-            
+
+def import_germ_sample_prints_from_csv(csv_file_path, dry_run=False):
+    """
+    Imports a CSV of germ sample prints and creates GermSamplePrint objects.
+    CSV columns: sku_prefix, lot, printed_date
+
+    If dry_run=True, does not save to DB, just prints actions.
+    """
+    with open(csv_file_path, newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        processed_count = 0
+
+        for row in reader:
+            sku_prefix = row["sku_prefix"]
+            lot_str = row["lot"]
+            printed_date_str = row["printed_date"]
+
+            # Parse grower_id and year from the 4-char lot string
+            grower_id_part = lot_str[:2]
+            year_part = lot_str[2:]
+
+            try:
+                grower_id = str(grower_id_part)
+                lot_year = int(year_part)
+            except ValueError:
+                print(f"[SKIP] Invalid lot format: {lot_str}")
+                continue
+
+            # Find the Variety
+            try:
+                variety = Variety.objects.get(sku_prefix=sku_prefix)
+            except Variety.DoesNotExist:
+                print(f"[SKIP] No variety found for sku_prefix: {sku_prefix}")
+                continue
+
+            # Find the Lot
+            try:
+                lot = Lot.objects.get(variety=variety, grower_id=grower_id, year=lot_year)
+            except Lot.DoesNotExist:
+                print(f"[SKIP] No lot found for variety {sku_prefix}, grower {grower_id}, year {lot_year}")
+                continue
+
+            # Parse printed_date
+            try:
+                if "/" in printed_date_str:
+                    printed_date = datetime.strptime(printed_date_str, "%m/%d/%Y").date()
+                else:
+                    printed_date = datetime.strptime(printed_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                print(f"[SKIP] Invalid date: {printed_date_str}")
+                continue
+
+            if dry_run:
+                print(f"[DRY RUN] Would create GermSamplePrint for Lot ID {lot.variety.sku_prefix}-{lot.grower}{lot.year}, print_date {printed_date}, for_year {printed_date.year}")
+            else:
+                GermSamplePrint.objects.create(
+                    lot=lot,
+                    print_date=printed_date,
+                    for_year=printed_date.year
+                )
+                print(f"[CREATED] GermSamplePrint for Lot ID {lot.id}, print_date {printed_date}")
+
+            processed_count += 1
+
+        print(f"Processing complete. {processed_count} rows processed.")
+    
 
 if __name__ == "__main__":
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
 #     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
+    germ_print_file_path = os.path.join(os.path.dirname(__file__), "germ_sample_prints.csv")
 
     # import_growers(full_file_path)
     # import_lots(full_file_path)
     # import_germination_data(germ_file_path)
     # import_inventory_data(inv_file_path)
     # import_retired_lots(ret_file_path)
+    import_germ_sample_prints_from_csv(germ_print_file_path)
     # clear_germination_batch_and_test_germinations()
     # view_germination_batches()
 
     # THESE ADD 3 BATCHES TO THE DB AND POPULATE WITH 26 GERMS SENT VIA THE OTHER DB
-    add_germ_batch_to_db()
-    germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
-    import_germs_26(germ_26_file_path)
+    # add_germ_batch_to_db()
+    # germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
+    # import_germs_26(germ_26_file_path)

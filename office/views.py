@@ -828,9 +828,6 @@ def germination_inventory_data(request):
             max_year=Max('for_year')
         )['max_year']
         
-        if max_germ_year is None:
-            max_germ_year = 25  # Default if no germination data
-            
         # Calculate the 4 germination years to display
         germ_years = []
         for i in range(3, -1, -1):  # 3, 2, 1, 0 (last 4 years)
@@ -840,9 +837,7 @@ def germination_inventory_data(request):
         
         # The current year is the most recent (rightmost column)
         current_year = f"{max_germ_year:02d}"
-        
-        # print(f"Max germ year: {max_germ_year}, Displaying years: {germ_years}, Current year: {current_year}")
-        
+
         # Get all lots with related data, EXCLUDING retired lots
         lots = Lot.objects.select_related(
             'variety', 'grower'
