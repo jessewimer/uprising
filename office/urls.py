@@ -41,6 +41,7 @@ urlpatterns = [
     path('process-online-orders/', order_views.process_online_orders, name='process_online_orders'),
     path('germination-inventory/', germination_inventory_view, name='germination_inventory'),
     path('api/germination-inventory-data/', germination_inventory_data, name='germination_inventory_data'),
+    path('api/create-germ-sample-print/', create_germ_sample_print, name='create_germ_sample_print'),
     
     # JSON API endpoints
     path('varieties-json/', varieties_json, name='varieties_json'),
