@@ -74,6 +74,9 @@ class Lot(models.Model):
     def get_most_recent_germination(self):
         return self.germinations.filter(test_date__isnull=False).order_by("-test_date").first()
 
+    def get_germ_record_with_no_test_date(self):
+        return self.germinations.filter(test_date__isnull=True).order_by("-for_year").first()
+    
     def get_most_recent_germ_percent(self):
         germination = self.get_most_recent_germination()
         year = germination.for_year if germination else None

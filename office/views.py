@@ -731,17 +731,18 @@ def record_germination(request):
             lot = Lot.objects.get(pk=lot_id)
             
             # Find the most recent germination record
-            most_recent_germ = lot.germinations.order_by('-test_date').first()
-            
-            if not most_recent_germ:
-                return JsonResponse({'error': 'No germination record found for this lot'}, status=404)
+            # most_recent_germ = lot.germinations.order_by('-test_date').first()
+            germ_record = lot.get_germ_record_with_no_test_date()
+            # print(f"{most_recent_germ.lot.variety.sku_prefix}-{most_recent_germ.lot.grower}{most_recent_germ.lot.year} for 20{most_recent_germ.for_year} if most_recent_germ else 'No germination record'")
+            if not germ_record:
+                return JsonResponse({'error': 'No empty germ record found for this lot'}, status=404)
             
             # Update the germination record
-            most_recent_germ.germination_rate = germination_rate
-            most_recent_germ.test_date = test_date if test_date else date_class.today()
+            germ_record.germination_rate = germination_rate
+            germ_record.test_date = test_date if test_date else date_class.today()
             if notes:
-                most_recent_germ.notes = notes
-            most_recent_germ.save()
+                germ_record.notes = notes
+            germ_record.save()
             
             return JsonResponse({'success': True})
         except Lot.DoesNotExist:
@@ -750,6 +751,49 @@ def record_germination(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required
+@user_passes_test(is_employee)
+def change_lot_status(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            lot_id = data.get('lot_id')
+            new_status = data.get('status')
+            
+            if not lot_id or not new_status:
+                return JsonResponse({'error': 'Missing lot_id or status'}, status=400)
+                
+            if new_status not in ['pending', 'active']:
+                return JsonResponse({'error': 'Invalid status. Must be pending or active'}, status=400)
+            
+            # Get the lot
+            lot = Lot.objects.get(pk=lot_id)
+            
+            # Get the most recent germination record
+            most_recent_germ = lot.get_most_recent_germination()
+            
+            if not most_recent_germ:
+                return JsonResponse({'error': 'No germination records found for this lot'}, status=404)
+            
+            # Update the status
+            most_recent_germ.status = new_status
+            most_recent_germ.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Lot status changed to {new_status}'
+            })
+            
+        except Lot.DoesNotExist:
+            return JsonResponse({'error': 'Lot not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
 
 @login_required
 @user_passes_test(is_employee)

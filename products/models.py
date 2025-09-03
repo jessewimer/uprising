@@ -69,6 +69,12 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.variety.sku_prefix} - {self.pkg_size or ''}"
 
+    def get_rad_type(self):
+        if self.pkg_size != 'pkt':
+            if hasattr(self.variety, 'rad_type'):
+                return self.variety.rad_type.rad_type
+        return None
+    
     def get_ytd_sales(self):
         current_year = timezone.now().year
         

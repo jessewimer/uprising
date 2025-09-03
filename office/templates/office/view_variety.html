@@ -660,8 +660,8 @@
             justify-content: center;
             transition: all 0.2s ease;
             position: absolute;
-            right: 0;
-            top: 0;
+            right: -20px;  /* Move more to the right */
+            top: -20px;
         }
 
         .print-popup-close:hover {
@@ -741,6 +741,25 @@
         }
 
         .print-btn {
+            background: #4CAF50;  /* Matte green */
+            color: white;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);  /* Green shadow */
+            background: #45a049;  /* Slightly darker green on hover */
+        }
+
+        .cancel-btn {
+            background: #ffcdd2;  /* Light red */
+            color: #d32f2f;  /* Darker red text */
+        }
+
+        .cancel-btn:hover {
+            background: #ef9a9a;  /* Slightly darker light red on hover */
+        }
+        /* .print-btn {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
         }
@@ -757,7 +776,7 @@
 
         .cancel-btn:hover {
             background: #e8eaed;
-        }
+        } */
 
         /* Photo Popup */
         .photo-popup-overlay {
@@ -999,6 +1018,22 @@
             box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
         }
 
+
+        .status-btn-current {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .status-btn-available {
+            background: #f1f3f4;
+            color: #666;
+        }
+
+        .status-btn-available:hover {
+            background: #e8eaed;
+        }
+
+
         .messages-container {
             position: fixed;
             top: 20px;
@@ -1222,6 +1257,61 @@
                             </thead>
                             <tbody>
                                 {% for product in products %}
+                                    <tr data-product-id="{{ product.pk }}"
+                                        data-variety-name="{{ product.variety.var_name }}"
+                                        data-crop="{{ product.variety.crop|default:'' }}"
+                                        data-days="{{ product.variety.days|default:'' }}"
+                                        data-sku-suffix="{{ product.sku_suffix|default:'' }}"
+                                        data-pkg-size="{{ product.pkg_size|default:'' }}"
+                                        data-env-type="{{ product.env_type|default:'' }}"
+                                        data-rad-type="{{ product.variety.get_rad_type|default:'' }}"
+                                        data-desc1="{{ product.variety.desc_line1|default:'' }}"
+                                        data-desc2="{{ product.variety.desc_line2|default:'' }}"
+                                        data-desc3="{{ product.variety.desc_line3|default:'' }}"
+                                        data-back1="{{ product.variety.back1|default:'' }}"
+                                        data-back2="{{ product.variety.back2|default:'' }}"
+                                        data-back3="{{ product.variety.back3|default:'' }}"
+                                        data-back4="{{ product.variety.back4|default:'' }}"
+                                        data-back5="{{ product.variety.back5|default:'' }}"
+                                        data-back6="{{ product.variety.back6|default:'' }}"
+                                        data-back7="{{ product.variety.back7|default:'' }}"
+                                        data-lot-code="{% if product.lot %}{% if product.lot.grower and product.lot.year %}{{ product.lot.grower }}{{ product.lot.year }}{% if product.lot.harvest %}{{ product.lot.harvest }}{% endif %}{% endif %}{% endif %}"
+                                        data-germination="{% if product.lot %}{{ product.lot.get_most_recent_germ_percent|default:'' }}{% endif %}"
+                                        data-for-year="25">
+                                        <td>
+                                            <span class="print-icon" onclick="showPrintPopup('{{ product.pk }}', '{{ product.variety.var_name }} - {{ product.sku_suffix|escapejs }}')">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                                                    <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                                                    <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                                                </svg>
+                                            </span>
+                                        </td>
+                                        <td>{{ product.sku_suffix|default:"--" }}</td>
+                                        <td>
+                                            {% if product.lot %}
+                                                {% if product.lot.grower and product.lot.year %}
+                                                    {{ product.lot.grower }}{{ product.lot.year }}{% if product.lot.harvest %}{{ product.lot.harvest }}{% endif %}
+                                                {% else %}
+                                                    --
+                                                {% endif %}
+                                            {% else %}
+                                                --
+                                            {% endif %}
+                                            <span class="edit-icon" onclick="editProductLot('{{ product.pk }}')">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                </svg>
+                                            </span>
+                                        </td>
+                                        <td>{{ product.get_ytd_sales|default:"--" }}</td>
+                                        <td>{{ product.get_last_year_sales|default:"--" }}</td>
+                                        <td>{{ product.get_total_printed|default:"0" }}</td>
+                                        <td>{{ product.env_type|default:"--" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                <!-- {% for product in products %}
                                 <tr>
                                     <td>
                                         <span class="print-icon" onclick="showPrintPopup('{{ product.pk }}', '{{ product.variety.var_name }} - {{ product.sku_suffix|escapejs }}')">
@@ -1255,7 +1345,7 @@
                                     <td>{{ product.get_total_printed|default:"0" }}</td>
                                     <td>{{ product.env_type|default:"--" }}</td>
                                 </tr>
-                                {% endfor %}
+                                {% endfor %} -->
                             </tbody>
                         </table>
                     </div>
@@ -1485,6 +1575,23 @@
         </div>
     </div>
 
+    <!-- Pending Status Warning Popup -->
+    <div class="print-popup-overlay" id="pendingStatusWarning">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Cannot Print</h3>
+                <button class="print-popup-close" onclick="hidePendingStatusWarning()">×</button>
+            </div>
+            <p style="text-align: center; margin-bottom: 20px; color: #ff6b6b;">
+                This product is assigned to a lot with pending status.<br>
+                <strong>Please activate the lot before printing.</strong>
+            </p>
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hidePendingStatusWarning()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Lot Popup -->
     <div class="print-popup-overlay" id="addLotPopup">
         <div class="print-popup">
@@ -1565,6 +1672,9 @@
                 <button class="lot-action-btn" onclick="recordStockSeed(currentLotId)">Record Stock Seed</button>
                 <button class="lot-action-btn" onclick="recordInventory(currentLotId)">Record Inventory</button>
                 <button class="lot-action-btn" onclick="recordGermination(currentLotId)">Record Germination</button>
+                <button class="lot-action-btn" onclick="changeLotStatus(currentLotId)">Change Status</button>
+                <button class="lot-action-btn" onclick="viewLotUsage(currentLotId)">View Usage</button>
+                <button class="lot-action-btn" onclick="viewLotHistory(currentLotId)">View History</button>
                 <button class="lot-action-btn delete-btn" onclick="deleteLot(currentLotId)">Delete Lot</button>
             </div>
         </div>
@@ -1787,7 +1897,20 @@
         </div>
     </div>
 
-
+    <!-- Change Lot Status Popup -->
+    <div class="print-popup-overlay" id="changeStatusPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title" id="changeStatusTitle">Change Lot Status</h3>
+                <button class="print-popup-close" onclick="hideChangeStatusPopup()">×</button>
+            </div>
+            
+            <div class="print-actions">
+                <button class="print-action-btn" id="pendingStatusBtn" onclick="setLotStatus('pending')">Pending</button>
+                <button class="print-action-btn" id="activeStatusBtn" onclick="setLotStatus('active')">Active</button>
+            </div>
+        </div>
+    </div>
 
 
 
@@ -1943,6 +2066,12 @@
                 }
             }
             
+            // Check if lot status is pending
+            const lotStatus = getLotStatus(lotText);
+            if (lotStatus && lotStatus.toLowerCase() === 'pending') {
+                document.getElementById('pendingStatusWarning').classList.add('show');
+                return;
+            }
             // Continue with normal print popup if no issues
             proceedWithPrintPopup(productId, productName);
         }
@@ -1958,6 +2087,27 @@
             
             document.getElementById('printPopupOverlay').classList.add('show');
         }
+
+
+        function getLotStatus(lotCode) {
+            // Find the lot status from the lots table
+            const lotRows = document.querySelectorAll('.lots-table tbody tr');
+            
+            for (const row of lotRows) {
+                const rowLotCode = row.cells[0].textContent.trim().replace(/\s+/g, '');
+                if (rowLotCode === lotCode) {
+                    // Status is in the 4th column (index 3)
+                    return row.cells[3].textContent.trim();
+                }
+            }
+            
+            return null;
+        }
+
+        function hidePendingStatusWarning() {
+            document.getElementById('pendingStatusWarning').classList.remove('show');
+        }
+
 
         // Photo popup functions
         function showPhotoPopup() {
@@ -1987,43 +2137,287 @@
             proceedWithPrintPopup(productId, productName);
         }
 
+        // function submitPrintJob() {
+        //     const quantity = document.getElementById('printQuantity').value;
+            
+        //     if (!currentProductId || !quantity || quantity < 1) {
+        //         alert('Please enter a valid quantity');
+        //         return;
+        //     }
+
+        //     fetch('/office/print-product-labels/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             product_id: currentProductId,
+        //             print_type: selectedPrintOption,
+        //             quantity: quantity
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             showMessage(data.message, 'success'); // Use styled message instead of alert
+        //             hidePrintPopup();
+        //         } else {
+        //             showMessage('Error printing: ' + (data.error || 'Unknown error'), 'error');
+        //             hidePrintPopup(); 
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         showMessage('Network error occurred', 'error');
+        //         hidePrintPopup(); 
+        //     });
+        // }
+        
+
+
         function submitPrintJob() {
             const quantity = document.getElementById('printQuantity').value;
             
             if (!currentProductId || !quantity || quantity < 1) {
-                alert('Please enter a valid quantity');
+                showMessage('Please enter a valid quantity', 'error');
                 return;
             }
 
-            fetch('/office/print-product-labels/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    product_id: currentProductId,
-                    print_type: selectedPrintOption,
-                    quantity: quantity
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(data.message, 'success'); // Use styled message instead of alert
-                    hidePrintPopup();
-                } else {
-                    showMessage('Error printing: ' + (data.error || 'Unknown error'), 'error');
-                    hidePrintPopup(); 
+            try {
+                // Collect all data from the page
+                const printData = collectPrintData(currentProductId, quantity);
+                
+                if (!printData) {
+                    showMessage('Could not collect print data', 'error');
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('Network error occurred', 'error');
-                hidePrintPopup(); 
-            });
+
+                // Determine Flask endpoints based on print option
+                const endpoints = getFlaskEndpoints(selectedPrintOption);
+                
+                if (endpoints.length === 0) {
+                    showMessage('Invalid print option selected', 'error');
+                    return;
+                }
+
+                console.log('Sending to Flask:', printData);
+
+                // Step 1: Send to Flask for printing
+                Promise.all(endpoints.map(endpoint => 
+                    fetch(`http://localhost:5000${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(printData)
+                    })
+                ))
+                .then(responses => {
+                    const allSuccessful = responses.every(response => response.ok);
+                    
+                    if (allSuccessful) {
+                        // Step 2: Record print job in Django
+                        return fetch('/office/print-product-labels/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                product_id: currentProductId,
+                                print_type: selectedPrintOption,
+                                quantity: quantity
+                            })
+                        });
+                    } else {
+                        throw new Error('Flask printing failed');
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
+                        hidePrintPopup();
+                        // Refresh page after 2 seconds to show updated print count
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname;
+                        }, 2000);
+                    } else {
+                        showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
+                        hidePrintPopup();
+                    }
+                })
+                .catch(error => {
+                    console.error('Print job error:', error);
+                    console.log('This is the data that would be sent to Flask:', printData);
+                    showMessage('Printing failed: ' + error.message, 'error');
+                    hidePrintPopup();
+                });
+
+            } catch (error) {
+                console.error('Data collection error:', error);
+                console.log('This is the data that would be sent to Flask: [Data collection failed]');
+                showMessage('Failed to collect print data', 'error');
+            }
         }
-        
+
+        function collectPrintData(productId, quantity) {
+            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            if (!productRow) return null;
+
+            return {
+                quantity: parseInt(quantity),
+                variety_name: productRow.dataset.varietyName,
+                crop: productRow.dataset.crop,
+                days: productRow.dataset.days,
+                sku_suffix: productRow.dataset.skuSuffix,
+                pkg_size: productRow.dataset.pkgSize,
+                env_type: productRow.dataset.envType,
+                lot_code: productRow.dataset.lotCode,
+                germination: productRow.dataset.germination,
+                for_year: productRow.dataset.forYear,
+                rad_type: productRow.dataset.radType,
+                desc1: productRow.dataset.desc1,
+                desc2: productRow.dataset.desc2,
+                desc3: productRow.dataset.desc3,
+                back1: productRow.dataset.back1,
+                back2: productRow.dataset.back2,
+                back3: productRow.dataset.back3,
+                back4: productRow.dataset.back4,
+                back5: productRow.dataset.back5,
+                back6: productRow.dataset.back6,
+                back7: productRow.dataset.back7
+            };
+        }
+        // function collectPrintData(productId, quantity) {
+        //     // Get product row data
+        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+        //     if (!productRow) {
+        //         console.error('Product row not found');
+        //         return null;
+        //     }
+
+        //     // Get variety info from header
+        //     const varietyName = document.getElementById('varietyName').textContent.trim();
+        //     const varietySku = document.getElementById('varietySku').textContent.trim();
+        //     const varietyType = document.getElementById('varietyType').textContent.trim();
+            
+        //     // Get days from variety details if present
+        //     const daysElement = document.querySelector('.variety-detail:not(:first-child):not(:nth-child(2))');
+        //     const days = daysElement ? daysElement.textContent.trim() : '';
+
+        //     // Get label text from label section
+        //     const labelLines = document.querySelectorAll('.label-line');
+        //     const frontLabels = [];
+        //     const backLabels = [];
+            
+        //     // Extract front labels (first 3 lines in first group)
+        //     const frontGroup = document.querySelector('.label-group:first-child .label-line');
+        //     if (frontGroup) {
+        //         const frontGroupLines = document.querySelectorAll('.label-group:first-child .label-line');
+        //         frontGroupLines.forEach((line, index) => {
+        //             if (index < 3) {
+        //                 const text = line.textContent.trim();
+        //                 frontLabels.push(text.includes('not set') ? '' : text);
+        //             }
+        //         });
+        //     }
+
+        //     // Extract back labels (lines in second group)
+        //     const backGroupLines = document.querySelectorAll('.label-group:last-child .label-line');
+        //     backGroupLines.forEach((line, index) => {
+        //         const text = line.textContent.trim();
+        //         backLabels.push(text.includes('not set') ? '' : text);
+        //     });
+
+        //     // Get lot information from the product row's lot cell
+        //     const lotCell = productRow.cells[2];
+        //     const lotCode = lotCell ? lotCell.textContent.trim().replace(/\s+/g, '') : '';
+            
+        //     // Get germination from lots table if available
+        //     let germination = '';
+        //     if (lotCode && lotCode !== '--') {
+        //         const lotsRows = document.querySelectorAll('.lots-table tbody tr');
+        //         for (const row of lotsRows) {
+        //             const rowLotCode = row.cells[0].textContent.trim().replace(/\s+/g, '');
+        //             if (rowLotCode === lotCode) {
+        //                 germination = row.cells[1].textContent.trim();
+        //                 break;
+        //             }
+        //         }
+        //     }
+
+        //     // Build the complete data object for Flask
+        //     return {
+        //         quantity: parseInt(quantity),
+        //         variety_name: varietyName === 'Select a variety' ? '' : varietyName,
+        //         crop: varietyType === '--' ? '' : varietyType,
+        //         days: days,
+        //         sku_suffix: productRow.cells[1].textContent.trim(),
+        //         pkg_size: '', // You may need to add this to your product data
+        //         env_type: productRow.cells[6].textContent.trim(),
+        //         lot_code: lotCode === '--' ? '' : lotCode,
+        //         germination: germination === '--' ? '' : germination.replace('%', ''),
+        //         for_year: '25', // Current year
+        //         rad_type: '', // Add if needed
+        //         desc1: frontLabels[0] || '',
+        //         desc2: frontLabels[1] || '',
+        //         desc3: frontLabels[2] || '',
+        //         back1: backLabels[0] || '',
+        //         back2: backLabels[1] || '',
+        //         back3: backLabels[2] || '',
+        //         back4: backLabels[3] || '',
+        //         back5: backLabels[4] || '',
+        //         back6: backLabels[5] || '',
+        //         back7: backLabels[6] || ''
+        //     };
+        // }
+
+        function getFlaskEndpoints(printOption) {
+            const endpointMap = {
+                'front_single': ['/print-single-front'],
+                'front_sheet': ['/print-sheet-front'],
+                'back_single': ['/print-single-back'],
+                'back_sheet': ['/print-sheet-back'],
+                'front_back_single': ['/print-single-front', '/print-single-back'],
+                'front_back_sheet': ['/print-sheet-front', '/print-sheet-back']
+            };
+            
+            return endpointMap[printOption] || [];
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         function showMessage(text, type = 'success') {
             // Create message container if it doesn't exist
@@ -2280,6 +2674,20 @@
                     hideEditBackLabelsPopup();
                 }
             });
+            // Change status popup click outside to close
+            document.getElementById('changeStatusPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideChangeStatusPopup();
+                }
+            });
+
+            // Pending status warning popup click outside to close
+            document.getElementById('pendingStatusWarning').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hidePendingStatusWarning();
+                }
+            });
+
         }
         
         function showAddLotPopup() {
@@ -2677,6 +3085,146 @@
             
             hideGerminationPopup();
         }
+
+
+
+
+
+        function changeLotStatus(lotId) {
+            hideLotActionsPopup();
+            
+            // Find the current status from the lots table
+            const currentStatus = getCurrentLotStatus(lotId);
+            
+            if (!currentStatus) {
+                showMessage('Could not find lot status', 'error');
+                return;
+            }
+            
+            if (currentStatus.toLowerCase() === 'retired') {
+                showMessage('Cannot change status of a retired lot', 'error');
+                return;
+            }
+            
+            // Show the status change popup
+            showChangeStatusPopup(lotId, currentStatus);
+        }
+
+        function getCurrentLotStatus(lotId) {
+            // Find the lot row in the lots table
+            const lotRows = document.querySelectorAll('.lots-table tbody tr');
+            
+            for (const row of lotRows) {
+                const editIcon = row.querySelector('.edit-icon');
+                if (editIcon && editIcon.dataset.lotId === lotId.toString()) {
+                    // Status is in the 4th column (index 3)
+                    return row.cells[3].textContent.trim();
+                }
+            }
+            
+            return null;
+        }
+
+        function showChangeStatusPopup(lotId, currentStatus) {
+            currentLotId = lotId;
+            
+            // Set title
+            const lot = allLotsData.find(l => l.id == lotId);
+            let title = "Change Lot Status";
+            if (lot) {
+                const varietyName = document.getElementById('varietyName').textContent.trim();
+                const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+                title = `Change Status: ${varietyName} ${lotDisplay}`;
+            }
+            
+            document.getElementById('changeStatusTitle').textContent = title;
+            
+            // Style buttons based on current status
+            const pendingBtn = document.getElementById('pendingStatusBtn');
+            const activeBtn = document.getElementById('activeStatusBtn');
+            
+            // Reset button classes
+            pendingBtn.className = 'print-action-btn';
+            activeBtn.className = 'print-action-btn';
+            
+            // Highlight current status
+            if (currentStatus.toLowerCase() === 'pending') {
+                pendingBtn.classList.add('status-btn-current');
+                activeBtn.classList.add('status-btn-available');
+            } else if (currentStatus.toLowerCase() === 'active') {
+                activeBtn.classList.add('status-btn-current');
+                pendingBtn.classList.add('status-btn-available');
+            }
+            
+            document.getElementById('changeStatusPopup').classList.add('show');
+        }
+
+        function hideChangeStatusPopup() {
+            document.getElementById('changeStatusPopup').classList.remove('show');
+            currentLotId = null;
+        }
+
+        function setLotStatus(newStatus) {
+            if (!currentLotId) {
+                showMessage('No lot selected', 'error');
+                return;
+            }
+            
+            fetch('/office/change-lot-status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    lot_id: currentLotId,
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(`Lot status changed to ${newStatus}`, 'success');
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showMessage('Error changing status: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+            });
+            
+            hideChangeStatusPopup();
+        }
+
+
+
+
+
+
+
+
+        function viewLotUsage(lotId) {
+            hideLotActionsPopup();
+            console.log('View usage for lot:', lotId);
+            showMessage('View Usage functionality coming soon', 'success');
+            // TODO: Implement usage view popup
+        }
+
+        function viewLotHistory(lotId) {
+            hideLotActionsPopup();
+            console.log('View history for lot:', lotId);
+            showMessage('View History functionality coming soon', 'success');
+            // TODO: Implement history view popup
+        }
+
+
+
+
+
 
         function deleteLot(lotId) {
             hideLotActionsPopup();
