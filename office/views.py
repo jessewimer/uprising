@@ -665,6 +665,7 @@ def retire_lot(request):
             lot_id = data.get('lot_id')
             lbs_remaining = data.get('lbs_remaining')
             notes = data.get('notes', '')
+            retire_date = data.get('retire_date')
             
             lot = Lot.objects.get(pk=lot_id)
             
@@ -675,6 +676,7 @@ def retire_lot(request):
             RetiredLot.objects.create(
                 lot=lot,
                 lbs_remaining=lbs_remaining,
+                retired_date=retire_date, 
                 notes=notes
             )
             

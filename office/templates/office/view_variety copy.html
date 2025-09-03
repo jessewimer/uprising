@@ -1613,10 +1613,6 @@
                     <input type="number" id="retireLbsInput" step="0.01" min="0" required>
                 </div>
                 <div class="form-group">
-                    <label>Retirement Date:</label>
-                    <input type="date" id="retireDateInput">
-                </div>
-                <div class="form-group">
                     <label>Notes:</label>
                     <textarea id="retireNotesInput" rows="4" placeholder="Enter applicable notes..."></textarea>
                 </div>
@@ -2479,7 +2475,6 @@
                 title = `Retiring ${varietyName} ${lotDisplay}`;
             }
             
-            const today = new Date().toISOString().split('T')[0];
             document.getElementById('retireLotTitle').textContent = title;
             document.getElementById('retireLotPopup').classList.add('show');
         }
@@ -2494,14 +2489,6 @@
             
             const lbsRemaining = document.getElementById('retireLbsInput').value;
             const notes = document.getElementById('retireNotesInput').value;
-            const retireDate = document.getElementById('retireDateInput').value;
-
-            console.log('Form data:', { // ADD THIS
-                lot_id: currentLotId,
-                lbs_remaining: lbsRemaining,
-                retire_date: retireDate,
-                notes: notes
-            });
             
             fetch('/office/retire-lot/', {
                 method: 'POST',
@@ -2512,19 +2499,14 @@
                 body: JSON.stringify({
                     lot_id: currentLotId,
                     lbs_remaining: lbsRemaining,
-                    retire_date: retireDate,
                     notes: notes
                 })
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Response data:', data);
                 if (data.success) {
-                    localStorage.removeItem('germination_inventory_data'); // Clear the cached data directly
                     showMessage('Lot retired successfully', 'success');
-                    setTimeout(() => {
-                        window.location.href = window.location.pathname;
-                    }, 3000);
+                    window.location.href = window.location.pathname;
                 } else {
                     showMessage('Error retiring lot: ' + (data.error || 'Unknown error'), 'error');
                 }

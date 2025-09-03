@@ -1,5 +1,0 @@
-# pip install pillow
-# pip install python-barcode
-# pip install flask
-# pip install flask-cors
-# pip install pywin32
