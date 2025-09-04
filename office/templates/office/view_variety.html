@@ -3067,6 +3067,7 @@
             .then(data => {
                 if (data.success) {
                     showMessage('Germination recorded successfully', 'success');
+                    localStorage.removeItem('germination_inventory_data'); // Clear the cached data directly
                     setTimeout(() => {
                         window.location.href = window.location.pathname;
                     }, 2000);

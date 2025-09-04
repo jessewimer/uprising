@@ -527,11 +527,16 @@ def print_var_sku_prefixes_and_categories():
 
     print(table)
 
-
+def delete_print_label_table_contents():
+    from products.models import LabelPrint
+    count, _ = LabelPrint.objects.all().delete()
+    print(f"Deleted {count} records from LabelPrint table.")
+    
 # ####  MAIN PROGRAM BEGINS HERE  #### #
+delete_print_label_table_contents()
 # export_variety_csv()
 # import_variety_csv()
-print_var_sku_prefixes_and_categories()
+# print_var_sku_prefixes_and_categories()
 # full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
 # prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
