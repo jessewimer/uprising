@@ -1074,6 +1074,27 @@
             margin-left: 10px;
         }
 
+        .data-table thead th:first-child {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Add-icon in table header - white color for visibility */
+        .data-table thead .add-icon {
+            color: white;
+            opacity: 1;
+            margin-left: 0; /* Override the default margin-left: 10px */
+            flex-shrink: 0;
+        }
+
+        .data-table thead .add-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #f0f0f0;
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
         @keyframes slideInRight {
             from {
                 opacity: 0;
@@ -1232,14 +1253,14 @@
             <div class="tables-container">
                 <!-- Products Table -->
                 <div class="table-section">
-                    <h2 class="table-title">
+                    <!-- <h2 class="table-title">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
                             <polyline points="3.27,6.96 12,12.01 20.73,6.96"/>
                             <line x1="12" y1="22.08" x2="12" y2="12"/>
                         </svg>
                         Products ({% if products %}{{ products.count }}{% else %}0{% endif %})
-                    </h2>
+                    </h2> -->
 
                     {% if products %}
                     <div class="table-wrapper">
@@ -1311,41 +1332,6 @@
                                         <td>{{ product.env_type|default:"--" }}</td>
                                     </tr>
                                     {% endfor %}
-                                <!-- {% for product in products %}
-                                <tr>
-                                    <td>
-                                        <span class="print-icon" onclick="showPrintPopup('{{ product.pk }}', '{{ product.variety.var_name }} - {{ product.sku_suffix|escapejs }}')">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="6,9 6,2 18,2 18,9"></polyline>
-                                                <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-                                                <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-                                            </svg>
-                                        </span>
-                                    </td>
-                                    <td>{{ product.sku_suffix|default:"--" }}</td>
-                                    <td>
-                                        {% if product.lot %}
-                                            {% if product.lot.grower and product.lot.year %}
-                                                {{ product.lot.grower }}{{ product.lot.year }}{% if product.lot.harvest %}{{ product.lot.harvest }}{% endif %}
-                                            {% else %}
-                                                --
-                                            {% endif %}
-                                        {% else %}
-                                            --
-                                        {% endif %}
-                                        <span class="edit-icon" onclick="editProductLot('{{ product.pk }}')">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                        </span>
-                                    </td>
-                                    <td>{{ product.get_ytd_sales|default:"--" }}</td>
-                                    <td>{{ product.get_last_year_sales|default:"--" }}</td>
-                                    <td>{{ product.get_total_printed|default:"0" }}</td>
-                                    <td>{{ product.env_type|default:"--" }}</td>
-                                </tr>
-                                {% endfor %} -->
                             </tbody>
                         </table>
                     </div>
@@ -1358,30 +1344,21 @@
 
                 <!-- Lots Table -->
                 <div class="table-section">
-                    <h2 class="table-title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14,2 14,8 20,8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                            <polyline points="10,9 9,9 8,9"/>
-                        </svg>
-                        Lots ({% if lots %}{{ lots.count }}{% else %}0{% endif %})
-                        <span class="add-icon" onclick="showAddLotPopup()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="16"></line>
-                                <line x1="8" y1="12" x2="16" y2="12"></line>
-                            </svg>
-                        </span>
-                    </h2>
-
                     {% if lots %}
                     <div class="table-wrapper">
                         <table class="data-table lots-table">
                             <thead>
                                 <tr>
-                                    <th>Lot</th>
+                                    <th>
+                                        Lot
+                                        <span class="add-icon" onclick="showAddLotPopup()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                                            </svg>
+                                        </span>
+                                    </th>
                                     <th>Germ</th>
                                     <th>Inventory</th>
                                     <th>Status</th>
@@ -1434,6 +1411,93 @@
                     {% endif %}
                 </div>
             </div>
+
+
+<!-- 
+                <div class="table-section">
+                    <h2 class="table-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10,9 9,9 8,9"/>
+                        </svg>
+                        Lots ({% if lots %}{{ lots.count }}{% else %}0{% endif %})
+                        <span class="add-icon" onclick="showAddLotPopup()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                        </span>
+                    </h2>
+
+                    {% if lots %}
+                    <div class="table-wrapper">
+                        <table class="data-table lots-table">
+                            <thead>
+                                <tr>
+                                    <th>Lot</th>
+                                        <span class="add-icon" onclick="showAddLotPopup()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                                            </svg>
+                                        </span>
+                                    <th>Germ</th>
+                                    <th>Inventory</th>
+                                    <th>Status</th>
+                                    <th>Low Inventory</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lot in lots %}
+                                <tr>
+                                    <td>
+                                        {% if lot.grower and lot.year %}
+                                            {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                        <span class="edit-icon" data-lot-id="{{ lot.pk }}" data-low-inv="{{ lot.low_inv|yesno:'true,false' }}" onclick="showLotActionsPopup(this)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </span>
+                                    </td>
+                                    <td>{{ lot.get_most_recent_germ_percent|default:"--" }}</td>
+                                    <td>{{ lot.get_most_recent_inventory|default:"--" }}</td>
+                                    <td>{{ lot.get_lot_status|default:"--" }}</td>
+                                    <td>
+                                        {% if lot.low_inv %}
+                                            Yes
+                                        {% else %}
+                                            No
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lot.check_stock_seed %}
+                                            Yes
+                                        {% else %}
+                                            No
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        No lots found for this variety
+                    </div>
+                    {% endif %}
+                </div>
+            </div> -->
 
             <!-- Right Side: Label Info Section -->
             <div class="label-section">
@@ -1954,6 +2018,7 @@
             });
             setupSearch();
             setupPrintHandlers();
+            reorderGrowerDropdown(); 
         });
 
         // Search setup
@@ -2288,89 +2353,7 @@
                 back7: productRow.dataset.back7
             };
         }
-        // function collectPrintData(productId, quantity) {
-        //     // Get product row data
-        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
-        //     if (!productRow) {
-        //         console.error('Product row not found');
-        //         return null;
-        //     }
 
-        //     // Get variety info from header
-        //     const varietyName = document.getElementById('varietyName').textContent.trim();
-        //     const varietySku = document.getElementById('varietySku').textContent.trim();
-        //     const varietyType = document.getElementById('varietyType').textContent.trim();
-            
-        //     // Get days from variety details if present
-        //     const daysElement = document.querySelector('.variety-detail:not(:first-child):not(:nth-child(2))');
-        //     const days = daysElement ? daysElement.textContent.trim() : '';
-
-        //     // Get label text from label section
-        //     const labelLines = document.querySelectorAll('.label-line');
-        //     const frontLabels = [];
-        //     const backLabels = [];
-            
-        //     // Extract front labels (first 3 lines in first group)
-        //     const frontGroup = document.querySelector('.label-group:first-child .label-line');
-        //     if (frontGroup) {
-        //         const frontGroupLines = document.querySelectorAll('.label-group:first-child .label-line');
-        //         frontGroupLines.forEach((line, index) => {
-        //             if (index < 3) {
-        //                 const text = line.textContent.trim();
-        //                 frontLabels.push(text.includes('not set') ? '' : text);
-        //             }
-        //         });
-        //     }
-
-        //     // Extract back labels (lines in second group)
-        //     const backGroupLines = document.querySelectorAll('.label-group:last-child .label-line');
-        //     backGroupLines.forEach((line, index) => {
-        //         const text = line.textContent.trim();
-        //         backLabels.push(text.includes('not set') ? '' : text);
-        //     });
-
-        //     // Get lot information from the product row's lot cell
-        //     const lotCell = productRow.cells[2];
-        //     const lotCode = lotCell ? lotCell.textContent.trim().replace(/\s+/g, '') : '';
-            
-        //     // Get germination from lots table if available
-        //     let germination = '';
-        //     if (lotCode && lotCode !== '--') {
-        //         const lotsRows = document.querySelectorAll('.lots-table tbody tr');
-        //         for (const row of lotsRows) {
-        //             const rowLotCode = row.cells[0].textContent.trim().replace(/\s+/g, '');
-        //             if (rowLotCode === lotCode) {
-        //                 germination = row.cells[1].textContent.trim();
-        //                 break;
-        //             }
-        //         }
-        //     }
-
-        //     // Build the complete data object for Flask
-        //     return {
-        //         quantity: parseInt(quantity),
-        //         variety_name: varietyName === 'Select a variety' ? '' : varietyName,
-        //         crop: varietyType === '--' ? '' : varietyType,
-        //         days: days,
-        //         sku_suffix: productRow.cells[1].textContent.trim(),
-        //         pkg_size: '', // You may need to add this to your product data
-        //         env_type: productRow.cells[6].textContent.trim(),
-        //         lot_code: lotCode === '--' ? '' : lotCode,
-        //         germination: germination === '--' ? '' : germination.replace('%', ''),
-        //         for_year: '25', // Current year
-        //         rad_type: '', // Add if needed
-        //         desc1: frontLabels[0] || '',
-        //         desc2: frontLabels[1] || '',
-        //         desc3: frontLabels[2] || '',
-        //         back1: backLabels[0] || '',
-        //         back2: backLabels[1] || '',
-        //         back3: backLabels[2] || '',
-        //         back4: backLabels[3] || '',
-        //         back5: backLabels[4] || '',
-        //         back6: backLabels[5] || '',
-        //         back7: backLabels[6] || ''
-        //     };
-        // }
 
         function getFlaskEndpoints(printOption) {
             const endpointMap = {
@@ -2384,39 +2367,6 @@
             
             return endpointMap[printOption] || [];
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         function showMessage(text, type = 'success') {
@@ -2451,7 +2401,6 @@
             }, 4000);
         }
 
-        
 
         // Front Labels Functions
         function showEditFrontLabelsPopup() {
@@ -2567,7 +2516,30 @@
             hideEditBackLabelsPopup();
         }
         
-
+        function reorderGrowerDropdown() {
+            const select = document.getElementById('lotGrowerSelect');
+            if (!select) return;
+            
+            // Get all option elements except the first one (Select grower)
+            const options = Array.from(select.options).slice(1);
+            
+            // Sort: UO first, then alphabetically
+            options.sort((a, b) => {
+                if (a.text === 'UO') return -1;
+                if (b.text === 'UO') return 1;
+                return a.text.localeCompare(b.text);
+            });
+            
+            // Clear existing options except the first
+            while (select.options.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // Add back the sorted options
+            options.forEach(option => {
+                select.appendChild(option);
+            });
+        }
         // Print option handlers
         function setupPrintHandlers() {
             document.addEventListener('click', function(e) {
