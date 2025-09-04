@@ -9,7 +9,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from io import BytesIO
-import datetime
+
 from .models import OnlineOrder, OOIncludes, OOIncludesMisc, BatchMetadata, BulkBatch
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -26,6 +26,10 @@ import pandas as pd
 from products.models import Product, MiscProduct
 from django.db import transaction
 from django.utils.timezone import now
+from datetime import datetime
+from django.utils import timezone
+import datetime
+
 
 
 def calculate_bulk_pull_and_print(bulk_items):
@@ -35,7 +39,7 @@ def calculate_bulk_pull_and_print(bulk_items):
     for sku, qty in bulk_items.items():
         # Find product by prefix/suffix
         product = Product.objects.filter(
-            sku_prefix=sku[:6],
+            variety=sku[:6],
             sku_suffix=sku[7:]
         ).select_related("variety").first()
 
@@ -264,6 +268,7 @@ def process_orders(request):
                 for fmt in formats:
                     try:
                         date = datetime.strptime(date_string, fmt)
+                        date = timezone.make_aware(date)
                         break
                     except ValueError:
                         continue
@@ -316,7 +321,7 @@ def process_orders(request):
 
             # Product lookups
             product = Product.objects.filter(
-                sku_prefix=product_sku[:6],
+                variety=product_sku[:6],
                 sku_suffix=product_sku[7:]
             ).first()
 
@@ -911,7 +916,7 @@ def reprint_order(request):
                 if item.product.sku_suffix != 'pkt':
 
                     # determine how many to print vs pull
-                    if item.product.bulk_pre_pack == 0:
+                    if item.product.bulk_pre_pack == 0 or item.product.bulk_pre_pack is None:
                         quantity_to_print = item.qty
                     elif item.product.bulk_pre_pack >= item.qty:
                         quantity_to_pull = item.qty

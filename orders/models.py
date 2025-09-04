@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 class OnlineOrder(models.Model):
     order_number = models.CharField(max_length=100, primary_key=True)
     customer_name = models.CharField(max_length=255)
+    shipping_company = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     address2 = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)

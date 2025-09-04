@@ -598,9 +598,21 @@ def import_misc_products(csv_file):
                 category=category,
             )
 
-        
+def set_all_bulk_pre_pack_to_zero():
+    products = Product.objects.all()
+    for product in products:
+        if product.bulk_pre_pack is None:
+            product.bulk_pre_pack = 0
+            product.save()
 # ####  MAIN PROGRAM BEGINS HERE  #### #
+set_all_bulk_pre_pack_to_zero()
 add_variety_and_product()
+misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
+import_misc_products(misc_products_csv)
+
+
+
+
 
 # delete_print_label_table_contents()l
 # export_variety_csv()
@@ -609,8 +621,7 @@ add_variety_and_product()
 # full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
 # prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
-misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
-import_misc_products(misc_products_csv)
+
 
 # import_sales(import_sales_csv)
 
