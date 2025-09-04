@@ -22,7 +22,7 @@ sys.path.append(project_path)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
-from products.models import Product, Variety, Sales
+from products.models import Product, Variety, Sales, MiscProduct
 from django.db import transaction
 
 def print_product_table():
@@ -531,15 +531,86 @@ def delete_print_label_table_contents():
     from products.models import LabelPrint
     count, _ = LabelPrint.objects.all().delete()
     print(f"Deleted {count} records from LabelPrint table.")
-    
+
+@transaction.atomic
+def add_variety_and_product():
+    from products.models import Variety, Product
+
+    variety, created = Variety.objects.get_or_create(
+        sku_prefix="SMA-BR",
+        crop="RADICCHIO",
+        common_name="",
+        common_spelling="Bandarossa",
+        var_name="Bandarossa",
+        group="Greens",
+        veg_type="Radicchio",
+        species="Cichorium intybus",
+        supergroup="Vegtable",
+        days="110 Days",
+        desc_line1="Late cycle Verona type with",
+        desc_line2="striking blushed-red midribs.",
+    )
+    if created:
+        print("Created new Variety: Bandarossa")
+    else:
+        print("Variety Bandarossa already exists")
+    sku_suffixes = ["pkt", "500s", "1Ms"]
+    pkg_sizes = ["Approx. 100 seeds", "Approx. 500 seeds", "Approx. 1000 seeds"]
+    line_item_names = ["Bandarossa - pkt", "", ""]
+    rack_locations = [6.2, 0, 0]
+    index = 0
+    for suffix in sku_suffixes:
+        product, created = Product.objects.get_or_create(
+            variety=variety,
+            sku_suffix=suffix,
+            env_type="Smarties Rad",
+            env_multiplier=1,
+            pkg_size=pkg_sizes[index],
+            lineitem_name=line_item_names[index],
+            rack_location=rack_locations[index]
+        )
+        index += 1
+
+
+
+        if created:
+            print("Created new Product for Bandrossa:", suffix)
+        else:
+            print("Product for BANDAR already exists")
+
+@transaction.atomic
+def import_misc_products(csv_file):
+    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        for row in reader:
+            sku = row["sku"].strip()
+            lineitem_name = row["lineitem_name"].strip()
+            category = row["category"].strip()
+            
+            # create misc product object
+
+
+            
+            misc_product, created = MiscProduct.objects.update_or_create(
+                sku=sku,
+                lineitem_name=lineitem_name,
+                category=category,
+            )
+
+        
 # ####  MAIN PROGRAM BEGINS HERE  #### #
-delete_print_label_table_contents()
+add_variety_and_product()
+
+# delete_print_label_table_contents()l
 # export_variety_csv()
 # import_variety_csv()
 # print_var_sku_prefixes_and_categories()
 # full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
 # prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
+misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
+import_misc_products(misc_products_csv)
 
 # import_sales(import_sales_csv)
 

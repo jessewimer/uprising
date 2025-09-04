@@ -32,35 +32,21 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 40px 30px;
+            padding: 25px 30px;
             margin-bottom: 30px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            text-align: center;
             animation: fadeInUp 0.4s ease-out;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 30px;
         }
 
-        .header-content {
-            flex-grow: 1;
-            text-align: center;
-        }
-
-        .brand-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-        }
-
-        .brand-subtitle {
-            font-size: 1.2rem;
-            color: #666;
-            font-weight: 500;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 30px;
         }
 
         .back-button {
@@ -85,153 +71,238 @@
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
-        /* File Upload Section */
-        .upload-section {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: fadeInUp 0.6s ease-out;
+        .header-content {
+            flex-grow: 1;
+            text-align: center;
         }
 
-        .upload-title {
-            font-size: 1.8rem;
+        .brand-title {
+            font-size: 2.5rem;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 25px;
-            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .file-drop-zone {
-            border: 3px dashed #667eea;
-            border-radius: 16px;
-            padding: 40px 20px;
-            text-align: center;
-            background: rgba(102, 126, 234, 0.05);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            min-height: 200px;
+        /* Header Controls */
+        .header-controls {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .file-drop-zone.dragover {
-            border-color: #764ba2;
-            background: rgba(102, 126, 234, 0.1);
-            transform: scale(1.02);
-        }
-
-        .file-drop-zone.has-file {
-            border-color: #10ac84;
-            background: rgba(16, 172, 132, 0.1);
-            padding: 20px;
-        }
-
-        .upload-icon {
-            font-size: 3rem;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .upload-text {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .upload-subtext {
-            font-size: 0.9rem;
-            color: #999;
-        }
-
-        .file-info {
-            display: none;
             align-items: center;
             gap: 15px;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
         }
 
-        .file-info.visible {
-            display: flex;
-        }
-
-        .file-icon {
-            font-size: 2rem;
-            color: #10ac84;
-        }
-
-        .file-details {
-            flex-grow: 1;
-        }
-
-        .file-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1rem;
-            margin-bottom: 4px;
-        }
-
-        .file-size {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .remove-file-btn {
-            background: #ee5a24;
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.2rem;
-        }
-
-        .remove-file-btn:hover {
-            background: #ff6b6b;
-            transform: scale(1.1);
-        }
-
-        .process-btn {
-            width: 100%;
-            margin-top: 20px;
-            padding: 15px 30px;
+        .upload-button {
+            position: relative;
+            padding: 12px 20px;
             background: linear-gradient(135deg, #10ac84, #01a3a4);
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .process-btn.visible {
-            display: block;
-        }
-
-        .process-btn:hover:not(:disabled) {
+        .upload-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(16, 172, 132, 0.3);
         }
 
-        .process-btn:disabled {
+        .upload-status {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #10ac84;
+            border: 3px solid white;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            animation: bounceIn 0.5s ease-out;
+        }
+
+        .upload-status.visible {
+            display: flex;
+        }
+
+        .process-button, .reprint-button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .process-button {
+            background: #ff8c42;
+            color: white;
+        }
+
+        .process-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 140, 66, 0.3);
+            background: #ff7a28;
+        }
+
+        .process-button:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+
+        .reprint-button {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .reprint-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(238, 90, 36, 0.3);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            font-size: 1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .modal-content {
+            margin-bottom: 25px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .modal-btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(238, 90, 36, 0.3);
+        }
+
+        .modal-btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            font-weight: 500;
+            display: none;
+            text-align: center;
+        }
+
+        .status-message.success {
+            background: rgba(16, 172, 132, 0.1);
+            color: #10ac84;
+            border: 1px solid rgba(16, 172, 132, 0.2);
+        }
+
+        .status-message.error {
+            background: rgba(238, 90, 36, 0.1);
+            color: #ee5a24;
+            border: 1px solid rgba(238, 90, 36, 0.2);
+        }
+
+        .status-message.visible {
+            display: block;
+            animation: slideDown 0.3s ease-out;
         }
 
         /* Dual Tables Section */
@@ -403,52 +474,24 @@
             font-weight: 500;
         }
 
-        /* Loading Spinner */
-        .loading-spinner {
-            display: none;
-            margin: 20px auto;
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(102, 126, 234, 0.2);
-            border-left: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        /* File upload indicator */
+        .file-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #666;
+            margin-right: 10px;
         }
 
-        .loading-spinner.visible {
-            display: block;
-        }
-
-        /* Status Messages */
-        .status-message {
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin: 15px 0;
-            font-weight: 500;
-            display: none;
-        }
-
-        .status-message.success {
-            background: rgba(16, 172, 132, 0.1);
+        .file-indicator.uploaded {
             color: #10ac84;
-            border: 1px solid rgba(16, 172, 132, 0.2);
-        }
-
-        .status-message.error {
-            background: rgba(238, 90, 36, 0.1);
-            color: #ee5a24;
-            border: 1px solid rgba(238, 90, 36, 0.2);
-        }
-
-        .status-message.visible {
-            display: block;
-            animation: slideDown 0.3s ease-out;
         }
 
         /* Animations */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         @keyframes fadeInUp {
@@ -473,6 +516,29 @@
             }
         }
 
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 1200px) {
             .tables-section {
@@ -483,13 +549,19 @@
 
         @media (max-width: 768px) {
             .header {
-                padding: 25px 20px;
+                padding: 20px;
                 flex-direction: column;
                 gap: 20px;
+                align-items: stretch;
             }
 
-            .back-button {
-                align-self: flex-start;
+            .header-left {
+                justify-content: center;
+            }
+
+            .header-controls {
+                justify-content: center;
+                flex-wrap: wrap;
             }
 
             .brand-title {
@@ -500,7 +572,6 @@
                 padding: 15px;
             }
 
-            .upload-section,
             .table-container {
                 padding: 20px;
             }
@@ -519,9 +590,13 @@
                 margin-left: 0;
             }
 
-            .file-info {
+            .modal {
+                width: 95%;
+                margin: 20px;
+            }
+
+            .modal-actions {
                 flex-direction: column;
-                text-align: center;
                 gap: 10px;
             }
         }
@@ -532,45 +607,40 @@
     <div class="container">
         <!-- Header Section -->
         <div class="header">
-            <a href="/office/dashboard" class="back-button">
-                <span>← Back to Portal</span>
-            </a>
+            <div class="header-left">
+                <a href="/office/dashboard/" class="back-button">
+                    <span>← Dashboard</span>
+                </a>
+            </div>
+            
             <div class="header-content">
                 <h1 class="brand-title">Process Online Orders</h1>
-                <p class="brand-subtitle">Upload CSV & Generate Order PDFs</p>
-            </div>
-            <div style="width: 140px;"></div> <!-- Spacer for centering -->
-        </div>
-
-        <!-- File Upload Section -->
-        <div class="upload-section">
-            <h2 class="upload-title">Upload Orders CSV File</h2>
-            
-            <div class="file-drop-zone" id="dropZone">
-                <div class="upload-icon">📄</div>
-                <div class="upload-text">Drag & drop your CSV file here</div>
-                <div class="upload-subtext">or click to browse files</div>
             </div>
 
-            <div class="file-info" id="fileInfo">
-                <div class="file-icon">📄</div>
-                <div class="file-details">
-                    <div class="file-name" id="fileName"></div>
-                    <div class="file-size" id="fileSize"></div>
+            <div class="header-controls">
+                <div class="file-indicator" id="fileIndicator">
+                    <span id="fileIndicatorText">No file selected</span>
                 </div>
-                <button class="remove-file-btn" id="removeFile" title="Remove file">🗑️</button>
+                
+                <button class="upload-button" id="uploadButton">
+                    <span>Upload File</span>
+                    <div class="upload-status" id="uploadStatus">✓</div>
+                </button>
+                
+                <button class="process-button" id="processButton" disabled>
+                    <span>Process Orders</span>
+                </button>
+                
+                <button class="reprint-button" id="reprintButton">
+                    <span>Reprint</span>
+                </button>
+
+                <input type="file" id="fileInput" accept=".csv">
             </div>
-
-            <input type="file" id="fileInput" accept=".csv" style="display: none;">
-            
-            <div class="status-message" id="statusMessage"></div>
-            
-            <button class="process-btn" id="processBtn">
-                <span id="processBtnText">Process Orders</span>
-            </button>
-
-            <div class="loading-spinner" id="loadingSpinner"></div>
         </div>
+
+        <!-- Status Message -->
+        <div class="status-message" id="statusMessage"></div>
 
         <!-- Dual Tables Section -->
         <div class="tables-section">
@@ -588,7 +658,7 @@
                         <input type="number" class="range-input" id="startRange" placeholder="1" min="1">
                         <label>To:</label>
                         <input type="number" class="range-input" id="endRange" placeholder="End" min="1">
-                        <button class="print-btn" id="printRangeBtn" disabled>Generate PDF</button>
+                        <button class="print-btn" id="printRangeBtn" disabled>Print Labels</button>
                     </div>
                 </div>
 
@@ -615,6 +685,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Reprint Order Modal -->
+        <div class="modal-overlay" id="reprintModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <div class="modal-title">Reprint Order</div>
+                    <div class="modal-subtitle">Enter the order number to reprint</div>
+                </div>
+                <div class="modal-content">
+                    <input type="text" class="modal-input" id="orderNumberInput" placeholder="Enter order number ex S79882" />
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-secondary" id="cancelReprint">Cancel</button>
+                    <button class="modal-btn modal-btn-primary" id="confirmReprint">Print</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -624,89 +711,48 @@
         let pullItems = [];
 
         // DOM elements
-        const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const removeFileBtn = document.getElementById('removeFile');
-        const processBtn = document.getElementById('processBtn');
-        const processBtnText = document.getElementById('processBtnText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
+        const uploadButton = document.getElementById('uploadButton');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const fileIndicator = document.getElementById('fileIndicator');
+        const fileIndicatorText = document.getElementById('fileIndicatorText');
+        const processButton = document.getElementById('processButton');
+        const reprintButton = document.getElementById('reprintButton');
+        const reprintModal = document.getElementById('reprintModal');
+        const orderNumberInput = document.getElementById('orderNumberInput');
+        const cancelReprint = document.getElementById('cancelReprint');
+        const confirmReprint = document.getElementById('confirmReprint');
         const statusMessage = document.getElementById('statusMessage');
         const startRange = document.getElementById('startRange');
         const endRange = document.getElementById('endRange');
         const printRangeBtn = document.getElementById('printRangeBtn');
 
-        // Initialize drag and drop functionality
-        function initializeDragDrop() {
-            // Prevent default drag behaviors
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
-            });
-
-            // Highlight drop zone when item is dragged over it
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, highlight, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, unhighlight, false);
-            });
-
-            // Handle dropped files
-            dropZone.addEventListener('drop', handleDrop, false);
-            
-            // Handle click to browse
-            dropZone.addEventListener('click', () => {
-                if (!dropZone.classList.contains('has-file')) {
-                    fileInput.click();
-                }
-            });
-            
-            // Handle file input change
+        // Initialize event listeners
+        function initializeEventListeners() {
+            // File upload
+            uploadButton.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleFileSelect);
             
-            // Handle remove file button
-            removeFileBtn.addEventListener('click', removeFile);
+            // Process and reprint buttons
+            processButton.addEventListener('click', processOrders);
+            reprintButton.addEventListener('click', showReprintModal);
             
-            // Handle process button
-            processBtn.addEventListener('click', processFile);
-
-            // Handle range inputs and print button
+            // Modal events
+            cancelReprint.addEventListener('click', hideReprintModal);
+            confirmReprint.addEventListener('click', reprintOrder);
+            orderNumberInput.addEventListener('keypress', handleOrderNumberKeypress);
+            
+            // Range validation
             startRange.addEventListener('input', validateRange);
             endRange.addEventListener('input', validateRange);
             printRangeBtn.addEventListener('click', printRange);
-        }
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        function highlight() {
-            if (!dropZone.classList.contains('has-file')) {
-                dropZone.classList.add('dragover');
-            }
-        }
-
-        function unhighlight() {
-            dropZone.classList.remove('dragover');
-        }
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
+            
+            // Close modal when clicking overlay
+            reprintModal.addEventListener('click', handleModalOverlayClick);
         }
 
         function handleFileSelect(e) {
             const files = e.target.files;
-            handleFiles(files);
-        }
-
-        function handleFiles(files) {
             if (files.length > 0) {
                 const file = files[0];
                 
@@ -723,82 +769,99 @@
         }
 
         function displayFileInfo(file) {
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            
-            dropZone.classList.add('has-file');
-            fileInfo.classList.add('visible');
-            processBtn.classList.add('visible');
+            fileIndicatorText.textContent = file.name;
+            fileIndicator.classList.add('uploaded');
+            uploadStatus.classList.add('visible');
+            processButton.disabled = false;
         }
 
-        function removeFile() {
+        function clearFileInfo() {
             currentFile = null;
             fileInput.value = '';
-            
-            dropZone.classList.remove('has-file');
-            fileInfo.classList.remove('visible');
-            processBtn.classList.remove('visible');
-            
-            hideStatusMessage();
+            fileIndicatorText.textContent = 'No file selected';
+            fileIndicator.classList.remove('uploaded');
+            uploadStatus.classList.remove('visible');
+            processButton.disabled = true;
             clearTables();
         }
 
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        // Dummy function for processing orders
+        function processOrders() {
+            if (!currentFile) {
+                showStatusMessage('Please upload a CSV file first.', 'error');
+                return;
+            }
+
+            processButton.disabled = true;
+            processButton.innerHTML = '<span>Processing...</span>';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                // Dummy data for demonstration
+                const dummyPrintItems = [
+                    { name: 'Tomato Seeds - Cherokee Purple', quantity: 25 },
+                    { name: 'Basil Seeds - Genovese', quantity: 15 },
+                    { name: 'Carrot Seeds - Danvers Half', quantity: 40 },
+                    { name: 'Lettuce Seeds - Black Seeded Simpson', quantity: 30 },
+                    { name: 'Pepper Seeds - California Wonder', quantity: 20 }
+                ];
+
+                const dummyPullItems = [
+                    { name: 'Seed Starting Mix - 50lb bag', quantity: 3 },
+                    { name: 'Garden Tools Set', quantity: 2 },
+                    { name: 'Plant Labels - Pack of 100', quantity: 5 }
+                ];
+
+                updatePrintItems(dummyPrintItems);
+                updatePullItems(dummyPullItems);
+                
+                showStatusMessage(`Orders processed successfully! Found ${dummyPrintItems.length} items to print and ${dummyPullItems.length} items to pull.`, 'success');
+                
+                processButton.disabled = false;
+                processButton.innerHTML = '<span>Process Orders</span>';
+            }, 2000);
         }
 
-        function processFile() {
-            if (!currentFile) return;
+        // Dummy function for reprinting orders
+        function reprintOrder() {
+            const orderNumber = orderNumberInput.value.trim();
+            if (!orderNumber) {
+                showStatusMessage('Please enter an order number.', 'error');
+                return;
+            }
+            
+            confirmReprint.disabled = true;
+            confirmReprint.textContent = 'Printing...';
+            
+            // Simulate reprint delay
+            setTimeout(() => {
+                showStatusMessage(`Order ${orderNumber} reprinted successfully!`, 'success');
+                hideReprintModal();
+                confirmReprint.disabled = false;
+                confirmReprint.textContent = 'Print';
+            }, 1500);
+        }
 
-            // Show loading state
-            processBtn.disabled = true;
-            processBtnText.textContent = 'Processing...';
-            loadingSpinner.classList.add('visible');
-            hideStatusMessage();
+        function showReprintModal() {
+            reprintModal.classList.add('visible');
+            orderNumberInput.focus();
+        }
 
-            // Create FormData to send file
-            const formData = new FormData();
-            formData.append('csv_file', currentFile);
+        function hideReprintModal() {
+            reprintModal.classList.remove('visible');
+            orderNumberInput.value = '';
+        }
 
-            // Send to Django backend
-            fetch('/office/process-orders/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Update the tables with returned data
-                    updatePrintItems(data.print_items || []);
-                    updatePullItems(data.pull_items || []);
-                    
-                    showStatusMessage(`Orders processed successfully! Found ${data.print_items?.length || 0} items to print and ${data.pull_items?.length || 0} items to pull.`, 'success');
-                } else {
-                    throw new Error(data.error || 'Unknown error occurred');
-                }
-            })
-            .catch(error => {
-                console.error('Error processing file:', error);
-                showStatusMessage('Error processing file: ' + error.message, 'error');
-            })
-            .finally(() => {
-                // Reset loading state
-                processBtn.disabled = false;
-                processBtnText.textContent = 'Process Orders';
-                loadingSpinner.classList.remove('visible');
-            });
+        function handleOrderNumberKeypress(e) {
+            if (e.key === 'Enter') {
+                reprintOrder();
+            }
+        }
+
+        function handleModalOverlayClick(e) {
+            if (e.target === e.currentTarget) {
+                hideReprintModal();
+            }
         }
 
         function updatePrintItems(items) {
@@ -883,49 +946,13 @@
             const originalText = printRangeBtn.textContent;
             printRangeBtn.textContent = 'Generating...';
 
-            // Send print request to Django
-            fetch('/office/print-range/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    start: start - 1, // Convert to 0-based index
-                    end: end - 1,
-                    items: printItems.slice(start - 1, end)
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                // Download the PDF
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `bulk_orders_${start}-${end}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                showStatusMessage(`PDF generated successfully for items ${start}-${end}!`, 'success');
-            })
-            .catch(error => {
-                console.error('Error printing range:', error);
-                showStatusMessage('Error generating PDF: ' + error.message, 'error');
-            })
-            .finally(() => {
-                // Reset button state
+            // Simulate print delay
+            setTimeout(() => {
+                showStatusMessage(`Labels generated successfully for items ${start}-${end}!`, 'success');
                 printRangeBtn.disabled = false;
                 printRangeBtn.textContent = originalText;
-                validateRange(); // Re-validate to set correct state
-            });
+                validateRange();
+            }, 1500);
         }
 
         function clearTables() {
@@ -936,6 +963,13 @@
         function showStatusMessage(message, type) {
             statusMessage.textContent = message;
             statusMessage.className = `status-message ${type} visible`;
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    hideStatusMessage();
+                }, 5000);
+            }
         }
 
         function hideStatusMessage() {
@@ -953,28 +987,10 @@
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Helper function to get Django CSRF token
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
         // Initialize everything when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Process Online Orders page loaded');
-            initializeDragDrop();
+            initializeEventListeners();
         });
-
     </script>
 </body>
 </html>
