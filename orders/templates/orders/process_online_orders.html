@@ -40,7 +40,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 30px;
+            gap: 20px;
         }
 
         .back-button {
@@ -75,6 +75,31 @@
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        /* Batch Selector */
+        .batch-dropdown {
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 180px;
+            font-weight: 500;
+        }
+
+        .batch-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .batch-dropdown:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
         }
 
         /* Header Controls */
@@ -150,6 +175,14 @@
             box-shadow: none;
         }
 
+        .processing {
+            cursor: wait !important;
+        }
+
+        .processing * {
+            cursor: wait !important;
+        }
+        
         .reprint-button {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
@@ -189,9 +222,11 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
             animation: modalSlideIn 0.3s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -216,24 +251,15 @@
             margin-bottom: 25px;
         }
 
-        .modal-input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid rgba(102, 126, 234, 0.2);
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .modal-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
         .modal-actions {
             display: flex;
             gap: 15px;
             justify-content: flex-end;
+        }
+
+        .modal-actions.vertical {
+            flex-direction: column;
+            align-items: stretch;
         }
 
         .modal-btn {
@@ -244,6 +270,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            text-align: center;
         }
 
         .modal-btn-primary {
@@ -265,31 +292,110 @@
             background: #e8e8e8;
         }
 
-        /* Status Messages */
-        .status-message {
+        .modal-btn-success {
+            background: linear-gradient(135deg, #10ac84, #01a3a4);
+            color: white;
+        }
+
+        .modal-btn-success:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 172, 132, 0.3);
+        }
+
+        .modal-btn-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .modal-btn-info:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Success Modal Styles */
+        .success-modal .modal {
+            border-left: 5px solid #10ac84;
+        }
+
+        .success-modal .modal-title {
+            color: #10ac84;
+        }
+
+        .success-message {
+            background: rgba(16, 172, 132, 0.1);
+            color: #10ac84;
             padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(16, 172, 132, 0.2);
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .multiple-orders-section {
+            background: rgba(16, 172, 132, 0.05);
+            border: 1px solid rgba(16, 172, 132, 0.15);
             border-radius: 12px;
-            margin: 15px 0;
-            font-weight: 500;
-            display: none;
+            padding: 20px;
+        }
+
+        .multiple-orders-title {
+            color: #10ac84;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
             text-align: center;
         }
 
-        .status-message.success {
+        .customer-card {
+            background: white;
+            border: 1px solid rgba(16, 172, 132, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .customer-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .order-numbers {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .order-number {
+            display: inline-block;
             background: rgba(16, 172, 132, 0.1);
             color: #10ac84;
-            border: 1px solid rgba(16, 172, 132, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 2px 4px 2px 0;
+            font-weight: 500;
         }
 
-        .status-message.error {
+        /* Error Modal Styles */
+        .error-modal .modal {
+            border-left: 5px solid #ee5a24;
+        }
+
+        .error-modal .modal-title {
+            color: #ee5a24;
+        }
+
+        .error-message {
             background: rgba(238, 90, 36, 0.1);
             color: #ee5a24;
+            padding: 15px 20px;
+            border-radius: 10px;
             border: 1px solid rgba(238, 90, 36, 0.2);
-        }
-
-        .status-message.visible {
-            display: block;
-            animation: slideDown 0.3s ease-out;
+            text-align: center;
+            font-weight: 500;
         }
 
         /* Dual Tables Section */
@@ -400,48 +506,79 @@
             box-shadow: none;
         }
 
-        /* Item Lists */
-        .item-list {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
             border-radius: 12px;
+            overflow: hidden;
             background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .item {
-            padding: 15px;
+        .data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .data-table td {
+            padding: 12px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease;
         }
 
-        .item:hover {
+        .data-table tr:hover {
             background: rgba(102, 126, 234, 0.05);
-            transform: translateX(2px);
         }
 
-        .item:last-child {
+        .data-table tr:last-child td {
             border-bottom: none;
         }
 
-        .item-name {
+        .table-container-scrollable {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 12px;
+        }
+
+        .row-number {
             font-weight: 600;
+            color: #667eea;
+            width: 50px;
+            text-align: center;
+        }
+
+        .sku-cell {
+            font-weight: 600;
+            color: #333;
+            min-width: 100px;
+        }
+
+        .variety-cell {
             color: #333;
             flex-grow: 1;
         }
 
-        .item-quantity {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
+        .quantity-cell {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
             font-weight: 600;
-            min-width: 40px;
             text-align: center;
+            border-radius: 6px;
+            padding: 6px 10px;
+            min-width: 60px;
+        }
+
+        .veg-type-cell {
+            font-size: 0.85rem;
+            color: #666;
+            background: rgba(102, 126, 234, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
         }
 
         .empty-state {
@@ -471,17 +608,6 @@
             from {
                 opacity: 0;
                 transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
             }
             to {
                 opacity: 1;
@@ -568,6 +694,17 @@
                 flex-direction: column;
                 gap: 10px;
             }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+
+            .batch-dropdown {
+                min-width: auto;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -583,6 +720,18 @@
             <div class="header-content">
                 <h1 class="brand-title">Process Online Orders</h1>
             </div>
+
+            <!-- Batch Selector -->
+            <select id="batchSelect" class="batch-dropdown">
+                <option value="">Select batch</option>
+                {% for batch_data in recent_batches %}
+                    <option value="{{ forloop.counter0 }}" 
+                            data-batch-id="{{ batch_data.id }}"
+                            data-batch-date="{{ batch_data.batch_date|date:'M d, Y' }}">
+                        {{ batch_data.batch_date|date:"M d, Y" }}
+                    </option>
+                {% endfor %}
+            </select>
 
             <div class="header-controls">
                 <button class="upload-button" id="uploadButton">
@@ -602,9 +751,6 @@
             </div>
         </div>
 
-        <!-- Status Message -->
-        <div class="status-message" id="statusMessage"></div>
-
         <!-- Dual Tables Section -->
         <div class="tables-section">
             <!-- Bulk Items to Print -->
@@ -618,14 +764,14 @@
                     <div class="print-controls-title">Print Range Selection</div>
                     <div class="print-range">
                         <label>From:</label>
-                        <input type="number" class="range-input" id="startRange" placeholder="1" min="1">
+                        <input type="number" class="range-input" id="startRange" value="1" min="1">
                         <label>To:</label>
-                        <input type="number" class="range-input" id="endRange" placeholder="End" min="1">
+                        <input type="number" class="range-input" id="endRange" value="1" min="1">
                         <button class="print-btn" id="printRangeBtn" disabled>Print Labels</button>
                     </div>
                 </div>
 
-                <div class="item-list" id="printItemsList">
+                <div class="table-container-scrollable" id="printItemsContainer">
                     <div class="empty-state">
                         <div class="empty-state-icon">📋</div>
                         <div class="empty-state-text">No items to print yet</div>
@@ -640,7 +786,7 @@
                     <div class="table-count" id="pullItemsCount">0 items</div>
                 </div>
 
-                <div class="item-list" id="pullItemsList">
+                <div class="table-container-scrollable" id="pullItemsContainer">
                     <div class="empty-state">
                         <div class="empty-state-icon">📦</div>
                         <div class="empty-state-text">No items to pull yet</div>
@@ -649,29 +795,77 @@
             </div>
         </div>
 
-        <!-- Reprint Order Modal -->
-        <div class="modal-overlay" id="reprintModal">
+        <!-- Success Modal -->
+        <div class="modal-overlay success-modal" id="successModal">
             <div class="modal">
                 <div class="modal-header">
-                    <div class="modal-title">Reprint Order</div>
-                    <div class="modal-subtitle">Enter the order number to reprint</div>
+                    <div class="modal-title">Order Processing Complete!</div>
+                    <div class="modal-subtitle">Orders have been successfully processed and sent to printer</div>
                 </div>
-                <div class="modal-content">
-                    <input type="text" class="modal-input" id="orderNumberInput" placeholder="Enter order number e.g. S79882" />
+                <div class="modal-content" id="successContent">
+                    <!-- Content will be populated by JavaScript -->
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-secondary" id="cancelReprint">Cancel</button>
-                    <button class="modal-btn modal-btn-primary" id="confirmReprint">Print</button>
+                    <button class="modal-btn modal-btn-success" id="closeSuccessModal">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Modal -->
+        <div class="modal-overlay error-modal" id="errorModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <div class="modal-title">Error</div>
+                    <div class="modal-subtitle">Something went wrong</div>
+                </div>
+                <div class="modal-content">
+                    <div class="error-message" id="errorMessage"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-primary" id="closeErrorModal">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reprint Options Modal -->
+        <div class="modal-overlay" id="reprintOptionsModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <div class="modal-title">Reprint Options</div>
+                    <div class="modal-subtitle">Select an action</div>
+                </div>
+                <div class="modal-actions vertical">
+                    <button class="modal-btn modal-btn-info" id="viewInvoiceBtn">View Invoice</button>
+                    <button class="modal-btn modal-btn-success" id="reprintInvoiceBtn">Reprint Invoice</button>
+                    <button class="modal-btn modal-btn-primary" id="reprocessOrderBtn">Reprocess Order</button>
+                    <button class="modal-btn modal-btn-secondary" id="cancelReprintOptions">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
+
+    {{ recent_batches|json_script:"batch-data" }}
 
     <script>
         // Global variables
         let currentFile = null;
         let printItems = [];
         let pullItems = [];
+        let processedOrderData = null;
+        
+        const rawBatchData = JSON.parse(document.getElementById('batch-data').textContent);
+        
+        // Convert the data to the format our JavaScript expects
+        const batchData = rawBatchData.map(batch => ({
+            batchId: batch.id,
+            batchDate: new Date(batch.batch_date).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            }),
+            bulkToPrint: batch.bulk_to_print,
+            bulkToPull: batch.bulk_to_pull
+        }));
 
         // DOM elements
         const fileInput = document.getElementById('fileInput');
@@ -679,58 +873,223 @@
         const uploadStatus = document.getElementById('uploadStatus');
         const processButton = document.getElementById('processButton');
         const reprintButton = document.getElementById('reprintButton');
-        const reprintModal = document.getElementById('reprintModal');
-        const orderNumberInput = document.getElementById('orderNumberInput');
-        const cancelReprint = document.getElementById('cancelReprint');
-        const confirmReprint = document.getElementById('confirmReprint');
-        const statusMessage = document.getElementById('statusMessage');
         const startRange = document.getElementById('startRange');
         const endRange = document.getElementById('endRange');
         const printRangeBtn = document.getElementById('printRangeBtn');
+        const batchSelect = document.getElementById('batchSelect');
+
+        // Modal elements
+        const successModal = document.getElementById('successModal');
+        const closeSuccessModal = document.getElementById('closeSuccessModal');
+        const errorModal = document.getElementById('errorModal');
+        const errorMessage = document.getElementById('errorMessage');
+        const closeErrorModal = document.getElementById('closeErrorModal');
+        const reprintOptionsModal = document.getElementById('reprintOptionsModal');
+        const viewInvoiceBtn = document.getElementById('viewInvoiceBtn');
+        const reprintInvoiceBtn = document.getElementById('reprintInvoiceBtn');
+        const reprocessOrderBtn = document.getElementById('reprocessOrderBtn');
+        const cancelReprintOptions = document.getElementById('cancelReprintOptions');
+
+        // Initialize page state
+        function initializePageState() {
+            // Reset dropdown to first option (Select batch)
+            batchSelect.selectedIndex = 0;
+            
+            // Clear file upload
+            fileInput.value = '';
+            uploadStatus.classList.remove('visible');
+            processButton.disabled = true;
+            currentFile = null;
+            
+            // Reset range inputs to 1
+            resetPrintRange();
+            
+            // Clear tables
+            printItems = [];
+            pullItems = [];
+            renderPrintItemsTable();
+            renderPullItemsTable();
+            
+            // Clear processed order data
+            processedOrderData = null;
+        }
+
+        function resetPrintRange() {
+            startRange.value = 1;
+            endRange.value = 1;
+            validateRange();
+        }
+
+        // Table rendering functions
+        function renderPrintItemsTable() {
+            const printItemsContainer = document.getElementById('printItemsContainer');
+            const printItemsCount = document.getElementById('printItemsCount');
+
+            printItemsCount.textContent = `${printItems.length} items`;
+
+            if (printItems.length === 0) {
+                printItemsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">No items to print</div>
+                    </div>
+                `;
+                printRangeBtn.disabled = true;
+                return;
+            }
+
+            const tableHtml = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="row-number">#</th>
+                            <th>SKU</th>
+                            <th>Variety Name</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${printItems.map(item => `
+                            <tr>
+                                <td class="row-number">${item.rowNumber}</td>
+                                <td class="sku-cell">${escapeHtml(item.sku)}</td>
+                                <td class="variety-cell">${escapeHtml(item.variety_name || '')}</td>
+                                <td><span class="quantity-cell">${item.quantity}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            printItemsContainer.innerHTML = tableHtml;
+        }
+
+        function renderPullItemsTable() {
+            const pullItemsContainer = document.getElementById('pullItemsContainer');
+            const pullItemsCount = document.getElementById('pullItemsCount');
+
+            pullItemsCount.textContent = `${pullItems.length} items`;
+
+            if (pullItems.length === 0) {
+                pullItemsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-text">No items to pull</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const tableHtml = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Variety Name</th>
+                            <th>Type</th>
+                            <th>SKU Suffix</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pullItems.map(item => `
+                            <tr>
+                                <td class="variety-cell">${escapeHtml(item.var_name || '')}</td>
+                                <td><span class="veg-type-cell">${escapeHtml(item.veg_type || '')}</span></td>
+                                <td class="sku-cell">${escapeHtml(item.sku_suffix || '')}</td>
+                                <td><span class="quantity-cell">${item.quantity}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            pullItemsContainer.innerHTML = tableHtml;
+        }
 
         // Initialize event listeners
         function initializeEventListeners() {
             uploadButton.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleFileSelect);
             processButton.addEventListener('click', processOrders);
-            reprintButton.addEventListener('click', showReprintModal);
-            cancelReprint.addEventListener('click', hideReprintModal);
-            confirmReprint.addEventListener('click', reprintOrder);
-            orderNumberInput.addEventListener('keypress', handleOrderNumberKeypress);
+            reprintButton.addEventListener('click', showReprintOptionsModal);
             startRange.addEventListener('input', validateRange);
             endRange.addEventListener('input', validateRange);
             printRangeBtn.addEventListener('click', printRange);
-            reprintModal.addEventListener('click', handleModalOverlayClick);
+            batchSelect.addEventListener('change', handleBatchSelection);
+
+            // Modal event listeners
+            closeSuccessModal.addEventListener('click', hideSuccessModal);
+            closeErrorModal.addEventListener('click', hideErrorModal);
+            cancelReprintOptions.addEventListener('click', hideReprintOptionsModal);
+            viewInvoiceBtn.addEventListener('click', viewInvoice);
+            reprintInvoiceBtn.addEventListener('click', reprintInvoice);
+            reprocessOrderBtn.addEventListener('click', reprocessOrder);
+            
+            // Close modals when clicking overlay
+            successModal.addEventListener('click', handleModalOverlayClick);
+            errorModal.addEventListener('click', handleModalOverlayClick);
+            reprintOptionsModal.addEventListener('click', handleModalOverlayClick);
+        }
+
+        function handleBatchSelection(e) {
+            const selectedIndex = parseInt(e.target.value);
+            
+            // Reset print range whenever batch selection changes
+            resetPrintRange();
+            
+            if (isNaN(selectedIndex) || selectedIndex < 0) {
+                // "Select batch" option selected - clear tables
+                printItems = [];
+                pullItems = [];
+                renderPrintItemsTable();
+                renderPullItemsTable();
+                return;
+            }
+            
+            // Load selected batch data
+            const selectedBatch = batchData[selectedIndex];
+            if (selectedBatch) {
+                updatePrintItems(selectedBatch.bulkToPrint);
+                updatePullItems(selectedBatch.bulkToPull);
+            }
         }
 
         function handleFileSelect(e) {
             const files = e.target.files;
             if (files.length > 0) {
                 const file = files[0];
+                const fileName = file.name.toLowerCase();
                 
-                // Check if it's a CSV file
-                if (file.type !== 'text/csv' && !file.name.toLowerCase().endsWith('.csv')) {
-                    showStatusMessage('Please upload a CSV file only.', 'error');
+                // Check if filename starts with "orders_export" and ends with ".csv"
+                if (!fileName.startsWith('orders_export') || !fileName.endsWith('.csv')) {
+                    showErrorModal('Filename must start with "orders_export" and end with ".csv"');
+                    clearUploadState();
                     return;
                 }
                 
                 currentFile = file;
                 uploadStatus.classList.add('visible');
                 processButton.disabled = false;
-                hideStatusMessage();
             }
+        }
+
+        function clearUploadState() {
+            fileInput.value = '';
+            uploadStatus.classList.remove('visible');
+            processButton.disabled = true;
+            currentFile = null;
         }
 
         function processOrders() {
             if (!currentFile) {
-                showStatusMessage('Please upload a CSV file first.', 'error');
+                showErrorModal('Please upload a CSV file first.');
                 return;
             }
 
             processButton.disabled = true;
             processButton.innerHTML = '<span>Processing...</span>';
+            document.body.classList.add('processing');
 
-            // Create FormData to send file to Django
             const formData = new FormData();
             formData.append('csv_file', currentFile);
 
@@ -745,191 +1104,161 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Check for specific error messages
-                    if (data.message === 'wrong file') {
-                        showStatusMessage('Wrong file type. Please upload the correct CSV format.', 'error');
-                        return;
-                    }
-                    
-                    if (data.message === 'orders already processed') {
-                        showStatusMessage('One or more orders have already been processed.', 'error');
-                        return;
-                    }
-
-                    // Success case - populate tables with returned data
-                    if (data.bulk_items_to_print && data.bulk_items_to_pull) {
-                        updatePrintItems(data.bulk_items_to_print);
-                        updatePullItems(data.bulk_items_to_pull);
+                    if (data.bulk_to_print && data.bulk_to_pull) {
+                        // Store all order data for Flask
+                        processedOrderData = {
+                            customer_orders: data.customer_orders,
+                            missing_orders: data.missing_orders,
+                            order_data: data.order_data,
+                            bulk_orders: data.bulk_orders,
+                            misc_orders: data.misc_orders,
+                            batch_metadata: data.batch_metadata
+                        };
                         
-                        showStatusMessage(`Orders processed successfully! Found ${data.bulk_items_to_print.length} items to print and ${data.bulk_items_to_pull.length} items to pull.`, 'success');
+                        // Update tables
+                        updatePrintItems(data.bulk_to_print);
+                        updatePullItems(data.bulk_to_pull);
                         
-                        // Now send to Flask for printing
+                        // Add new batch to dropdown and select it
+                        // addNewBatchToDropdown(data.batch_metadata);
+                        addNewBatchToDropdown(data.batch_metadata, data.bulk_to_print, data.bulk_to_pull);
+                        
+                        // Reset upload state after processing
+                        resetUploadState();
+                        
+                        // Send data to Flask
                         sendToFlaskForPrinting();
                     }
                 } else {
-                    showStatusMessage(data.error || 'Error processing orders.', 'error');
+                    showErrorModal(data.error || 'Error processing orders.');
+                    clearUploadState();
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showStatusMessage('Network error. Please try again.', 'error');
-            })
-            .finally(() => {
-                processButton.disabled = false;
-                processButton.innerHTML = '<span>Process Orders</span>';
+                showErrorModal('Network error. Please try again.');
+                clearUploadState();
+                document.body.classList.add('processing');
             });
+            // .finally(() => {
+            //     processButton.disabled = false;
+            //     processButton.innerHTML = '<span>Process Orders</span>';
+            // });
+        }
+
+        function addNewBatchToDropdown(batchMetadata, bulkToPrint, bulkToPull) {
+            // Create new option with Pacific timezone date (should match Django format)
+            const newOption = document.createElement('option');
+            // Parse the date from Django (should be YYYY-MM-DD format)
+            const dateObj = new Date(batchMetadata.batch_date + 'T00:00:00-07:00'); // Pacific timezone
+            const batchDate = dateObj.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric',
+                timeZone: 'America/Los_Angeles'
+            });
+            
+            newOption.value = batchData.length;
+            newOption.setAttribute('data-batch-id', batchMetadata.id);
+            newOption.setAttribute('data-batch-date', batchDate);
+            newOption.textContent = batchDate;
+            
+            // Add to dropdown (after "Select batch" option)
+            batchSelect.insertBefore(newOption, batchSelect.children[1]);
+            
+            // Add to batchData array
+            batchData.unshift({
+                batchId: batchMetadata.id,
+                batchDate: batchDate,
+                bulkToPrint: bulkToPrint || {},  // Use passed data
+                bulkToPull: bulkToPull || {}     // Use passed data
+            });
+                        
+            // Update option values to maintain correct indexing
+            Array.from(batchSelect.options).forEach((option, index) => {
+                if (index > 0) {
+                    option.value = index - 1;
+                }
+            });
+            
+            // Select the new batch
+            batchSelect.selectedIndex = 1;
+        }
+
+        function resetUploadState() {
+            // Clear file upload after successful processing
+            fileInput.value = '';
+            uploadStatus.classList.remove('visible');
+            processButton.disabled = true;
+            currentFile = null;
+            
+            // Reset range inputs to 1
+            resetPrintRange();
         }
 
         function sendToFlaskForPrinting() {
-            // Send CSV to Flask for printing processing
-            const formData = new FormData();
-            formData.append('csv_file', currentFile);
+            if (!processedOrderData) {
+                showErrorModal('No order data to send to printer.');
+                return;
+            }
 
-            fetch('/flask/print-orders/', {
+            fetch('http://localhost:5000/print-orders', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(processedOrderData)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    console.log('Flask printing setup complete:', data.message);
+                    showSuccessModal(data.message, data.multiple_order_customers || {});
                 } else {
-                    console.warn('Flask printing warning:', data.error);
+                    showErrorModal(data.error || 'Error sending orders to printer.');
                 }
             })
             .catch(error => {
                 console.error('Flask printing error:', error);
-            });
-        }
-
-        function reprintOrder() {
-            const orderNumber = orderNumberInput.value.trim();
-            if (!orderNumber) {
-                showStatusMessage('Please enter an order number.', 'error');
-                return;
-            }
-            
-            confirmReprint.disabled = true;
-            confirmReprint.textContent = 'Processing...';
-            
-            // Send order number to backend
-            fetch('/office/reprint-order/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    order_number: orderNumber
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (data.message === 'order not found') {
-                        showStatusMessage(`Order ${orderNumber} not found.`, 'error');
-                    } else {
-                        // Populate tables with returned data
-                        updatePrintItems(data.bulk_items_to_print || []);
-                        updatePullItems(data.bulk_items_to_pull || []);
-                        
-                        showStatusMessage(`Order ${orderNumber} loaded successfully!`, 'success');
-                        hideReprintModal();
-                    }
-                } else {
-                    showStatusMessage(data.error || 'Error reprinting order.', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showStatusMessage('Network error. Please try again.', 'error');
+                showErrorModal('Could not connect to printing service. Orders were processed but may not have been sent to printer.');
             })
             .finally(() => {
-                confirmReprint.disabled = false;
-                confirmReprint.textContent = 'Print';
+                document.body.classList.remove('processing');
             });
         }
 
-        function showReprintModal() {
-            reprintModal.classList.add('visible');
-            orderNumberInput.focus();
-        }
-
-        function hideReprintModal() {
-            reprintModal.classList.remove('visible');
-            orderNumberInput.value = '';
-        }
-
-        function handleOrderNumberKeypress(e) {
-            if (e.key === 'Enter') {
-                reprintOrder();
+        function updatePrintItems(bulkToPrintDict) {
+            printItems = [];
+            let index = 1;
+            
+            for (const [sku, itemData] of Object.entries(bulkToPrintDict)) {
+                printItems.push({
+                    rowNumber: index,
+                    sku: sku,
+                    ...itemData
+                });
+                index++;
             }
-        }
-
-        function handleModalOverlayClick(e) {
-            if (e.target === e.currentTarget) {
-                hideReprintModal();
-            }
-        }
-
-        function updatePrintItems(items) {
-            printItems = items;
-            const printItemsList = document.getElementById('printItemsList');
-            const printItemsCount = document.getElementById('printItemsCount');
-
-            printItemsCount.textContent = `${items.length} items`;
-
-            if (items.length === 0) {
-                printItemsList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <div class="empty-state-text">No items to print</div>
-                    </div>
-                `;
-                printRangeBtn.disabled = true;
-                return;
-            }
-
-            // Populate the list
-            printItemsList.innerHTML = items.map((item, index) => `
-                <div class="item">
-                    <span class="item-name">${index + 1}. ${escapeHtml(item.name)}</span>
-                    <span class="item-quantity">${item.quantity}</span>
-                </div>
-            `).join('');
-
-            // Enable print controls
-            startRange.max = items.length;
-            endRange.max = items.length;
-            endRange.value = items.length;
+            
+            renderPrintItemsTable();
+            
+            startRange.max = printItems.length;
+            endRange.max = printItems.length;
+            endRange.value = printItems.length;
             startRange.value = 1;
             validateRange();
         }
 
-        function updatePullItems(items) {
-            pullItems = items;
-            const pullItemsList = document.getElementById('pullItemsList');
-            const pullItemsCount = document.getElementById('pullItemsCount');
-
-            pullItemsCount.textContent = `${items.length} items`;
-
-            if (items.length === 0) {
-                pullItemsList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📦</div>
-                        <div class="empty-state-text">No items to pull</div>
-                    </div>
-                `;
-                return;
+        function updatePullItems(bulkToPullDict) {
+            pullItems = [];
+            
+            for (const [sku, itemData] of Object.entries(bulkToPullDict)) {
+                pullItems.push({
+                    sku: sku,
+                    ...itemData
+                });
             }
-
-            // Populate the list
-            pullItemsList.innerHTML = items.map(item => `
-                <div class="item">
-                    <span class="item-name">${escapeHtml(item.name)}</span>
-                    <span class="item-quantity">${item.quantity}</span>
-                </div>
-            `).join('');
+            
+            renderPullItemsTable();
         }
 
         function validateRange() {
@@ -940,80 +1269,209 @@
             printRangeBtn.disabled = !isValid;
         }
 
+
         function printRange() {
             const start = parseInt(startRange.value);
             const end = parseInt(endRange.value);
 
             if (!start || !end || start > end || start < 1 || end > printItems.length) {
-                showStatusMessage('Please enter a valid range.', 'error');
+                showErrorModal('Please enter a valid range.');
                 return;
             }
 
             printRangeBtn.disabled = true;
             const originalText = printRangeBtn.textContent;
             printRangeBtn.textContent = 'Generating...';
+            document.body.classList.add('processing'); // Add spinning cursor
 
-            // Send print request to backend
-            fetch('/office/print-range/', {
+            const selectedItems = printItems.slice(start - 1, end);
+
+            // Send to Flask instead of Django
+            fetch('http://localhost:5000/print-range', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
                 },
                 body: JSON.stringify({
-                    start: start - 1, // Convert to 0-based index
-                    end: end - 1,
-                    items: printItems.slice(start - 1, end)
+                    start: start,
+                    end: end,
+                    items: selectedItems
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessModal(`Labels generated successfully for items ${start}-${end}!`, {});
+                } else {
+                    showErrorModal(data.error || 'Error generating labels.');
                 }
-                return response.blob();
-            })
-            .then(blob => {
-                // Download the PDF
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `bulk_orders_${start}-${end}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                showStatusMessage(`Labels generated successfully for items ${start}-${end}!`, 'success');
             })
             .catch(error => {
                 console.error('Error printing range:', error);
-                showStatusMessage('Error generating labels: ' + error.message, 'error');
+                showErrorModal('Could not connect to printing service: ' + error.message);
             })
             .finally(() => {
                 printRangeBtn.disabled = false;
                 printRangeBtn.textContent = originalText;
+                document.body.classList.remove('processing'); // Remove spinning cursor
                 validateRange();
             });
         }
 
-        function showStatusMessage(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message ${type} visible`;
+
+
+        // function printRange() {
+        //     const start = parseInt(startRange.value);
+        //     const end = parseInt(endRange.value);
+
+        //     if (!start || !end || start > end || start < 1 || end > printItems.length) {
+        //         showErrorModal('Please enter a valid range.');
+        //         return;
+        //     }
+
+        //     printRangeBtn.disabled = true;
+        //     const originalText = printRangeBtn.textContent;
+        //     printRangeBtn.textContent = 'Generating...';
+
+        //     const selectedItems = printItems.slice(start - 1, end);
+
+        //     fetch('/orders/print-range/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken'),
+        //         },
+        //         body: JSON.stringify({
+        //             start: start - 1,
+        //             end: end - 1,
+        //             items: selectedItems
+        //         })
+        //     })
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             throw new Error(`HTTP error! status: ${response.status}`);
+        //         }
+        //         return response.blob();
+        //     })
+        //     .then(blob => {
+        //         const url = window.URL.createObjectURL(blob);
+        //         const a = document.createElement('a');
+        //         a.style.display = 'none';
+        //         a.href = url;
+        //         a.download = `bulk_orders_${start}-${end}.pdf`;
+        //         document.body.appendChild(a);
+        //         a.click();
+        //         window.URL.revokeObjectURL(url);
+        //         document.body.removeChild(a);
+                
+        //         showSuccessModal(`Labels generated successfully for items ${start}-${end}!`, {});
+        //     })
+        //     .catch(error => {
+        //         console.error('Error printing range:', error);
+        //         showErrorModal('Error generating labels: ' + error.message);
+        //     })
+        //     .finally(() => {
+        //         printRangeBtn.disabled = false;
+        //         printRangeBtn.textContent = originalText;
+        //         validateRange();
+        //     });
+        // }
+
+
+
+
+
+
+
+        // Modal functions
+        function showSuccessModal(message, multipleOrderCustomers) {
+            const successContent = document.getElementById('successContent');
             
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(() => {
-                    hideStatusMessage();
-                }, 5000);
+            let content = `<div class="success-message">${escapeHtml(message)}</div>`;
+            
+            // Display customers with multiple orders if any
+            if (multipleOrderCustomers && Object.keys(multipleOrderCustomers).length > 0) {
+                content += `
+                    <div class="multiple-orders-section">
+                        <div class="multiple-orders-title">Customers with Multiple Orders</div>
+                `;
+                
+                for (const [customerName, orderNumbers] of Object.entries(multipleOrderCustomers)) {
+                    content += `
+                        <div class="customer-card">
+                            <div class="customer-name">${escapeHtml(customerName)}</div>
+                            <div class="order-numbers">
+                                ${orderNumbers.map(order => `<span class="order-number">${escapeHtml(order)}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                content += `</div>`;
+            } else {
+                // Add this else block for when there are no duplicates
+                content += `
+                    <div class="multiple-orders-section">
+                        <div class="multiple-orders-title">No duplicate orders found</div>
+                    </div>
+                `;
+            }
+            
+            successContent.innerHTML = content;
+            successModal.classList.add('visible');
+        }
+
+        function hideSuccessModal() {
+            successModal.classList.remove('visible');
+        }
+
+        function showErrorModal(message) {
+            errorMessage.textContent = message;
+            errorModal.classList.add('visible');
+        }
+
+        function hideErrorModal() {
+            errorModal.classList.remove('visible');
+        }
+
+        function showReprintOptionsModal() {
+            reprintOptionsModal.classList.add('visible');
+        }
+
+        function hideReprintOptionsModal() {
+            reprintOptionsModal.classList.remove('visible');
+        }
+
+        function handleModalOverlayClick(e) {
+            if (e.target === e.currentTarget) {
+                if (e.target === successModal) {
+                    hideSuccessModal();
+                } else if (e.target === errorModal) {
+                    hideErrorModal();
+                } else if (e.target === reprintOptionsModal) {
+                    hideReprintOptionsModal();
+                }
             }
         }
 
-        function hideStatusMessage() {
-            statusMessage.classList.remove('visible');
+        // Placeholder functions for reprint options
+        function viewInvoice() {
+            hideReprintOptionsModal();
+            console.log('View Invoice clicked - implement functionality');
+        }
+
+        function reprintInvoice() {
+            hideReprintOptionsModal();
+            console.log('Reprint Invoice clicked - implement functionality');
+        }
+
+        function reprocessOrder() {
+            hideReprintOptionsModal();
+            console.log('Reprocess Order clicked - implement functionality');
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const map = {
                 '&': '&amp;',
                 '<': '&lt;',
@@ -1021,10 +1479,9 @@
                 '"': '&quot;',
                 "'": '&#039;'
             };
-            return text.replace(/[&<>"']/g, m => map[m]);
+            return text.toString().replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Helper function to get Django CSRF token
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -1043,6 +1500,7 @@
         // Initialize everything when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
+            initializePageState();
         });
     </script>
 </body>

@@ -86,7 +86,6 @@ class BatchMetadata(models.Model):
 class BulkBatch(models.Model):
     batch_identifier = models.ForeignKey(BatchMetadata, on_delete=models.CASCADE, related_name="bulk_batches")
     bulk_type = models.CharField(max_length=50)  # 'print' or 'pull'
-    # might need to make sku a foreign key to Product
     sku = models.CharField(max_length=100)
     quantity = models.IntegerField()
 

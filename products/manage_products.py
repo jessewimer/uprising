@@ -604,14 +604,37 @@ def set_all_bulk_pre_pack_to_zero():
         if product.bulk_pre_pack is None:
             product.bulk_pre_pack = 0
             product.save()
+
+def import_lineitem_names_from_csv(csv_file):
+    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        for row in reader:
+            sku_prefix = row["sku_prefix"].strip()
+            sku_suffix = row["sku_suffix"].strip()
+            lineitem_name = row["lineitem_name"].strip()
+            
+            try:
+                product = Product.objects.get(
+                    variety__sku_prefix=sku_prefix,
+                    sku_suffix=sku_suffix
+                )
+                product.lineitem_name = lineitem_name
+                product.save()
+                print(f"Updated {sku_prefix}-{sku_suffix} with lineitem name '{lineitem_name}'")
+            except Product.DoesNotExist:
+                print(f"Product not found for {sku_prefix}-{sku_suffix}, skipping.")
+
+
+    
 # ####  MAIN PROGRAM BEGINS HERE  #### #
 set_all_bulk_pre_pack_to_zero()
-add_variety_and_product()
-misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
-import_misc_products(misc_products_csv)
+# add_variety_and_product()
+# misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
+# import_misc_products(misc_products_csv)
 
-
-
+import_lineitem_names_csv = os.path.join(os.path.dirname(__file__), "lineitem_names.csv")
+import_lineitem_names_from_csv(import_lineitem_names_csv)
 
 
 # delete_print_label_table_contents()l
