@@ -400,7 +400,7 @@ def clear_germination_batch_and_test_germinations():
     print("✅ All germination batches cleared.")
     # filter for germination objects with year == 26
     Germination.objects.filter(for_year=26).delete()
-    print("✅ All test germinations cleared.")
+    print("✅ All test germinations cleared for 2026.")
 
 def view_germination_batches():
     """View all germination batches"""
@@ -574,12 +574,12 @@ if __name__ == "__main__":
     # import_retired_lots(ret_file_path)
     # clear_germ_sample_print_table()
     # import_germ_sample_prints_from_csv(germ_print_file_path)
-    # clear_germination_batch_and_test_germinations()
+    clear_germination_batch_and_test_germinations()
     # view_germination_batches()
 
-    clear_september_2025_germ_sample_prints()
+    # clear_september_2025_germ_sample_prints()
 
     # THESE ADD 3 BATCHES TO THE DB AND POPULATE WITH 26 GERMS SENT VIA THE OTHER DB
-    # add_germ_batch_to_db()
-    # germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
-    # import_germs_26(germ_26_file_path)
+    add_germ_batch_to_db()
+    germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
+    import_germs_26(germ_26_file_path)

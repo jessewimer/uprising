@@ -628,7 +628,7 @@ def import_lineitem_names_from_csv(csv_file):
 
     
 # ####  MAIN PROGRAM BEGINS HERE  #### #
-set_all_bulk_pre_pack_to_zero()
+# set_all_bulk_pre_pack_to_zero()
 # add_variety_and_product()
 # misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
 # import_misc_products(misc_products_csv)

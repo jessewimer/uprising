@@ -95,6 +95,7 @@ def calculate_bulk_pull_and_print(bulk_items):
                     "print_back": product.print_back,
                     "env_type": product.env_type,   # include for sorting
                     "sku_prefix": product.variety.sku_prefix,  # include for sorting
+                    "rad_type": product.get_rad_type(),
                 }
 
                 if product.print_back:

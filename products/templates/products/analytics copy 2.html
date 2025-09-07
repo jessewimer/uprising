@@ -467,49 +467,6 @@
             transform: translateY(-2px);
         }
 
-        /* Input Sections */
-        .input-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px solid #f0f0f0;
-        }
-
-        .input-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .compact-input {
-            width: 200px;
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 1rem;
-            text-align: center;
-            transition: border-color 0.3s ease;
-        }
-
-        .compact-input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .input-label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .input-help {
-            font-size: 0.85rem;
-            color: #666;
-            text-align: center;
-            max-width: 300px;
-        }
-
         /* Loading spinner */
         .loading-spinner {
             border: 3px solid #f3f3f3;
@@ -676,11 +633,6 @@
             .confirm-buttons {
                 flex-direction: column;
             }
-
-            .compact-input {
-                width: 100%;
-                max-width: 250px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -745,7 +697,6 @@
 </head>
 
 <body>
-    {% csrf_token %}
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -870,74 +821,22 @@
         </div>
     </div>
 
-    <!-- Bulk SKU Confirmation Modal -->
-    <div class="modal-overlay" id="bulk-confirm-modal">
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-modal">
         <div class="modal confirm-modal">
             <div class="modal-header">
                 <h2 class="modal-title">Shopify Inventory Processing</h2>
-                <button class="modal-close" id="close-bulk-confirm-modal">&times;</button>
+                <button class="modal-close" id="close-confirm-modal">&times;</button>
             </div>
             
             <div class="confirm-icon">📦</div>
             <div class="confirm-message">
-                Analyze bulk inventory by SKU prefix?
+                Do you want to include bulk inventory in the processing?
             </div>
             
-            <div class="confirm-buttons" id="bulk-main-buttons">
-                <button class="confirm-btn primary" id="bulk-confirm-yes">Yes, Use SKU Prefix</button>
-                <button class="confirm-btn secondary" id="bulk-confirm-no">No, Use Threshold</button>
-            </div>
-
-            <!-- SKU Prefix Section (hidden by default) -->
-            <div id="sku-section" class="input-section" style="display: none;">
-                <div class="input-container">
-                    <div class="input-label">SKU Prefix:</div>
-                    <input 
-                        type="text" 
-                        id="sku-prefix" 
-                        class="compact-input"
-                        placeholder="e.g. BULK-"
-                    />
-                    <div class="input-help">
-                        Enter the SKU prefix to identify bulk inventory items
-                    </div>
-                    <button class="confirm-btn primary" id="submit-sku">
-                        Process with SKU Prefix
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Packet Threshold Modal -->
-    <div class="modal-overlay" id="threshold-modal">
-        <div class="modal confirm-modal">
-            <div class="modal-header">
-                <h2 class="modal-title">Packet Threshold</h2>
-                <button class="modal-close" id="close-threshold-modal">&times;</button>
-            </div>
-            
-            <div class="confirm-icon">📊</div>
-            <div class="confirm-message">
-                Set packet threshold for low stock alerts
-            </div>
-            
-            <div class="input-container">
-                <div class="input-label">Packet Threshold:</div>
-                <input 
-                    type="number" 
-                    id="packet-threshold" 
-                    class="compact-input"
-                    value="30" 
-                    min="1" 
-                    max="1000"
-                />
-                <div class="input-help">
-                    Products with inventory below this threshold will be flagged
-                </div>
-                <button class="confirm-btn primary" id="submit-threshold">
-                    Process with Threshold
-                </button>
+            <div class="confirm-buttons">
+                <button class="confirm-btn primary" id="confirm-yes">Yes, Include Bulk</button>
+                <button class="confirm-btn secondary" id="confirm-no">No, Skip Bulk</button>
             </div>
         </div>
     </div>
@@ -1030,10 +929,7 @@
             const uploadStatus = document.getElementById('upload-status');
             const submitButton = document.getElementById('submit-button');
             const successIndicator = document.getElementById('success-indicator');
-            
-            // Modals
-            const bulkConfirmModal = document.getElementById('bulk-confirm-modal');
-            const thresholdModal = document.getElementById('threshold-modal');
+            const confirmModal = document.getElementById('confirm-modal');
             const resultsModal = document.getElementById('results-modal');
 
             // File upload button click
@@ -1100,60 +996,30 @@
                 console.log('File validated and set:', file.name);
             }
 
-            // Submit button handler - shows first modal
+            // Submit button handler
             submitButton.addEventListener('click', () => {
                 if (!uploadedFile) {
                     console.log('No file uploaded');
                     return;
                 }
                 
-                console.log('Submit button clicked, showing bulk confirmation modal');
-                showModal(bulkConfirmModal);
+                console.log('Submit button clicked, showing confirmation modal');
+                showModal(confirmModal);
             });
 
-            // Bulk confirmation modal handlers
-            document.getElementById('bulk-confirm-yes').addEventListener('click', () => {
-                // Show SKU prefix input section
-                document.getElementById('sku-section').style.display = 'block';
-                document.getElementById('bulk-main-buttons').style.display = 'none';
-                
-                // Focus on the SKU input
-                document.getElementById('sku-prefix').focus();
+            // Confirmation modal handlers
+            document.getElementById('confirm-yes').addEventListener('click', () => {
+                hideModal(confirmModal);
+                processFile(true); // Include bulk inventory
             });
 
-            document.getElementById('bulk-confirm-no').addEventListener('click', () => {
-                // Close bulk modal and open threshold modal
-                hideModal(bulkConfirmModal);
-                showModal(thresholdModal);
-                
-                // Focus on the threshold input
-                document.getElementById('packet-threshold').focus();
+            document.getElementById('confirm-no').addEventListener('click', () => {
+                hideModal(confirmModal);
+                processFile(false); // Don't include bulk inventory
             });
 
-            // SKU submission handler
-            document.getElementById('submit-sku').addEventListener('click', () => {
-                const skuPrefix = document.getElementById('sku-prefix').value.trim();
-                
-                if (!skuPrefix) {
-                    alert('Please enter a SKU prefix');
-                    return;
-                }
-                
-                hideModal(bulkConfirmModal);
-                processFile({ skuPrefix: skuPrefix });
-            });
-
-            // Threshold submission handler
-            document.getElementById('submit-threshold').addEventListener('click', () => {
-                const thresholdValue = parseInt(document.getElementById('packet-threshold').value) || 30;
-                hideModal(thresholdModal);
-                processFile({ packetThreshold: thresholdValue });
-            });
-
-            async function processFile(options = {}) {
-                const { skuPrefix = null, packetThreshold = null } = options;
-                
-                console.log('Processing file with options:', options);
+            async function processFile(includeBulk) {
+                console.log('Processing file with bulk:', includeBulk);
                 
                 // Show results modal with loading
                 showModal(resultsModal);
@@ -1163,13 +1029,8 @@
                 try {
                     const formData = new FormData();
                     formData.append('csv_file', uploadedFile);
-                    
-                    if (skuPrefix) {
-                        formData.append('sku_prefix', skuPrefix);
-                    }
-                    
-                    if (packetThreshold !== null) {
-                        formData.append('pkt_threshold', packetThreshold.toString());
+                    if (includeBulk) {
+                        formData.append('bulk_inv', 'true');
                     }
 
                     // Get CSRF token
@@ -1178,7 +1039,7 @@
                         formData.append('csrfmiddlewaretoken', csrfToken);
                     }
 
-                    const response = await fetch('/products/shopify-inventory/', {
+                    const response = await fetch('/analytics/shopify-inventory/', {
                         method: 'POST',
                         body: formData,
                         headers: {
@@ -1203,9 +1064,8 @@
                     displayError('Network error occurred');
                 }
 
-                // Reset the form and all modals
+                // Reset the form
                 resetUploadForm();
-                resetAllModals();
             }
 
             function displayResults(data) {
@@ -1237,16 +1097,6 @@
                 `;
             }
 
-            function resetAllModals() {
-                // Reset bulk confirmation modal
-                document.getElementById('sku-section').style.display = 'none';
-                document.getElementById('bulk-main-buttons').style.display = 'flex';
-                document.getElementById('sku-prefix').value = '';
-                
-                // Reset threshold modal
-                document.getElementById('packet-threshold').value = '30';
-            }
-
             function resetUploadForm() {
                 uploadedFile = null;
                 fileInput.value = '';
@@ -1256,14 +1106,9 @@
                 submitButton.classList.remove('enabled');
             }
 
-            // Modal close handlers
-            document.getElementById('close-bulk-confirm-modal').addEventListener('click', () => {
-                resetAllModals();
-                hideModal(bulkConfirmModal);
-            });
-
-            document.getElementById('close-threshold-modal').addEventListener('click', () => {
-                hideModal(thresholdModal);
+            // Modal close handlers for Shopify modals
+            document.getElementById('close-confirm-modal').addEventListener('click', () => {
+                hideModal(confirmModal);
             });
 
             document.getElementById('close-results-modal').addEventListener('click', () => {
