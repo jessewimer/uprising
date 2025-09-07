@@ -562,6 +562,7 @@ def clear_september_2025_germ_sample_prints():
     print(f"✅ Cleared {count} germ sample prints from September 2025.")
     
 if __name__ == "__main__":
+    pass
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
 #     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
@@ -574,12 +575,12 @@ if __name__ == "__main__":
     # import_retired_lots(ret_file_path)
     # clear_germ_sample_print_table()
     # import_germ_sample_prints_from_csv(germ_print_file_path)
-    clear_germination_batch_and_test_germinations()
+    # clear_germination_batch_and_test_germinations()
     # view_germination_batches()
 
     # clear_september_2025_germ_sample_prints()
 
     # THESE ADD 3 BATCHES TO THE DB AND POPULATE WITH 26 GERMS SENT VIA THE OTHER DB
-    add_germ_batch_to_db()
-    germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
-    import_germs_26(germ_26_file_path)
+    # add_germ_batch_to_db()
+    # germ_26_file_path = os.path.join(os.path.dirname(__file__), "germ_26.csv")
+    # import_germs_26(germ_26_file_path)

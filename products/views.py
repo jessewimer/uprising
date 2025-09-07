@@ -188,7 +188,10 @@ def shopify_inventory(request):
             print(f"Active varieties: {active_varieties}")
 
             if not active_varieties.exists():
-                return {"error": f"No active variety found with prefix '{prefix}'."}
+                return JsonResponse({
+                    'message': f"No products found with SKU prefix '{prefix}'",
+                    'type_inventory': {}
+                })
 
             inventory_dict = {}
 
