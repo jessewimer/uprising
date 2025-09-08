@@ -183,7 +183,7 @@
             backdrop-filter: blur(15px);
             border-radius: 20px;
             padding: 40px;
-            width: 600px;
+            width: 1000px;
             max-width: 95vw;
             max-height: 90vh;
             overflow-y: auto;
@@ -229,8 +229,8 @@
         }
 
         .form-grid {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -424,6 +424,11 @@
                 margin: 0;
             }
 
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
             .form-actions {
                 flex-direction: column;
             }
@@ -445,7 +450,6 @@
             <div class="admin-card" onclick="openVarietyModal()">
                 <div class="admin-icon">🌱</div>
                 <h3 class="admin-title">Add Variety</h3>
-                <p class="admin-description">Add a new variety to the database</p>
             </div>
 
             <!-- System Settings -->
@@ -563,6 +567,16 @@
                         <input type="text" id="species" name="species">
                     </div>
 
+                    <!-- <div class="form-group">
+                        <label for="supergroup">Supergroup</label>
+                        <select id="supergroup" name="supergroup">
+                            <option value="">Select a supergroup...</option>
+                            {% for supergroup in supergroups %}
+                                <option value="{{ supergroup }}">{{ supergroup }}</option>
+                            {% endfor %}
+                        </select>
+                    </div> -->
+
                     <div class="form-group">
                         <label for="subtype">Subtype</label>
                         <select id="subtype" name="subtype">
@@ -575,7 +589,7 @@
 
                     <div class="form-group">
                         <label for="days">Days</label>
-                        <input type="text" id="days" name="days" placeholder="e.g. 55-60 Days">
+                        <input type="text" id="days" name="days">
                     </div>
 
                     <div class="form-group">
@@ -733,9 +747,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="env_type">Envelope Type</label>
+                        <label for="env_type">Environment Type</label>
                         <select id="env_type" name="env_type">
-                            <option value="">Select an envelope type...</option>
+                            <option value="">Select an environment type...</option>
                             {% for env_type in env_types %}
                                 <option value="{{ env_type }}">{{ env_type }}</option>
                             {% endfor %}
@@ -743,7 +757,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="env_multiplier">Envelope Multiplier</label>
+                        <label for="env_multiplier">Environment Multiplier</label>
                         <input type="number" id="env_multiplier" name="env_multiplier">
                     </div>
 
@@ -808,7 +822,7 @@
         }
 
         function openProductModal(varietyData) {
-            document.getElementById('product_variety').value = varietyData.sku_prefix;
+            document.getElementById('product_variety').value = varietyData.sku_prefix + ' - ' + varietyData.var_name;
             document.getElementById('productModal').classList.add('active');
             currentVarietyId = varietyData.sku_prefix;
         }

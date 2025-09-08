@@ -626,15 +626,35 @@ def import_lineitem_names_from_csv(csv_file):
                 print(f"Product not found for {sku_prefix}-{sku_suffix}, skipping.")
 
 
-    
+def delete_variety(sku_prefix):
+    try:
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+        variety.delete()
+        print(f"Deleted variety with SKU prefix {sku_prefix}")
+    except Variety.DoesNotExist:
+        print(f"No variety found with SKU prefix {sku_prefix}")
+
+def view_lineitems(): 
+    import pandas as pd
+
+    products = Product.objects.all().order_by(
+        'variety__sku_prefix', 'sku_suffix'
+    ).values('variety__sku_prefix', 'sku_suffix', 'lineitem_name')
+
+    df = pd.DataFrame(list(products))
+    print(df)
+
+
 # ####  MAIN PROGRAM BEGINS HERE  #### #
+view_lineitems()
+# delete_variety("TOM-XX")
 # set_all_bulk_pre_pack_to_zero()
 # add_variety_and_product()
 # misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
 # import_misc_products(misc_products_csv)
 
-import_lineitem_names_csv = os.path.join(os.path.dirname(__file__), "lineitem_names.csv")
-import_lineitem_names_from_csv(import_lineitem_names_csv)
+# import_lineitem_names_csv = os.path.join(os.path.dirname(__file__), "lineitem_names.csv")
+# import_lineitem_names_from_csv(import_lineitem_names_csv)
 
 
 # delete_print_label_table_contents()l

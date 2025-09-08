@@ -47,6 +47,8 @@ urlpatterns = [
     path('varieties-json/', varieties_json, name='varieties_json'),
     path("crops-json/", crops_json, name="crops_json"),
     path('inventory-germination/<str:crop>/', products_by_crop_json, name='products_by_crop_json'),
+    path('add-variety/', add_variety, name='add_variety'),
+    path('add-product/', add_product, name='add_product'),
 
     path('print-product-labels/', print_product_labels, name='print_product_labels'),
     path('assign-lot-to-product/', assign_lot_to_product, name='assign_lot_to_product'),

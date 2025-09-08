@@ -14,7 +14,7 @@ from django.db.models import Case, When, IntegerField, Max, Sum
 from uprising.utils.auth import is_employee
 from uprising import settings
 from django.views.decorators.http import require_http_methods
-# from django.views.decorators.http import require_POST
+from django.core.exceptions import ValidationError
 
 
 @login_required
@@ -422,25 +422,6 @@ def set_lot_low_inv(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
-
-
-# @login_required
-# @user_passes_test(is_employee)
-# def analytics(request):
-#     """
-#     View for displaying analytics and business performance metrics
-#     """
-#     context = {
-#         'page_title': 'Analytics Dashboard',
-#         # Add any data you want to pass to the template
-#         # For example:
-#         # 'sales_data': get_sales_data(),
-#         # 'inventory_metrics': get_inventory_metrics(),
-#         # 'popular_products': get_popular_products(),
-#     }
-    
-#     # Render the template from the products app
-#     return render(request, 'products/analytics.html', context)
 
 
 @login_required
@@ -851,7 +832,19 @@ def edit_back_labels(request):
 @login_required
 @staff_member_required
 def admin_dashboard(request):
-    return render(request, 'office/admin_dashboard.html')
+    context = {
+        'pkg_sizes': settings.PKG_SIZES,
+        'sku_suffixes': settings.SKU_SUFFIXES,
+        'env_types': settings.ENV_TYPES,
+        'crops': settings.CROPS,
+        'groups': settings.GROUPS,
+        'veg_types': settings.VEG_TYPES,
+        # 'supergroups': settings.SUPERGROUPS,
+        'subtypes': settings.SUBTYPES,
+        'categories': settings.CATEGORIES,
+        'user_name': request.user.get_full_name() or request.user.username,
+    }
+    return render(request, 'office/admin_dashboard.html', context)
 
 
 
@@ -1678,3 +1671,206 @@ def finalize_order(request):
     except Exception as e:
         print(f"Error in finalize_order: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def add_variety(request):
+    """Create a new variety via AJAX"""
+    try:
+        # Extract form data
+        data = {
+            'sku_prefix': request.POST.get('sku_prefix', '').strip(),
+            'var_name': request.POST.get('var_name', '').strip() or None,
+            'crop': request.POST.get('crop', '').strip() or None,
+            'common_spelling': request.POST.get('common_spelling', '').strip() or None,
+            'common_name': request.POST.get('common_name', '').strip() or None,
+            'group': request.POST.get('group', '').strip() or None,
+            'veg_type': request.POST.get('veg_type', '').strip() or None,
+            'species': request.POST.get('species', '').strip() or None,
+            'subtype': request.POST.get('subtype', '').strip() or None,
+            'days': request.POST.get('days', '').strip() or None,
+            'active': request.POST.get('active') == 'true',
+            'stock_qty': request.POST.get('stock_qty', '').strip() or None,
+            'photo_path': request.POST.get('photo_path', '').strip() or None,
+            'wholesale': request.POST.get('wholesale') == 'true',
+            'desc_line1': request.POST.get('desc_line1', '').strip() or None,
+            'desc_line2': request.POST.get('desc_line2', '').strip() or None,
+            'desc_line3': request.POST.get('desc_line3', '').strip() or None,
+            'back1': request.POST.get('back1', '').strip() or None,
+            'back2': request.POST.get('back2', '').strip() or None,
+            'back3': request.POST.get('back3', '').strip() or None,
+            'back4': request.POST.get('back4', '').strip() or None,
+            'back5': request.POST.get('back5', '').strip() or None,
+            'back6': request.POST.get('back6', '').strip() or None,
+            'back7': request.POST.get('back7', '').strip() or None,
+            'ws_notes': request.POST.get('ws_notes', '').strip() or None,
+            'ws_description': request.POST.get('ws_description', '').strip() or None,
+            'category': request.POST.get('category', '').strip() or None,
+        }
+
+        # Validate required fields
+        if not data['sku_prefix']:
+            return JsonResponse({
+                'success': False,
+                'errors': {'sku_prefix': ['SKU Prefix is required']}
+            }, status=400)
+
+        # Check if SKU prefix already exists
+        if Variety.objects.filter(sku_prefix=data['sku_prefix']).exists():
+            return JsonResponse({
+                'success': False,
+                'errors': {'sku_prefix': ['A variety with this SKU Prefix already exists']}
+            }, status=400)
+
+        # Create the variety
+        variety = Variety.objects.create(**data)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Variety created successfully',
+            'variety': {
+                'sku_prefix': variety.sku_prefix,
+                'var_name': variety.var_name or '',
+                'id': variety.sku_prefix  # Since sku_prefix is the primary key
+            }
+        })
+    
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'errors': {'__all__': [str(e)]}
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }, status=500)
+
+
+
+
+
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def add_product(request):
+    """Create a new product via AJAX"""
+    try:
+        # Get the variety
+        variety_id = request.POST.get('variety_id', '').strip()
+        if not variety_id:
+            return JsonResponse({
+                'success': False,
+                'errors': {'variety': ['Variety is required']}
+            }, status=400)
+
+        try:
+            variety = Variety.objects.get(sku_prefix=variety_id)
+        except Variety.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'errors': {'variety': ['Variety not found']}
+            }, status=400)
+
+        # Extract form data
+        data = {
+            'variety': variety,
+            'sku_suffix': request.POST.get('sku_suffix', '').strip() or None,
+            'pkg_size': request.POST.get('pkg_size', '').strip() or None,
+            'alt_sku': request.POST.get('alt_sku', '').strip() or None,
+            'lineitem_name': request.POST.get('lineitem_name', '').strip() or None,
+            'rack_location': request.POST.get('rack_location', '').strip() or None,
+            'env_type': request.POST.get('env_type', '').strip() or None,
+            'env_multiplier': None,
+            'label': request.POST.get('label', '').strip() or None,
+            'num_printed': None,
+            'num_printed_next_year': 0,
+            'scoop_size': request.POST.get('scoop_size', '').strip() or None,
+            'print_back': request.POST.get('print_back') == 'true',
+            'bulk_pre_pack': 0,
+            'is_sub_product': request.POST.get('is_sub_product') == 'true',
+        }
+
+        # Handle integer fields
+        try:
+            env_multiplier = request.POST.get('env_multiplier', '').strip()
+            if env_multiplier:
+                data['env_multiplier'] = int(env_multiplier)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'errors': {'env_multiplier': ['Enter a valid number']}
+            }, status=400)
+
+        try:
+            num_printed = request.POST.get('num_printed', '').strip()
+            if num_printed:
+                data['num_printed'] = int(num_printed)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'errors': {'num_printed': ['Enter a valid number']}
+            }, status=400)
+
+        try:
+            num_printed_next_year = request.POST.get('num_printed_next_year', '0').strip()
+            if num_printed_next_year:
+                data['num_printed_next_year'] = int(num_printed_next_year)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'errors': {'num_printed_next_year': ['Enter a valid number']}
+            }, status=400)
+
+        try:
+            bulk_pre_pack = request.POST.get('bulk_pre_pack', '0').strip()
+            if bulk_pre_pack:
+                data['bulk_pre_pack'] = int(bulk_pre_pack)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'errors': {'bulk_pre_pack': ['Enter a valid number']}
+            }, status=400)
+
+        # Validate required fields
+        if not data['sku_suffix']:
+            return JsonResponse({
+                'success': False,
+                'errors': {'sku_suffix': ['SKU Suffix is required']}
+            }, status=400)
+
+        # Validate label length (max 1 character)
+        if data['label'] and len(data['label']) > 1:
+            return JsonResponse({
+                'success': False,
+                'errors': {'label': ['Label must be 1 character or less']}
+            }, status=400)
+
+        # Create the product
+        product = Product.objects.create(**data)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Product created successfully',
+            'product': {
+                'id': product.id,
+                'variety': variety.sku_prefix,
+                'sku_suffix': product.sku_suffix
+            }
+        })
+
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'errors': {'__all__': [str(e)]}
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }, status=500)
