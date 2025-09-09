@@ -643,10 +643,19 @@ def view_lineitems():
 
     df = pd.DataFrame(list(products))
     print(df)
+def delete_varieties(sku_prefixes):
+    for sku_prefix in sku_prefixes:
+        try:
+            variety = Variety.objects.get(sku_prefix=sku_prefix)
+            variety.delete()
+            print(f"Deleted variety with SKU prefix {sku_prefix}")
+        except Variety.DoesNotExist:
+            print(f"No variety found with SKU prefix {sku_prefix}")
 
 
 # ####  MAIN PROGRAM BEGINS HERE  #### #
-view_lineitems()
+delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
+# view_lineitems()
 # delete_variety("TOM-XX")
 # set_all_bulk_pre_pack_to_zero()
 # add_variety_and_product()
