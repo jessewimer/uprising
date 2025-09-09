@@ -94,6 +94,7 @@ def view_variety(request):
             'common_spelling': v.common_spelling,
             'var_name': v.var_name,
             'veg_type': v.veg_type,
+
         }
         for v in varieties
     }
@@ -320,6 +321,9 @@ def view_variety(request):
         'lots_json': lots_json,
         'all_vars_json': all_vars_json,
         'growers': growers,
+        'env_types': settings.ENV_TYPES,
+        'sku_suffixes': settings.SKU_SUFFIXES,
+        'pkg_sizes': settings.PKG_SIZES,
     }
     return render(request, 'office/view_variety.html', context)
 
