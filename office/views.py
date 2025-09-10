@@ -1791,12 +1791,12 @@ def add_product(request):
             'rack_location': request.POST.get('rack_location', '').strip() or None,
             'env_type': request.POST.get('env_type', '').strip() or None,
             'env_multiplier': None,
-            'label': request.POST.get('label', '').strip() or None,
-            'num_printed': None,
-            'num_printed_next_year': 0,
+            # 'label': request.POST.get('label', '').strip() or None,
+            # 'num_printed': None,
+            # 'num_printed_next_year': 0,
             'scoop_size': request.POST.get('scoop_size', '').strip() or None,
             'print_back': request.POST.get('print_back') == 'true',
-            'bulk_pre_pack': 0,
+            # 'bulk_pre_pack': 0,
             'is_sub_product': request.POST.get('is_sub_product') == 'true',
         }
 
@@ -1811,35 +1811,35 @@ def add_product(request):
                 'errors': {'env_multiplier': ['Enter a valid number']}
             }, status=400)
 
-        try:
-            num_printed = request.POST.get('num_printed', '').strip()
-            if num_printed:
-                data['num_printed'] = int(num_printed)
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'success': False,
-                'errors': {'num_printed': ['Enter a valid number']}
-            }, status=400)
+        # try:
+        #     num_printed = request.POST.get('num_printed', '').strip()
+        #     if num_printed:
+        #         data['num_printed'] = int(num_printed)
+        # except (ValueError, TypeError):
+        #     return JsonResponse({
+        #         'success': False,
+        #         'errors': {'num_printed': ['Enter a valid number']}
+        #     }, status=400)
 
-        try:
-            num_printed_next_year = request.POST.get('num_printed_next_year', '0').strip()
-            if num_printed_next_year:
-                data['num_printed_next_year'] = int(num_printed_next_year)
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'success': False,
-                'errors': {'num_printed_next_year': ['Enter a valid number']}
-            }, status=400)
+        # try:
+        #     num_printed_next_year = request.POST.get('num_printed_next_year', '0').strip()
+        #     if num_printed_next_year:
+        #         data['num_printed_next_year'] = int(num_printed_next_year)
+        # except (ValueError, TypeError):
+        #     return JsonResponse({
+        #         'success': False,
+        #         'errors': {'num_printed_next_year': ['Enter a valid number']}
+        #     }, status=400)
 
-        try:
-            bulk_pre_pack = request.POST.get('bulk_pre_pack', '0').strip()
-            if bulk_pre_pack:
-                data['bulk_pre_pack'] = int(bulk_pre_pack)
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'success': False,
-                'errors': {'bulk_pre_pack': ['Enter a valid number']}
-            }, status=400)
+        # try:
+        #     bulk_pre_pack = request.POST.get('bulk_pre_pack', '0').strip()
+        #     if bulk_pre_pack:
+        #         data['bulk_pre_pack'] = int(bulk_pre_pack)
+        # except (ValueError, TypeError):
+        #     return JsonResponse({
+        #         'success': False,
+        #         'errors': {'bulk_pre_pack': ['Enter a valid number']}
+        #     }, status=400)
 
         # Validate required fields
         if not data['sku_suffix']:
@@ -1849,11 +1849,11 @@ def add_product(request):
             }, status=400)
 
         # Validate label length (max 1 character)
-        if data['label'] and len(data['label']) > 1:
-            return JsonResponse({
-                'success': False,
-                'errors': {'label': ['Label must be 1 character or less']}
-            }, status=400)
+        # if data['label'] and len(data['label']) > 1:
+        #     return JsonResponse({
+        #         'success': False,
+        #         'errors': {'label': ['Label must be 1 character or less']}
+        #     }, status=400)
 
         # Create the product
         product = Product.objects.create(**data)
