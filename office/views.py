@@ -389,6 +389,13 @@ def assign_lot_to_product(request):
             data = json.loads(request.body)
             product_id = data.get('product_id')
             lot_id = data.get('lot_id')
+            change_all_products = data.get('change_all_products', False)
+            if change_all_products:
+                product = Product.objects.get(pk=product_id)
+                lot = Lot.objects.get(pk=lot_id) if lot_id else None
+                # Update all products with the same variety
+                Product.objects.filter(variety=product.variety).update(lot=lot)
+                return JsonResponse({'success': True})
             
             product = Product.objects.get(pk=product_id)
             

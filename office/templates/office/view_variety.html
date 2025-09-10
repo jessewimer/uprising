@@ -1273,6 +1273,49 @@
             transform: scale(1.1);
         }
 
+
+        /* Change All Products Checkbox Styling */
+        .change-all-checkbox-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.05);
+            text-align: center;
+        }
+
+        .change-all-checkbox-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .change-all-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .checkbox-text {
+            user-select: none;
+        }
+
+        .change-all-checkbox-label:hover {
+            color: #667eea;
+        }
+
+        .change-all-checkbox-container:has(.change-all-checkbox:checked) {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+
         @keyframes slideInRight {
             from {
                 opacity: 0;
@@ -1380,51 +1423,7 @@
                 align-items: center;
             }
         }
-        /* @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-
-            .variety-details {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .print-popup {
-                width: 95%;
-                padding: 20px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .field-narrow,
-            .field-medium {
-                width: 100% !important;
-                max-width: 100%;
-            }
-            
-            .modal-overlay {
-                padding: 0;
-                align-items: flex-start;
-                justify-content: flex-start;
-            }
-            
-            .modal {
-                width: 100vw;
-                height: 100vh;
-                max-width: 100vw;
-                max-height: 100vh;
-                border-radius: 0;
-                padding: 20px;
-                margin: 0;
-                position: fixed;
-                top: 0;
-                left: 0;
-            }
-        } */
-
+      
     </style>
 </head>
 
@@ -1919,11 +1918,31 @@
     </div>
 
     <!-- Lot Selection Popup -->
+    <!-- <div class="print-popup-overlay" id="lotSelectionPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Select Lot</h3>
+                <button class="print-popup-close" onclick="hideLotSelectionPopup()">×</button>
+            </div>
+            
+            <div id="availableLots" class="lot-options">
+            </div>
+        </div>
+    </div> -->
+    <!-- Lot Selection Popup -->
     <div class="print-popup-overlay" id="lotSelectionPopup">
         <div class="print-popup">
             <div class="print-popup-header">
                 <h3 class="print-popup-title">Select Lot</h3>
                 <button class="print-popup-close" onclick="hideLotSelectionPopup()">×</button>
+            </div>
+            
+            <!-- Add checkbox for changing all products -->
+            <div class="change-all-checkbox-container">
+                <label class="change-all-checkbox-label">
+                    <input type="checkbox" id="changeAllProductsCheckbox" class="change-all-checkbox">
+                    <span class="checkbox-text">Change lot for all products in this variety?</span>
+                </label>
             </div>
             
             <div id="availableLots" class="lot-options">
@@ -2966,7 +2985,12 @@
             popup.classList.add('show');
         }
 
+
         function assignLotToProduct(productId, lotId) {
+            // Check if the "change all products" checkbox is checked
+            const changeAllCheckbox = document.getElementById('changeAllProductsCheckbox');
+            const changeAllProducts = changeAllCheckbox ? changeAllCheckbox.checked : false;
+            
             fetch('/office/assign-lot-to-product/', {
                 method: 'POST',
                 headers: {
@@ -2975,24 +2999,69 @@
                 },
                 body: JSON.stringify({
                     product_id: productId,
-                    lot_id: lotId
+                    lot_id: lotId,
+                    change_all_products: changeAllProducts
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = window.location.pathname; // Use GET redirect instead
+                    // Show appropriate success message
+                    const message = changeAllProducts 
+                        ? `Lot updated for all products in this variety`
+                        : `Lot updated for selected product`;
+                    showMessage(message, 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
                 } else {
-                    alert('Error assigning lot: ' + (data.error || 'Unknown error'));
+                    showMessage('Error assigning lot: ' + (data.error || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Network error occurred');
+                showMessage('Network error occurred', 'error');
             });
             
             hideLotSelectionPopup();
         }
+
+        function hideLotSelectionPopup() {
+            document.getElementById('lotSelectionPopup').classList.remove('show');
+            // Reset the checkbox when closing the popup
+            const changeAllCheckbox = document.getElementById('changeAllProductsCheckbox');
+            if (changeAllCheckbox) {
+                changeAllCheckbox.checked = false;
+            }
+        }
+        // function assignLotToProduct(productId, lotId) {
+        //     fetch('/office/assign-lot-to-product/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             product_id: productId,
+        //             lot_id: lotId
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             window.location.href = window.location.pathname; // Use GET redirect instead
+        //         } else {
+        //             alert('Error assigning lot: ' + (data.error || 'Unknown error'));
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         alert('Network error occurred');
+        //     });
+            
+        //     hideLotSelectionPopup();
+        // }
 
         function hideLotSelectionPopup() {
             document.getElementById('lotSelectionPopup').classList.remove('show');
