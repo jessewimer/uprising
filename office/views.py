@@ -117,7 +117,10 @@ def view_variety(request):
             if selected_variety_pk:
                 variety_obj = get_object_or_404(Variety, pk=selected_variety_pk)
                 # Save as last selected for this user
-                LastSelected.objects.update(user=user, variety=variety_obj)
+                LastSelected.objects.update_or_create(
+                    user=user,
+                    defaults={'variety': variety_obj}
+                )
                 return redirect('view_variety')
     #     # For all other actions, determine the current variety context
     #     else:

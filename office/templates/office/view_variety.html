@@ -1355,21 +1355,6 @@
                 justify-content: flex-start;
             }
             
-            /* Fix ALL modal content */
-            /* .modal,
-            .print-popup,
-            .photo-popup {
-                width: 100vw;
-                height: 100vh;
-                max-width: 100vw;
-                max-height: 100vh;
-                border-radius: 0;
-                padding: 20px;
-                margin: 0;
-                position: fixed;
-                top: 0;
-                left: 0;
-            } */
              /* Fix ALL modal content */
             .modal,
             .print-popup,
@@ -2347,11 +2332,15 @@
 
         // Select variety
         function selectVariety(sku) {
+            console.log('selectVariety called with sku:', sku); // Debug line
+            
             const form = document.createElement('form');
             form.method = 'POST';
             form.style.display = 'none';
             
             const csrfToken = getCookie('csrftoken');
+            console.log('CSRF token:', csrfToken); // Debug line
+            
             if (csrfToken) {
                 form.innerHTML += `<input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">`;
             }
@@ -2362,6 +2351,7 @@
             `;
             
             document.body.appendChild(form);
+            console.log('Form about to submit:', form); // Debug line
             form.submit();
         }
 
