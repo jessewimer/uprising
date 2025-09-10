@@ -195,59 +195,26 @@
         .store-sales-metrics {
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            align-items: center;
-            width: 100%;
-        }
-
-        .store-sales-section {
-            display: flex;
-            flex-direction: column;
             gap: 15px;
-            width: 100%;
-        }
-
-        .store-sales-row {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            padding: 15px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .store-sales-row.pending {
-            background: rgba(255, 193, 7, 0.15);
-            border: 2px solid rgba(255, 193, 7, 0.3);
+            align-items: center;
         }
 
         .store-metric {
             text-align: center;
-            min-width: 130px;
         }
 
         .store-metric-value {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
             color: #333;
-            margin-bottom: 8px;
-        }
-
-        .store-metric-value.pending {
-            color: #856404;
-            font-size: 1.6rem;
+            margin-bottom: 5px;
         }
 
         .store-metric-label {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        .store-metric-label.pending {
-            color: #856404;
         }
 
         /* Chart placeholder styling */
@@ -450,6 +417,7 @@
             -webkit-text-fill-color: transparent;
             text-align: center;
             flex: 1;
+            text-align: center;
         }
 
         .modal-close {
@@ -884,12 +852,6 @@
                 min-height: 150px;
             }
 
-            .store-sales-row {
-                flex-direction: column;
-                gap: 15px;
-                align-items: center;
-            }
-
             .modal {
                 padding: 25px 15px;
                 width: 95%;
@@ -976,10 +938,6 @@
 
             .store-metric-value {
                 font-size: 1.5rem;
-            }
-
-            .store-metric-value.pending {
-                font-size: 1.3rem;
             }
 
             .modal {
@@ -1084,36 +1042,16 @@
                     <h3 class="card-title">Store Sales</h3>
                 </div>
                 <div class="card-content">
-                    {% if total_store_sales > 0 or pending_store_sales > 0 %}
+                    {% if total_store_sales > 0 %}
                         <div class="store-sales-metrics">
-                            <div class="store-sales-section">
-                                <!-- Fulfilled Sales Row -->
-                                <div class="store-sales-row">
-                                    <div class="store-metric">
-                                        <div class="store-metric-value" id="store-sales-display">${{ total_store_sales|floatformat:0 }}</div>
-                                        <div class="store-metric-label">Fulfilled Revenue</div>
-                                    </div>
-                                    <div class="store-metric">
-                                        <div class="store-metric-value" id="store-pkts-display">{{ total_store_pkts|floatformat:0 }}</div>
-                                        <div class="store-metric-label">Fulfilled Packets</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Pending Sales Row -->
-                                {% if pending_store_sales > 0 or pending_store_pkts > 0 %}
-                                <div class="store-sales-row pending">
-                                    <div class="store-metric">
-                                        <div class="store-metric-value pending" id="pending-sales-display">${{ pending_store_sales|floatformat:0 }}</div>
-                                        <div class="store-metric-label pending">Pending Revenue</div>
-                                    </div>
-                                    <div class="store-metric">
-                                        <div class="store-metric-value pending" id="pending-pkts-display">{{ pending_store_pkts|floatformat:0 }}</div>
-                                        <div class="store-metric-label pending">Pending Packets</div>
-                                    </div>
-                                </div>
-                                {% endif %}
+                            <div class="store-metric">
+                                <div class="store-metric-value" id="store-sales-display">${{ total_store_sales|floatformat:0 }}</div>
+                                <div class="store-metric-label">Total Revenue</div>
                             </div>
-                            
+                            <div class="store-metric">
+                                <div class="store-metric-value" id="store-pkts-display">{{ total_store_pkts|floatformat:0 }}</div>
+                                <div class="store-metric-label">Total Packets</div>
+                            </div>
                             <div class="year-label">{{ current_year }} Sales</div>
                         </div>
                     {% else %}
@@ -1368,9 +1306,7 @@
 
         // Store Sales data
         const totalStoreSales = parseFloat('{{ total_store_sales|default:0 }}') || 0;
-        const pendingStoreSales = parseFloat('{{ pending_store_sales|default:0 }}') || 0;
         const totalStorePkts = parseInt('{{ total_store_pkts|default:0 }}') || 0;
-        const pendingStorePkts = parseInt('{{ pending_store_pkts|default:0 }}') || 0;
         const currentYear = '{{ current_year|default:"" }}' || new Date().getFullYear();
 
         // Shopify Inventory functionality
@@ -1392,8 +1328,6 @@
             // Format store sales display
             const storeSalesDisplay = document.getElementById('store-sales-display');
             const storePktsDisplay = document.getElementById('store-pkts-display');
-            const pendingSalesDisplay = document.getElementById('pending-sales-display');
-            const pendingPktsDisplay = document.getElementById('pending-pkts-display');
             
             if (storeSalesDisplay && totalStoreSales > 0) {
                 storeSalesDisplay.textContent = '$' + totalStoreSales.toLocaleString();
@@ -1401,14 +1335,6 @@
             
             if (storePktsDisplay && totalStorePkts > 0) {
                 storePktsDisplay.textContent = totalStorePkts.toLocaleString();
-            }
-            
-            if (pendingSalesDisplay && pendingStoreSales > 0) {
-                pendingSalesDisplay.textContent = '$' + pendingStoreSales.toLocaleString();
-            }
-            
-            if (pendingPktsDisplay && pendingStorePkts > 0) {
-                pendingPktsDisplay.textContent = pendingStorePkts.toLocaleString();
             }
             
             // Format years to be 4-digit
@@ -1437,8 +1363,8 @@
             const storeSalesCard = document.getElementById('store-sales-card');
             const storeSalesModal = document.getElementById('store-sales-modal');
             
-            // Add click event to store sales card if there's any data (fulfilled or pending)
-            if (storeSalesCard && (totalStoreSales > 0 || pendingStoreSales > 0)) {
+            // Add click event to store sales card
+            if (storeSalesCard && totalStoreSales > 0) {
                 storeSalesCard.addEventListener('click', function() {
                     console.log('Store sales card clicked');
                     showModal(storeSalesModal);
@@ -1493,7 +1419,7 @@
                 // Get CSRF token
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
                 
-                const response = await fetch('/office/store-sales-details/', {
+                const response = await fetch('/analytics/store-sales-details/', {
                     method: 'GET',
                     headers: {
                         'X-CSRFToken': csrfToken,
@@ -1910,6 +1836,7 @@
                 resetAllModals();
             }
 
+
             function displayResults(data) {
                 const resultsContent = document.getElementById('results-content');
                 const firstSku = Object.keys(data.type_inventory)[0] || '';
@@ -1932,6 +1859,7 @@
                     // SKU Prefix Results - Each variety gets its own card
                     html += '<div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">';
                     html += `<h3 style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;">Inventory by Variety (${skuPrefix})</h3>`;
+                    // html += '<h3 style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;">Inventory by Variety</h3>';
                     
                     Object.entries(data.type_inventory).forEach(([sku, details]) => {
                         html += '<div style="background: white; margin-bottom: 20px; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #667eea;">';

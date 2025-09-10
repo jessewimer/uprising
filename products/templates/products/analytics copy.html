@@ -191,65 +191,6 @@
             margin-top: 5px;
         }
 
-        /* Store Sales specific styling */
-        .store-sales-metrics {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-            width: 100%;
-        }
-
-        .store-sales-section {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 100%;
-        }
-
-        .store-sales-row {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            padding: 15px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .store-sales-row.pending {
-            background: rgba(255, 193, 7, 0.15);
-            border: 2px solid rgba(255, 193, 7, 0.3);
-        }
-
-        .store-metric {
-            text-align: center;
-            min-width: 130px;
-        }
-
-        .store-metric-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .store-metric-value.pending {
-            color: #856404;
-            font-size: 1.6rem;
-        }
-
-        .store-metric-label {
-            font-size: 0.85rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        .store-metric-label.pending {
-            color: #856404;
-        }
-
         /* Chart placeholder styling */
         .chart-placeholder {
             width: 100%;
@@ -418,15 +359,6 @@
             transform: translateY(0);
         }
 
-        /* Store Sales Modal - Larger */
-        .store-sales-modal {
-            max-width: 1200px;
-            width: 95%;
-            max-height: 95vh;
-            padding: 0;
-            overflow: hidden;
-        }
-
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -434,12 +366,7 @@
             margin-bottom: 25px;
             padding-bottom: 15px;
             border-bottom: 2px solid #f0f0f0;
-        }
-
-        .store-sales-modal .modal-header {
-            margin-bottom: 0;
-            padding: 30px 30px 15px 30px;
-            border-bottom: 2px solid #f0f0f0;
+            /* position: relative; */
         }
 
         .modal-title {
@@ -450,6 +377,7 @@
             -webkit-text-fill-color: transparent;
             text-align: center;
             flex: 1;
+            text-align: center;
         }
 
         .modal-close {
@@ -466,6 +394,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            /* position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%); */
         }
 
         .modal-close:hover {
@@ -491,165 +423,6 @@
         .summary-label {
             font-size: 0.95rem;
             opacity: 0.9;
-        }
-
-        /* Tab Navigation */
-        .tab-navigation {
-            display: flex;
-            background: #f8f9fa;
-            border-radius: 12px 12px 0 0;
-            margin: 0 30px;
-            overflow: hidden;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .tab-button {
-            flex: 1;
-            padding: 18px 20px;
-            border: none;
-            background: transparent;
-            color: #666;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-            position: relative;
-        }
-
-        .tab-button:hover {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-        }
-
-        .tab-button.active {
-            background: white;
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        .tab-button.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: white;
-        }
-
-        /* Tab Content */
-        .tab-content {
-            padding: 30px;
-            min-height: 500px;
-            overflow-y: auto;
-            max-height: 60vh;
-        }
-
-        .tab-panel {
-            display: none;
-        }
-
-        .tab-panel.active {
-            display: block;
-        }
-
-        /* Chart containers */
-        .chart-container {
-            position: relative;
-            height: 400px;
-            margin-bottom: 20px;
-        }
-
-        .pie-chart-container {
-            position: relative;
-            height: 400px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Product list styling */
-        .product-list {
-            max-height: 450px;
-            overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-        }
-
-        .product-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.2s ease;
-        }
-
-        .product-item:hover {
-            background: #f8f9fa;
-        }
-
-        .product-item:last-child {
-            border-bottom: none;
-        }
-
-        .product-name {
-            font-weight: 600;
-            color: #333;
-            flex: 1;
-        }
-
-        .product-stats {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .product-stat {
-            text-align: center;
-            min-width: 80px;
-        }
-
-        .product-stat-value {
-            font-weight: 700;
-            color: #667eea;
-            font-size: 1.1rem;
-        }
-
-        .product-stat-label {
-            font-size: 0.8rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Store stats for pie chart */
-        .store-stats {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .store-stat-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            border-left: 4px solid #667eea;
-        }
-
-        .store-stat-name {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .store-stat-details {
-            font-size: 0.9rem;
-            color: #666;
         }
 
         /* Confirmation Modal */
@@ -884,35 +657,10 @@
                 min-height: 150px;
             }
 
-            .store-sales-row {
-                flex-direction: column;
-                gap: 15px;
-                align-items: center;
-            }
-
             .modal {
                 padding: 25px 15px;
                 width: 95%;
                 max-height: 85vh;
-            }
-
-            .store-sales-modal {
-                width: 98%;
-                max-height: 90vh;
-                padding: 0;
-            }
-
-            .store-sales-modal .modal-header {
-                padding: 20px 15px 15px 15px;
-            }
-
-            .tab-navigation {
-                margin: 0 15px;
-            }
-
-            .tab-content {
-                padding: 20px 15px;
-                max-height: 50vh;
             }
 
             .modal-title {
@@ -940,10 +688,6 @@
             .compact-input {
                 width: 100%;
                 max-width: 250px;
-            }
-
-            .store-stats {
-                grid-template-columns: 1fr;
             }
         }
 
@@ -974,29 +718,9 @@
                 font-size: 2rem;
             }
 
-            .store-metric-value {
-                font-size: 1.5rem;
-            }
-
-            .store-metric-value.pending {
-                font-size: 1.3rem;
-            }
-
             .modal {
                 padding: 20px 12px;
                 max-height: 90vh;
-            }
-
-            .store-sales-modal .modal-header {
-                padding: 15px 12px 15px 12px;
-            }
-
-            .tab-navigation {
-                margin: 0 12px;
-            }
-
-            .tab-content {
-                padding: 15px 12px;
             }
 
             .modal-title {
@@ -1024,22 +748,8 @@
             .envelope-count {
                 font-size: 0.8rem;
             }
-
-            .tab-button {
-                padding: 12px 8px;
-                font-size: 0.9rem;
-            }
-
-            .chart-container {
-                height: 300px;
-            }
-
-            .pie-chart-container {
-                height: 300px;
-            }
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 
 <body>
@@ -1077,51 +787,18 @@
                 </div>
             </div>
 
-            <!-- Store Sales Card -->
-            <div class="analytics-card clickable" id="store-sales-card" style="cursor: pointer;">
+            <!-- Stores vs Wholesale Revenue Card -->
+            <div class="analytics-card">
                 <div class="card-header">
-                    <div class="card-icon">🏪</div>
-                    <h3 class="card-title">Store Sales</h3>
+                    <div class="card-icon">💰</div>
+                    <h3 class="card-title">Stores vs Wholesale $</h3>
                 </div>
                 <div class="card-content">
-                    {% if total_store_sales > 0 or pending_store_sales > 0 %}
-                        <div class="store-sales-metrics">
-                            <div class="store-sales-section">
-                                <!-- Fulfilled Sales Row -->
-                                <div class="store-sales-row">
-                                    <div class="store-metric">
-                                        <div class="store-metric-value" id="store-sales-display">${{ total_store_sales|floatformat:0 }}</div>
-                                        <div class="store-metric-label">Fulfilled Revenue</div>
-                                    </div>
-                                    <div class="store-metric">
-                                        <div class="store-metric-value" id="store-pkts-display">{{ total_store_pkts|floatformat:0 }}</div>
-                                        <div class="store-metric-label">Fulfilled Packets</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Pending Sales Row -->
-                                {% if pending_store_sales > 0 or pending_store_pkts > 0 %}
-                                <div class="store-sales-row pending">
-                                    <div class="store-metric">
-                                        <div class="store-metric-value pending" id="pending-sales-display">${{ pending_store_sales|floatformat:0 }}</div>
-                                        <div class="store-metric-label pending">Pending Revenue</div>
-                                    </div>
-                                    <div class="store-metric">
-                                        <div class="store-metric-value pending" id="pending-pkts-display">{{ pending_store_pkts|floatformat:0 }}</div>
-                                        <div class="store-metric-label pending">Pending Packets</div>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="year-label">{{ current_year }} Sales</div>
-                        </div>
-                    {% else %}
-                        <div class="chart-placeholder">
-                            <p style="color: #999; font-size: 1rem;">No Data Available</p>
-                        </div>
-                        <p class="placeholder-text">No store sales data found</p>
-                    {% endif %}
+                    <div class="metric-value">$12,350</div>
+                    <div class="metric-label">Total Revenue</div>
+                    <div style="margin-top: 20px;">
+                        <p class="placeholder-text">Revenue breakdown coming soon</p>
+                    </div>
                 </div>
             </div>
 
@@ -1167,56 +844,6 @@
                         </div>
                         <p class="placeholder-text">No sales data found</p>
                     {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Store Sales Details Modal -->
-    <div class="modal-overlay" id="store-sales-modal">
-        <div class="modal store-sales-modal">
-            <div class="modal-header">
-                <h2 class="modal-title">Store Sales Details {{ current_year }}</h2>
-                <button class="modal-close" id="close-store-sales-modal">&times;</button>
-            </div>
-            
-            <!-- Tab Navigation -->
-            <div class="tab-navigation">
-                <button class="tab-button active" data-tab="sales-over-time">Sales Over Time</button>
-                <button class="tab-button" data-tab="sales-by-store">Sales by Store</button>
-                <button class="tab-button" data-tab="sales-by-product">Sales by Product</button>
-            </div>
-            
-            <!-- Tab Content -->
-            <div class="tab-content">
-                <!-- Loading Area -->
-                <div id="store-sales-loading" style="text-align: center; display: none;">
-                    <div class="loading-spinner"></div>
-                    <p>Loading store sales data...</p>
-                </div>
-                
-                <!-- Sales Over Time Tab -->
-                <div id="sales-over-time" class="tab-panel active">
-                    <div class="chart-container">
-                        <canvas id="sales-over-time-chart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Sales by Store Tab -->
-                <div id="sales-by-store" class="tab-panel">
-                    <div class="pie-chart-container">
-                        <canvas id="sales-by-store-chart"></canvas>
-                    </div>
-                    <div class="store-stats" id="store-stats-container">
-                        <!-- Store statistics will be populated here -->
-                    </div>
-                </div>
-                
-                <!-- Sales by Product Tab -->
-                <div id="sales-by-product" class="tab-panel">
-                    <div class="product-list" id="product-list-container">
-                        <!-- Product list will be populated here -->
-                    </div>
                 </div>
             </div>
         </div>
@@ -1279,6 +906,9 @@
                         class="compact-input"
                         placeholder="e.g. BEA"
                     />
+                    <!-- <div class="input-help">
+                        Enter the SKU prefix to identify bulk inventory items
+                    </div> -->
                     <button class="confirm-btn primary" id="submit-sku">
                         Submit
                     </button>
@@ -1366,19 +996,8 @@
         console.log('Last sales year:', lastSalesYear);
         console.log('====================');
 
-        // Store Sales data
-        const totalStoreSales = parseFloat('{{ total_store_sales|default:0 }}') || 0;
-        const pendingStoreSales = parseFloat('{{ pending_store_sales|default:0 }}') || 0;
-        const totalStorePkts = parseInt('{{ total_store_pkts|default:0 }}') || 0;
-        const pendingStorePkts = parseInt('{{ pending_store_pkts|default:0 }}') || 0;
-        const currentYear = '{{ current_year|default:"" }}' || new Date().getFullYear();
-
         // Shopify Inventory functionality
         let uploadedFile = null;
-        
-        // Chart instances
-        let salesOverTimeChart = null;
-        let salesByStoreChart = null;
         
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing all functionality...');
@@ -1387,28 +1006,6 @@
             const envelopeTotalDisplay = document.getElementById('envelope-total-display');
             if (envelopeTotalDisplay && envelopeTotal > 0) {
                 envelopeTotalDisplay.textContent = envelopeTotal.toLocaleString();
-            }
-            
-            // Format store sales display
-            const storeSalesDisplay = document.getElementById('store-sales-display');
-            const storePktsDisplay = document.getElementById('store-pkts-display');
-            const pendingSalesDisplay = document.getElementById('pending-sales-display');
-            const pendingPktsDisplay = document.getElementById('pending-pkts-display');
-            
-            if (storeSalesDisplay && totalStoreSales > 0) {
-                storeSalesDisplay.textContent = '$' + totalStoreSales.toLocaleString();
-            }
-            
-            if (storePktsDisplay && totalStorePkts > 0) {
-                storePktsDisplay.textContent = totalStorePkts.toLocaleString();
-            }
-            
-            if (pendingSalesDisplay && pendingStoreSales > 0) {
-                pendingSalesDisplay.textContent = '$' + pendingStoreSales.toLocaleString();
-            }
-            
-            if (pendingPktsDisplay && pendingStorePkts > 0) {
-                pendingPktsDisplay.textContent = pendingStorePkts.toLocaleString();
             }
             
             // Format years to be 4-digit
@@ -1427,303 +1024,12 @@
                 }
             }
 
-            // Initialize all functionality
+            // Initialize Shopify Inventory functionality
             initShopifyInventory();
+            
+            // Initialize Envelope Count functionality
             initEnvelopeCount();
-            initStoreSales();
         });
-
-        function initStoreSales() {
-            const storeSalesCard = document.getElementById('store-sales-card');
-            const storeSalesModal = document.getElementById('store-sales-modal');
-            
-            // Add click event to store sales card if there's any data (fulfilled or pending)
-            if (storeSalesCard && (totalStoreSales > 0 || pendingStoreSales > 0)) {
-                storeSalesCard.addEventListener('click', function() {
-                    console.log('Store sales card clicked');
-                    showModal(storeSalesModal);
-                    loadStoreSalesData();
-                });
-                
-                storeSalesCard.title = 'Click to view detailed store sales analytics';
-            }
-            
-            // Initialize tab functionality
-            initStoreSalesTabs();
-            
-            // Close modal events
-            document.getElementById('close-store-sales-modal').addEventListener('click', () => {
-                hideModal(storeSalesModal);
-            });
-            
-            // Close when clicking overlay
-            storeSalesModal.addEventListener('click', function(e) {
-                if (e.target === storeSalesModal) {
-                    hideModal(storeSalesModal);
-                }
-            });
-        }
-        
-        function initStoreSalesTabs() {
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabPanels = document.querySelectorAll('.tab-panel');
-            
-            tabButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const targetTab = this.getAttribute('data-tab');
-                    
-                    // Remove active class from all buttons and panels
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabPanels.forEach(panel => panel.classList.remove('active'));
-                    
-                    // Add active class to clicked button and corresponding panel
-                    this.classList.add('active');
-                    document.getElementById(targetTab).classList.add('active');
-                });
-            });
-        }
-        
-        async function loadStoreSalesData() {
-            const loadingArea = document.getElementById('store-sales-loading');
-            
-            try {
-                // Show loading
-                loadingArea.style.display = 'block';
-                
-                // Get CSRF token
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                
-                const response = await fetch('/office/store-sales-details/', {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to fetch store sales data');
-                }
-                
-                const data = await response.json();
-                
-                // Hide loading
-                loadingArea.style.display = 'none';
-                
-                // Populate the charts and data
-                populateSalesOverTime(data.sales_over_time || []);
-                populateSalesByStore(data.sales_by_store || []);
-                populateSalesByProduct(data.sales_by_product || []);
-                
-            } catch (error) {
-                console.error('Error loading store sales data:', error);
-                loadingArea.style.display = 'none';
-                
-                // Show error message
-                document.getElementById('sales-over-time').innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #dc3545;">
-                        <h3>Error Loading Data</h3>
-                        <p>Unable to load store sales data. Please try again.</p>
-                    </div>
-                `;
-            }
-        }
-        
-        function populateSalesOverTime(data) {
-            const ctx = document.getElementById('sales-over-time-chart');
-            
-            // Destroy existing chart if it exists
-            if (salesOverTimeChart) {
-                salesOverTimeChart.destroy();
-            }
-            
-            if (!data || data.length === 0) {
-                ctx.parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No sales data available</p>';
-                return;
-            }
-            
-            const labels = data.map(item => {
-                const date = new Date(item.date);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            
-            const salesData = data.map(item => item.total_sales);
-            
-            salesOverTimeChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Daily Sales ($)',
-                        data: salesData,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#667eea',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    },
-                    elements: {
-                        point: {
-                            hoverBackgroundColor: '#764ba2'
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    }
-                }
-            });
-        }
-        
-        function populateSalesByStore(data) {
-            const ctx = document.getElementById('sales-by-store-chart');
-            const statsContainer = document.getElementById('store-stats-container');
-            
-            // Destroy existing chart if it exists
-            if (salesByStoreChart) {
-                salesByStoreChart.destroy();
-            }
-            
-            if (!data || data.length === 0) {
-                ctx.parentElement.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No store data available</p>';
-                statsContainer.innerHTML = '';
-                return;
-            }
-            
-            const labels = data.map(item => item.store_name);
-            const salesData = data.map(item => item.total_sales);
-            const totalSales = salesData.reduce((sum, val) => sum + val, 0);
-            
-            // Generate colors for the pie chart
-            const colors = [
-                '#667eea', '#764ba2', '#36d1dc', '#5b73dd', 
-                '#f093fb', '#f5576c', '#4facfe', '#00f2fe',
-                '#43e97b', '#38f9d7', '#ffecd2', '#fcb69f'
-            ];
-            
-            salesByStoreChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: salesData,
-                        backgroundColor: colors.slice(0, data.length),
-                        borderColor: '#fff',
-                        borderWidth: 2,
-                        hoverBorderWidth: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const percentage = ((context.raw / totalSales) * 100).toFixed(1);
-                                    return context.label + ': $' + context.raw.toLocaleString() + ' (' + percentage + '%)';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // Populate store statistics
-            let statsHtml = '';
-            data.forEach((store, index) => {
-                const percentage = ((store.total_sales / totalSales) * 100).toFixed(1);
-                statsHtml += `
-                    <div class="store-stat-card">
-                        <div class="store-stat-name">${store.store_name}</div>
-                        <div class="store-stat-details">
-                            $${store.total_sales.toLocaleString()} • ${store.total_packets.toLocaleString()} pkts • ${percentage}%
-                        </div>
-                    </div>
-                `;
-            });
-            
-            statsContainer.innerHTML = statsHtml;
-        }
-        
-        function populateSalesByProduct(data) {
-            const container = document.getElementById('product-list-container');
-            
-            if (!data || data.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No product data available</p>';
-                return;
-            }
-            
-            const totalSales = data.reduce((sum, item) => sum + item.total_sales, 0);
-            
-            let html = '';
-            data.forEach(product => {
-                const percentage = ((product.total_sales / totalSales) * 100).toFixed(1);
-                html += `
-                    <div class="product-item">
-                        <div class="product-name">${product.product_name}</div>
-                        <div class="product-stats">
-                            <div class="product-stat">
-                                <div class="product-stat-value">${product.total_packets.toLocaleString()}</div>
-                                <div class="product-stat-label">Packets</div>
-                            </div>
-                            <div class="product-stat">
-                                <div class="product-stat-value">$${product.total_sales.toLocaleString()}</div>
-                                <div class="product-stat-label">Revenue</div>
-                            </div>
-                            <div class="product-stat">
-                                <div class="product-stat-value">${percentage}%</div>
-                                <div class="product-stat-label">% Total</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
 
         function initShopifyInventory() {
             const uploadButton = document.getElementById('upload-button');
@@ -1910,6 +1216,7 @@
                 resetAllModals();
             }
 
+
             function displayResults(data) {
                 const resultsContent = document.getElementById('results-content');
                 const firstSku = Object.keys(data.type_inventory)[0] || '';
@@ -1932,6 +1239,7 @@
                     // SKU Prefix Results - Each variety gets its own card
                     html += '<div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">';
                     html += `<h3 style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;">Inventory by Variety (${skuPrefix})</h3>`;
+                    // html += '<h3 style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;">Inventory by Variety</h3>';
                     
                     Object.entries(data.type_inventory).forEach(([sku, details]) => {
                         html += '<div style="background: white; margin-bottom: 20px; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #667eea;">';

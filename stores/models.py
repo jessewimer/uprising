@@ -29,9 +29,52 @@ class Store(models.Model):
         related_name='available_in_stores'
     )
 
-
     def __str__(self):
         return self.store_name
+
+    
+    @staticmethod
+    def get_total_store_sales(year):
+        from django.db.models import Sum, F
+        year_suffix = str(year)[-2:]
+        
+        # Fulfilled orders (have fulfilled_date)
+        fulfilled_sales = StoreOrder.objects.filter(
+            order_number__endswith=f'-{year_suffix}',
+            fulfilled_date__isnull=False
+        ).aggregate(
+            total=Sum(F('items__price') * F('items__quantity'))
+        )['total']
+        
+        # Pending orders (no fulfilled_date)
+        pending_sales = StoreOrder.objects.filter(
+            order_number__endswith=f'-{year_suffix}',
+            fulfilled_date__isnull=True
+        ).aggregate(
+            total=Sum(F('items__price') * F('items__quantity'))
+        )['total']
+        
+        return fulfilled_sales if fulfilled_sales else 0, pending_sales if pending_sales else 0
+    
+    @staticmethod
+    def get_total_store_packets(year):
+        from django.db.models import Sum
+        year_suffix = str(year)[-2:]
+        
+        # Fulfilled orders (have fulfilled_date)
+        fulfilled_packets = StoreOrder.objects.filter(
+            order_number__endswith=f'-{year_suffix}',
+            fulfilled_date__isnull=False
+        ).aggregate(total=Sum('items__quantity'))['total']
+        
+        # Pending orders (no fulfilled_date)
+        pending_packets = StoreOrder.objects.filter(
+            order_number__endswith=f'-{year_suffix}',
+            fulfilled_date__isnull=True
+        ).aggregate(total=Sum('items__quantity'))['total']
+        
+        return fulfilled_packets if fulfilled_packets else 0, pending_packets if pending_packets else 0
+        
 
 
 class StoreProduct(models.Model):

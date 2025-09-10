@@ -10,11 +10,14 @@ from products.models import Variety, Product, LastSelected, LabelPrint, Sales
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint
 from django.contrib.auth.forms import AuthenticationForm
-from django.db.models import Case, When, IntegerField, Max, Sum
+from django.db.models import Case, When, IntegerField, Max, Sum, F
 from uprising.utils.auth import is_employee
 from uprising import settings
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+
+
 
 
 @login_required
@@ -446,11 +449,12 @@ def analytics(request):
     """
     # Get envelope count data for the most recent sales year
     envelope_data = get_envelope_count_data()
-    
-    # print(f"DEBUG VIEW: envelope_data = {envelope_data}")
-    # print(f"DEBUG VIEW: envelope_counts = {envelope_data['envelope_counts']}")
-    # print(f"DEBUG VIEW: total = {envelope_data['total']}")
-    
+    total_store_sales, pending_store_sales = Store.get_total_store_sales(settings.CURRENT_ORDER_YEAR)
+    print(f"DEBUG VIEW: total_store_sales = {total_store_sales}")
+    total_store_pkts, pending_store_pkts = Store.get_total_store_packets(settings.CURRENT_ORDER_YEAR)
+    print(f"DEBUG VIEW: total_store_pkts = {total_store_pkts}")
+    current_year = f"20{settings.CURRENT_ORDER_YEAR}"
+
     # Ensure we serialize the JSON properly
     envelope_json = json.dumps(envelope_data['envelope_counts'])
     print(f"DEBUG VIEW: envelope_json = {envelope_json}")
@@ -458,19 +462,20 @@ def analytics(request):
     context = {
         'page_title': 'Analytics Dashboard',
         'envelope_data_json': envelope_json,
-        'envelope_data': envelope_data['envelope_counts'],  # Keep original for template display
+        'envelope_data': envelope_data['envelope_counts'],
         'envelope_total': envelope_data['total'],
         'last_sales_year': envelope_data['year'],
-        # Add any other data you want to pass to the template
-        # For example:
-        # 'sales_data': get_sales_data(),
-        # 'inventory_metrics': get_inventory_metrics(),
-        # 'popular_products': get_popular_products(),
+        'total_store_sales': total_store_sales,
+        'pending_store_sales': pending_store_sales,
+        'total_store_pkts': total_store_pkts,
+        'pending_store_pkts': pending_store_pkts,
+        'current_year': current_year,
     }
     
     print(f"DEBUG VIEW: final context envelope_data_json = {context['envelope_data_json']}")
    
     return render(request, 'products/analytics.html', context)
+
 
 def get_envelope_count_data():
     """
@@ -545,6 +550,110 @@ def get_envelope_count_data():
         'total': total_envelopes,
         'year': latest_year
     }
+
+
+@login_required
+@user_passes_test(is_employee)
+def store_sales_details(request):
+    """
+    API endpoint for store sales analytics data
+    Returns data for charts and tables in the store sales modal
+    """
+    try:
+        # Get current year suffix (e.g., "25" for 2025)
+        current_year = getattr(settings, 'CURRENT_ORDER_YEAR', str(timezone.now().year)[-2:])
+        year_suffix = str(current_year)[-2:]
+        
+        print(f"DEBUG: Looking for orders ending with: -{year_suffix}")
+        
+        # Base queryset for fulfilled orders this year
+        base_orders = StoreOrder.objects.filter(
+            order_number__endswith=f'-{year_suffix}',
+            fulfilled_date__isnull=False
+        ).select_related('store').prefetch_related('items__product__variety')
+        
+        print(f"DEBUG: Found {base_orders.count()} fulfilled orders")
+        
+        # 1. Sales over time - group by fulfilled date
+        sales_over_time = []
+        daily_sales = base_orders.values('fulfilled_date__date').annotate(
+            total_sales=Sum(F('items__price') * F('items__quantity'))
+        ).order_by('fulfilled_date__date')
+        
+        for day in daily_sales:
+            if day['total_sales'] and day['fulfilled_date__date']:
+                sales_over_time.append({
+                    'date': day['fulfilled_date__date'].isoformat(),
+                    'total_sales': float(day['total_sales'])
+                })
+        
+        print(f"DEBUG: Sales over time entries: {len(sales_over_time)}")
+        
+        # 2. Sales by store
+        sales_by_store = []
+        store_sales = base_orders.values(
+            'store__store_name'
+        ).annotate(
+            total_sales=Sum(F('items__price') * F('items__quantity')),
+            total_packets=Sum('items__quantity')
+        ).order_by('-total_sales')
+        
+        for store in store_sales:
+            if store['total_sales']:
+                sales_by_store.append({
+                    'store_name': store['store__store_name'] or 'Unknown Store',
+                    'total_sales': float(store['total_sales']),
+                    'total_packets': store['total_packets'] or 0
+                })
+        
+        print(f"DEBUG: Sales by store entries: {len(sales_by_store)}")
+        
+        # 3. Sales by product - Use var_name with veg_type in parentheses
+        sales_by_product = []
+        product_sales = base_orders.values(
+            'items__product__variety__var_name',
+            'items__product__variety__veg_type'
+        ).annotate(
+            total_sales=Sum(F('items__price') * F('items__quantity')),
+            total_packets=Sum('items__quantity')
+        ).order_by('-total_sales')
+        
+        for product in product_sales:
+            if product['total_sales']:
+                var_name = product['items__product__variety__var_name'] or 'Unknown Variety'
+                veg_type = product['items__product__variety__veg_type']
+                
+                # Format: "Variety Name (Veg Type)" or just "Variety Name" if no veg_type
+                if veg_type:
+                    product_name = f"{var_name} ({veg_type})"
+                else:
+                    product_name = var_name
+                
+                sales_by_product.append({
+                    'product_name': product_name,
+                    'total_sales': float(product['total_sales']),
+                    'total_packets': product['total_packets'] or 0
+                })
+        
+        print(f"DEBUG: Sales by product entries: {len(sales_by_product)}")
+        
+        response_data = {
+            'sales_over_time': sales_over_time,
+            'sales_by_store': sales_by_store,
+            'sales_by_product': sales_by_product
+        }
+        
+        print(f"DEBUG: Returning response with {len(response_data)} keys")
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        print(f"ERROR in store_sales_details: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
 
 @login_required
 @user_passes_test(is_employee)
