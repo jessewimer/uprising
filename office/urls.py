@@ -50,6 +50,7 @@ urlpatterns = [
     path('add-variety/', add_variety, name='add_variety'),
     path('add-product/', add_product, name='add_product'),
     path('store-sales-details/', store_sales_details, name='store_sales_details'),
+    path('get-lot-history/', get_lot_history, name='get_lot_history'),
 
     path('print-product-labels/', print_product_labels, name='print_product_labels'),
     path('assign-lot-to-product/', assign_lot_to_product, name='assign_lot_to_product'),

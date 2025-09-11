@@ -978,145 +978,6 @@ def germination_inventory_data(request):
         return JsonResponse({'error': str(e)}, status=500)
     
 
-
-
-
-# def germination_inventory_data(request):
-#     """API endpoint to get germination and inventory data"""
-    
-#     try:
-#         # Find the most recent germination year across all lots
-#         max_germ_year = Germination.objects.aggregate(
-#             max_year=Max('for_year')
-#         )['max_year']
-        
-#         if max_germ_year is None:
-#             max_germ_year = 25  # Default if no germination data
-            
-#         # Calculate the 4 germination years to display
-#         germ_years = []
-#         for i in range(3, -1, -1):  # 3, 2, 1, 0 (last 4 years)
-#             year = max_germ_year - i
-#             if year >= 0:  # Don't go negative
-#                 germ_years.append(f"{year:02d}")  # Format as 2-digit string
-        
-#         # print(f"Max germ year: {max_germ_year}, Displaying years: {germ_years}")
-        
-#         # Get all lots with related data, EXCLUDING retired lots
-#         lots = Lot.objects.select_related(
-#             'variety', 'grower'
-#         ).prefetch_related(
-#             'inventory', 'germinations'
-#         ).filter(
-#             variety__isnull=False
-#         ).exclude(
-#             retired_info__isnull=False  # Exclude lots that have a RetiredLot record
-#         ).annotate(
-#             # Custom ordering for category: Vegetables=1, Flowers=2, Herbs=3, Others=4
-#             category_order=Case(
-#                 When(variety__category='Vegetables', then=1),
-#                 When(variety__category='Flowers', then=2),
-#                 When(variety__category='Herbs', then=3),
-#                 default=4,
-#                 output_field=IntegerField()
-#             )
-#         ).order_by(
-#             'category_order',        # Custom category order (Vegetables, Flowers, Herbs)
-#             'variety__sku_prefix',   # Then by sku_prefix
-#             'year'                   # Then by lot year
-#         )
-        
-#         inventory_data = []
-#         categories = set()
-#         groups = set()
-#         veg_types = set()
-        
-#         for lot in lots:
-#             variety = lot.variety
-            
-#             # Add to filter sets
-#             if variety.category:
-#                 categories.add(variety.category)
-#             if variety.group:
-#                 groups.add(variety.group)
-#             if variety.veg_type:
-#                 veg_types.add(variety.veg_type)
-            
-#             # Get inventory data for this lot
-#             inventories = lot.inventory.order_by('-inv_date')
-            
-#             current_inventory_weight = None
-#             current_inventory_date = None
-#             previous_inventory_weight = None
-#             previous_inventory_date = None
-#             inventory_difference = None
-            
-#             if inventories.exists():
-#                 current_inv = inventories.first()
-#                 current_inventory_weight = float(current_inv.weight)
-#                 current_inventory_date = current_inv.inv_date.strftime('%m/%Y')  # Format as MM/YYYY
-                
-#                 if inventories.count() > 1:
-#                     previous_inv = inventories[1]
-#                     previous_inventory_weight = float(previous_inv.weight)
-#                     previous_inventory_date = previous_inv.inv_date.strftime('%m/%Y')  # Format as MM/YYYY
-#                     inventory_difference = current_inventory_weight - previous_inventory_weight
-            
-#             # Get germination data for the display years
-#             germination_rates = {}
-#             for year_str in germ_years:
-#                 year_for_lookup = int(year_str)  # Use 2-digit year directly
-                
-#                 germ = lot.germinations.filter(for_year=year_for_lookup).first()
-#                 if germ:
-#                     germination_rates[year_str] = germ.germination_rate
-#                 else:
-#                     germination_rates[year_str] = None
-            
-#             # Create lot code
-#             grower_code = lot.grower.code if lot.grower else 'UNK'
-#             lot_code = f"{grower_code}{lot.year}"
-            
-#             inventory_data.append({
-#                 'variety_name': variety.var_name,
-#                 'sku_prefix': variety.sku_prefix,
-#                 'category': variety.category,
-#                 'group': variety.group,
-#                 'veg_type': variety.veg_type,
-#                 'lot_code': lot_code,
-#                 'current_inventory_weight': current_inventory_weight,
-#                 'current_inventory_date': current_inventory_date,
-#                 'previous_inventory_weight': previous_inventory_weight,
-#                 'previous_inventory_date': previous_inventory_date,
-#                 'inventory_difference': inventory_difference,
-#                 'germination_rates': germination_rates
-#             })
-        
-#         # Convert sets to sorted lists
-#         categories = sorted(list(categories))
-#         groups = sorted(list(groups))
-#         veg_types = sorted(list(veg_types))
-        
-#         # print(f"Returning {len(inventory_data)} active lot records (retired lots excluded)")
-        
-#         return JsonResponse({
-#             'inventory_data': inventory_data,
-#             'germ_years': germ_years,
-#             'categories': categories,
-#             'groups': groups,
-#             'veg_types': veg_types
-#         })
-        
-#     except Exception as e:
-#         # print(f"Error in germination_inventory_data: {str(e)}")
-#         import traceback
-#         traceback.print_exc()
-#         return JsonResponse({'error': str(e)}, status=500)
-
-
-
-
-
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -1471,42 +1332,6 @@ def get_order_details(request, order_id):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-
-
-# def get_order_details(request, order_id):
-#     try:
-#         # Get the order and its items
-#         order = StoreOrder.objects.get(id=order_id)
-#         order_items = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
-        
-#         # Format the items for the frontend
-#         formatted_items = []
-#         for item in order_items:
-#             # Access variety data through the product relationship
-#             variety = item.product.variety
-#             print(f"DEBUG: item.product = {item.product}, variety = {variety}")
-#             if variety:  # Make sure variety exists
-#                 formatted_items.append({
-#                     'sku_prefix': variety.sku_prefix,
-#                     'var_name': variety.var_name,
-#                     'veg_type': variety.veg_type,
-#                     'quantity': item.quantity,
-#                     'category': variety.category,
-#                     'has_photo': item.photo  # Use the stored preference
-#                 })
-        
-#         return JsonResponse({
-#             'order_number': order.order_number,
-#             'items': formatted_items
-#         })
-        
-#     except StoreOrder.DoesNotExist:
-#         return JsonResponse({'error': 'Order not found'}, status=404)
-#     except Exception as e:
-#         print(f"ERROR in get_order_details: {e}")
-#         return JsonResponse({'error': str(e)}, status=400)
-
-
 @login_required
 @user_passes_test(is_employee)
 def save_order_changes(request):
@@ -1548,6 +1373,7 @@ def save_order_changes(request):
     except Exception as e:
         print(f"ERROR in save_order_changes: {e}")
         return JsonResponse({'error': str(e)}, status=400)
+
 
 @login_required
 @user_passes_test(is_employee)
@@ -1636,7 +1462,6 @@ def finalize_order(request):
         return JsonResponse({'error': str(e)}, status=500)
     
 
-
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -1711,11 +1536,6 @@ def add_variety(request):
             'success': False,
             'message': f'An error occurred: {str(e)}'
         }, status=500)
-
-
-
-
-
 
 
 @login_required
@@ -1837,3 +1657,86 @@ def add_product(request):
             'success': False,
             'message': f'An error occurred: {str(e)}'
         }, status=500)
+    
+
+@login_required
+@user_passes_test(is_employee)
+def get_lot_history(request):
+    """Get comprehensive history for a lot"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST method required'})
+    
+    try:
+        data = json.loads(request.body)
+        lot_id = data.get('lot_id')
+        
+        if not lot_id:
+            return JsonResponse({'success': False, 'error': 'Lot ID required'})
+        
+        # Get the lot with all related data
+        lot = Lot.objects.select_related('variety', 'grower', 'retired_info').get(pk=lot_id)
+        
+        # Build response data
+        history_data = {
+            'variety_name': lot.variety.var_name,
+            'sku_display': f"{lot.variety.sku_prefix}-{lot.grower.code if lot.grower else 'UNK'}{lot.year}{lot.harvest or ''}",
+            'low_inventory': lot.low_inv,
+            'is_retired': hasattr(lot, 'retired_info'),
+            'retired_info': None,
+            'stock_seeds': [],
+            'inventory_records': [],
+            'germination_records': [],
+            'notes': []
+        }
+        
+        # Retired information
+        if hasattr(lot, 'retired_info'):
+            retired = lot.retired_info
+            history_data['retired_info'] = {
+                'date': retired.retired_date.strftime('%Y-%m-%d'),
+                'lbs_remaining': float(retired.lbs_remaining),
+                'notes': retired.notes or ''
+            }
+        
+        # Stock seed records
+        stock_seeds = lot.stock_seeds.all().order_by('-date')
+        for stock_seed in stock_seeds:
+            history_data['stock_seeds'].append({
+                'date': stock_seed.date.strftime('%Y-%m-%d'),
+                'qty': stock_seed.qty,
+                'notes': stock_seed.notes or ''
+            })
+        
+        # Inventory records
+        inventory_records = lot.inventory.all().order_by('-inv_date')
+        for inv in inventory_records:
+            history_data['inventory_records'].append({
+                'date': inv.inv_date.strftime('%Y-%m-%d'),
+                'weight': float(inv.weight)
+            })
+        
+        # Germination records
+        germination_records = lot.germinations.all().order_by('-test_date')
+        for germ in germination_records:
+            history_data['germination_records'].append({
+                'test_date': germ.test_date.strftime('%Y-%m-%d') if germ.test_date else '',
+                'germination_rate': germ.germination_rate,
+                'for_year': germ.for_year,
+                'status': germ.status,
+                'notes': germ.notes or ''
+            })
+        
+        # General notes
+        notes = lot.notes.all().order_by('-date')
+        for note in notes:
+            history_data['notes'].append({
+                'date': note.date.strftime('%Y-%m-%d %H:%M'),
+                'note': note.note
+            })
+        
+        return JsonResponse({'success': True, 'data': history_data})
+        
+    except Lot.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Lot not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

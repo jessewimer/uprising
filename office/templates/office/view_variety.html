@@ -1316,6 +1316,230 @@
             border-color: rgba(102, 126, 234, 0.4);
         }
 
+
+
+
+
+        /* Lot History Popup Styles */
+        .lot-history-modal {
+            max-width: 500px; /* Narrower popup */
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .lot-history-content {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .history-section {
+            background: rgba(102, 126, 234, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            overflow: hidden;
+        }
+
+        .history-section-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 20px;
+        }
+
+        .history-section-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .history-section-content {
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #333;
+            min-width: 120px;
+            text-align: left;
+        }
+
+        .info-value {
+            color: #555;
+            text-align: right;
+            flex: 1;
+        }
+
+        /* Status indicators for lot history popup only */
+        .lot-status-indicator {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center !important;
+            min-width: 40px;
+            max-width: 40px;
+            flex: none !important;
+        }
+
+        .lot-status-indicator.true {
+            background: #ffcdd2;
+            color: #d32f2f;
+        }
+
+        .lot-status-indicator.false {
+            background: #c8e6c9;
+            color: #388e3c;
+        }
+
+        .lot-status-indicator.retired {
+            background: #ffecb3;
+            color: #f57c00;
+        }
+
+        /* Single-line record format */
+        .record-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .record-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .record-main-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .record-date {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9rem;
+            min-width: 80px;
+        }
+
+        .record-detail {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 100px;
+        }
+
+        .record-detail-label {
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .record-detail-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .record-status {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .record-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .record-status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        /* Notes section for records */
+        .record-notes {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 6px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        /* Stock seed specific layout */
+        .stock-record-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            margin-bottom: 8px;
+        }
+
+        .stock-record-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stock-record-main {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .no-records {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .note-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+        }
+
+        .note-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .note-date {
+            font-size: 0.8rem;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .note-text {
+            color: #333;
+            line-height: 1.4;
+        }
+
         @keyframes slideInRight {
             from {
                 opacity: 0;
@@ -1367,7 +1591,7 @@
             .header-right {
                 display: none;
             }
-            
+
             .print-options {
                 grid-template-columns: 1fr;
             }
@@ -1429,6 +1653,49 @@
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
+            }
+
+            .lot-history-modal {
+                width: 100vw;
+                height: 100vh;
+                max-width: 100vw;
+                max-height: 100vh;
+                border-radius: 0;
+                padding: 15px;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            
+            .info-label {
+                min-width: auto;
+            }
+            
+            .info-value {
+                text-align: left;
+            }
+            
+            .lot-status-indicator {
+                align-self: flex-start;
+            }
+            
+            .record-main-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .record-detail {
+                min-width: auto;
+            }
+            
+            .stock-record-main {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
             }
         }
       
@@ -1925,18 +2192,7 @@
         </div>
     </div>
 
-    <!-- Lot Selection Popup -->
-    <!-- <div class="print-popup-overlay" id="lotSelectionPopup">
-        <div class="print-popup">
-            <div class="print-popup-header">
-                <h3 class="print-popup-title">Select Lot</h3>
-                <button class="print-popup-close" onclick="hideLotSelectionPopup()">×</button>
-            </div>
-            
-            <div id="availableLots" class="lot-options">
-            </div>
-        </div>
-    </div> -->
+
     <!-- Lot Selection Popup -->
     <div class="print-popup-overlay" id="lotSelectionPopup">
         <div class="print-popup">
@@ -2061,6 +2317,102 @@
         </div>
     </div>
 
+    <!-- Lot History Popup -->
+    <div class="modal-overlay" id="lotHistoryPopup">
+        <div class="modal lot-history-modal">
+            <button class="close-modal" onclick="hideLotHistoryPopup()">&times;</button>
+            
+            <div class="lot-history-content">
+                <!-- Basic Info Section -->
+                <div class="history-section">
+                    <div class="history-section-header">
+                        <h3>Lot Information</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div class="info-row">
+                            <span class="info-label">Variety:</span>
+                            <span class="info-value" id="historyVarietyName">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">SKU:</span>
+                            <span class="info-value" id="historySkuDisplay">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Low Inventory:</span>
+                            <span class="info-value lot-status-indicator" id="historyLowInventory">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Retired:</span>
+                            <span class="info-value lot-status-indicator" id="historyRetiredStatus">--</span>
+                        </div>
+                        <div id="retiredDetailsSection" style="display: none;">
+                            <div class="info-row">
+                                <span class="info-label">Retired Date:</span>
+                                <span class="info-value" id="historyRetiredDate">--</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Lbs Remaining:</span>
+                                <span class="info-value" id="historyRetiredLbs">--</span>
+                            </div>
+                            <div class="info-row" id="retiredNotesRow" style="display: none;">
+                                <span class="info-label">Retirement Notes:</span>
+                                <span class="info-value" id="historyRetiredNotes">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Seed Section -->
+                <div class="history-section" id="stockSeedSection">
+                    <div class="history-section-header">
+                        <h3>Stock Seed Records</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div id="stockSeedContent">
+                            <div class="no-records">No stock seed records found</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Section -->
+                <div class="history-section" id="inventorySection">
+                    <div class="history-section-header">
+                        <h3>Inventory Records</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div id="inventoryContent">
+                            <div class="no-records">No inventory records found</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Germination Section -->
+                <div class="history-section" id="germinationSection">
+                    <div class="history-section-header">
+                        <h3>Germination Records</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div id="germinationContent">
+                            <div class="no-records">No germination records found</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="history-section" id="notesSection">
+                    <div class="history-section-header">
+                        <h3>General Notes</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div id="notesContent">
+                            <div class="no-records">No notes found</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Delete Confirmation Popup -->
     <div class="print-popup-overlay" id="deleteConfirmPopup">
         <div class="print-popup">
@@ -2968,8 +3320,196 @@
                 }
             });
 
+            document.getElementById('lotHistoryPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideLotHistoryPopup();
+                }
+            });
+
         }
         
+
+
+
+
+        // Lot History Functions
+        function viewLotHistory(lotId) {
+            hideLotActionsPopup();
+            
+            // Show popup immediately
+            document.getElementById('lotHistoryPopup').classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Fetch lot history data
+            fetch('/office/get-lot-history/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    lot_id: lotId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateLotHistoryPopup(data.data);
+                } else {
+                    showMessage('Error loading lot history: ' + (data.error || 'Unknown error'), 'error');
+                    hideLotHistoryPopup();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+                hideLotHistoryPopup();
+            });
+        }
+
+        function populateLotHistoryPopup(data) {
+            // Basic info
+            document.getElementById('historyVarietyName').textContent = data.variety_name;
+            document.getElementById('historySkuDisplay').textContent = data.sku_display;
+            
+            // Low inventory status
+            const lowInvElement = document.getElementById('historyLowInventory');
+            lowInvElement.textContent = data.low_inventory ? 'Yes' : 'No';
+            lowInvElement.className = `info-value lot-status-indicator ${data.low_inventory}`;
+            
+            // Retired status - always show
+            const retiredElement = document.getElementById('historyRetiredStatus');
+            const retiredDetailsSection = document.getElementById('retiredDetailsSection');
+            
+            if (data.is_retired) {
+                retiredElement.textContent = 'Yes';
+                retiredElement.className = 'info-value lot-status-indicator retired';
+                retiredDetailsSection.style.display = 'block';
+                
+                if (data.retired_info) {
+                    document.getElementById('historyRetiredDate').textContent = data.retired_info.date;
+                    document.getElementById('historyRetiredLbs').textContent = `${data.retired_info.lbs_remaining} lbs`;
+                    
+                    const retiredNotesRow = document.getElementById('retiredNotesRow');
+                    if (data.retired_info.notes) {
+                        document.getElementById('historyRetiredNotes').textContent = data.retired_info.notes;
+                        retiredNotesRow.style.display = 'flex';
+                    } else {
+                        retiredNotesRow.style.display = 'none';
+                    }
+                }
+            } else {
+                retiredElement.textContent = 'No';
+                retiredElement.className = 'info-value lot-status-indicator false';
+                retiredDetailsSection.style.display = 'none';
+            }
+            
+            // Stock seed records
+            populateStockSeedRecords(data.stock_seeds);
+            
+            // Inventory records
+            populateInventoryRecords(data.inventory_records);
+            
+            // Germination records
+            populateGerminationRecords(data.germination_records);
+            
+            // Notes
+            populateNotesRecords(data.notes);
+        }
+
+        function populateStockSeedRecords(stockSeeds) {
+            const container = document.getElementById('stockSeedContent');
+            
+            if (stockSeeds.length === 0) {
+                container.innerHTML = '<div class="no-records">No stock seed records found</div>';
+                return;
+            }
+            
+            container.innerHTML = stockSeeds.map(stock => `
+                <div class="stock-record-item">
+                    <div class="stock-record-main">
+                        <span class="record-date">${stock.date}</span>
+                        <div class="record-detail">
+                            <span class="record-detail-label">Qty:</span>
+                            <span class="record-detail-value">${stock.qty}</span>
+                        </div>
+                    </div>
+                    ${stock.notes ? `<div class="record-notes">${stock.notes}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function populateInventoryRecords(inventoryRecords) {
+            const container = document.getElementById('inventoryContent');
+            
+            if (inventoryRecords.length === 0) {
+                container.innerHTML = '<div class="no-records">No inventory records found</div>';
+                return;
+            }
+            
+            container.innerHTML = inventoryRecords.map(inv => `
+                <div class="record-item">
+                    <div class="record-main-info">
+                        <span class="record-date">${inv.date}</span>
+                        <div class="record-detail">
+                            <span class="record-detail-label">Weight:</span>
+                            <span class="record-detail-value">${inv.weight} lbs</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function populateGerminationRecords(germinationRecords) {
+            const container = document.getElementById('germinationContent');
+            
+            if (germinationRecords.length === 0) {
+                container.innerHTML = '<div class="no-records">No germination records found</div>';
+                return;
+            }
+            
+            container.innerHTML = germinationRecords.map(germ => `
+                <div class="record-item">
+                    <div class="record-main-info">
+                        <span class="record-date">${germ.test_date}</span>
+                        <div class="record-detail">
+                            <span class="record-detail-label">Rate:</span>
+                            <span class="record-detail-value">${germ.germination_rate}%</span>
+                        </div>
+                        <div class="record-detail">
+                            <span class="record-detail-label">Year:</span>
+                            <span class="record-detail-value">${germ.for_year}</span>
+                        </div>
+                    </div>
+                    <span class="record-status ${germ.status}">${germ.status}</span>
+                </div>
+                ${germ.notes ? `<div class="record-notes">${germ.notes}</div>` : ''}
+            `).join('');
+        }
+
+        function populateNotesRecords(notes) {
+            const container = document.getElementById('notesContent');
+            
+            if (notes.length === 0) {
+                container.innerHTML = '<div class="no-records">No notes found</div>';
+                return;
+            }
+            
+            container.innerHTML = notes.map(note => `
+                <div class="note-item">
+                    <div class="note-date">${note.date}</div>
+                    <div class="note-text">${note.note}</div>
+                </div>
+            `).join('');
+        }
+
+        function hideLotHistoryPopup() {
+            document.getElementById('lotHistoryPopup').classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+
+
         function showAddLotPopup() {
             document.getElementById('addLotPopup').classList.add('show');
         }
@@ -3536,12 +4076,12 @@
             // TODO: Implement usage view popup
         }
 
-        function viewLotHistory(lotId) {
-            hideLotActionsPopup();
-            console.log('View history for lot:', lotId);
-            showMessage('View History functionality coming soon', 'success');
-            // TODO: Implement history view popup
-        }
+        // function viewLotHistory(lotId) {
+        //     hideLotActionsPopup();
+        //     console.log('View history for lot:', lotId);
+        //     showMessage('View History functionality coming soon', 'success');
+        //     // TODO: Implement history view popup
+        // }
 
         function deleteLot(lotId) {
             hideLotActionsPopup();
