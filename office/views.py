@@ -125,169 +125,6 @@ def view_variety(request):
                     defaults={'variety': variety_obj}
                 )
                 return redirect('view_variety')
-    #     # For all other actions, determine the current variety context
-    #     else:
-    #         # Try to get variety from various sources depending on the action
-    #         current_variety_pk = None
-            
-    #         if action == 'print_product':
-    #             # Get variety from the product being printed
-    #             product_id = request.POST.get('product_id')
-    #             if product_id:
-    #                 try:
-    #                     product = Product.objects.get(pk=product_id)
-    #                     current_variety_pk = product.variety.sku_prefix
-    #                 except Product.DoesNotExist:
-    #                     pass
-            
-    #         elif action in ['edit_product', 'add_product']:
-    #             # Get variety from product context or form data
-    #             current_variety_pk = request.POST.get('variety_sku') or request.POST.get('current_variety')
-            
-    #         elif action in ['edit_lot', 'add_lot']:
-    #             # Get variety from lot context or form data
-    #             lot_id = request.POST.get('lot_id')
-    #             if lot_id and action == 'edit_lot':
-    #                 try:
-    #                     lot = Lot.objects.get(pk=lot_id)
-    #                     current_variety_pk = lot.variety.sku_prefix
-    #                 except Lot.DoesNotExist:
-    #                     pass
-    #             else:
-    #                 current_variety_pk = request.POST.get('variety_sku') or request.POST.get('current_variety')
-            
-    #         elif action in ['edit_variety', 'edit_label']:
-    #             # Get variety from form data
-    #             current_variety_pk = request.POST.get('variety_sku') or request.POST.get('current_variety')
-            
-    #         # Set the variety object based on what we found
-    #         if current_variety_pk:
-    #             try:
-    #                 variety_obj = Variety.objects.get(pk=current_variety_pk)
-    #             except Variety.DoesNotExist:
-    #                 variety_obj = last_selected_variety
-    #         else:
-    #             variety_obj = last_selected_variety
-
-    #         # Handle the specific actions
-    #         if action == 'print_product':
-    #             if request.user.username not in ["office", "admin"]:
-    #                 # Block printing for anyone except "office"
-    #                 print(f"User {request.user.username} attempted to print but is not allowed.")
-    #                 messages.error(request, "You are not allowed to print labels.")
-    #             else:
-    #                 product_id = request.POST.get('product_id')
-    #                 print_type = request.POST.get('print_type')
-    #                 quantity = request.POST.get('quantity')
-
-    #                 try:
-    #                     product = Product.objects.get(pk=product_id)
-    #                     print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
-    #                     # Add your actual printing logic here
-    #                     # Example: send_to_printer(product, print_type, quantity)
-    #                     # log print job in db
-
-    #                     messages.success(request, f"Printing {quantity} {print_type} labels for {product.variety}.")
-
-    #                 except Product.DoesNotExist:
-    #                     print(f"Product {product_id} not found")
-    #                     messages.error(request, f"Product {product_id} not found.")
-
-            # elif action == 'edit_label':
-            #     # Handle label editing
-            #     variety_pk = request.POST.get('variety_sku') or request.POST.get('current_variety')
-            #     if variety_pk:
-            #         try:
-            #             variety_to_edit = Variety.objects.get(pk=variety_pk)
-            #             # Update label fields
-            #             variety_to_edit.desc_line1 = request.POST.get('desc_line1', '')
-            #             variety_to_edit.desc_line2 = request.POST.get('desc_line2', '')
-            #             variety_to_edit.desc_line3 = request.POST.get('desc_line3', '')
-            #             variety_to_edit.back1 = request.POST.get('back1', '')
-            #             variety_to_edit.back2 = request.POST.get('back2', '')
-            #             variety_to_edit.back3 = request.POST.get('back3', '')
-            #             variety_to_edit.back4 = request.POST.get('back4', '')
-            #             variety_to_edit.back5 = request.POST.get('back5', '')
-            #             variety_to_edit.back6 = request.POST.get('back6', '')
-            #             variety_to_edit.back7 = request.POST.get('back7', '')
-            #             variety_to_edit.days = request.POST.get('days', '')
-            #             variety_to_edit.save()
-            #             print(f"Updated labels for variety: {variety_to_edit.var_name}")
-            #             variety_obj = variety_to_edit  # Update the current variety object
-            #         except Variety.DoesNotExist:
-            #             print(f"Variety {variety_pk} not found for label editing")
-            
-            # elif action == 'add_product':
-            #     # Handle adding new product
-            #     variety_pk = request.POST.get('variety_sku') or request.POST.get('current_variety')
-            #     if variety_pk:
-            #         try:
-            #             target_variety = Variety.objects.get(pk=variety_pk)
-            #             new_product = Product.objects.create(
-            #                 variety=target_variety,
-            #                 pkg_size=request.POST.get('pkg_size', ''),
-            #                 sku_suffix=request.POST.get('sku_suffix', ''),
-            #                 # lineitem_name=request.POST.get('lineitem_name', ''),
-            #                 rack_location=request.POST.get('rack_location', ''),
-            #                 label=request.POST.get('label', ''),
-            #                 print_back=request.POST.get('print_back') == 'on'
-            #             )
-            #             # print(f"Added new product: {new_product.lineitem_name}")
-            #         except Variety.DoesNotExist:
-            #             print(f"Variety {variety_pk} not found for adding product")
-
-            
-            # elif action == 'edit_product':
-            #     # Handle editing existing product
-            #     product_id = request.POST.get('product_id')
-            #     if product_id:
-            #         try:
-            #             product = Product.objects.get(pk=product_id)
-            #             product.pkg_size = request.POST.get('pkg_size', product.pkg_size)
-            #             product.sku_suffix = request.POST.get('sku_suffix', product.sku_suffix)
-            #             # product.lineitem_name = request.POST.get('lineitem_name', product.lineitem_name)
-            #             product.rack_location = request.POST.get('rack_location', product.rack_location)
-            #             product.label = request.POST.get('label', product.label)
-            #             product.print_back = request.POST.get('print_back') == 'on'
-            #             product.save()
-            #             # print(f"Updated product: {product.lineitem_name}")
-            #             variety_obj = product.variety  # Ensure we stay with this variety
-            #         except Product.DoesNotExist:
-            #             print(f"Product {product_id} not found")
-            
-            # elif action == 'edit_lot':
-            #     # Handle editing existing lot
-            #     lot_id = request.POST.get('lot_id')
-            #     if lot_id:
-            #         try:
-            #             lot = Lot.objects.get(pk=lot_id)
-            #             lot.grower = request.POST.get('grower', lot.grower)
-            #             lot.year = request.POST.get('year', lot.year)
-            #             lot.harvest = request.POST.get('harvest', lot.harvest)
-            #             lot.external_lot_id = request.POST.get('external_lot_id', lot.external_lot_id)
-            #             lot.low_inv = request.POST.get('low_inv') == 'on'
-            #             lot.save()
-            #             print(f"Updated lot: {lot.external_lot_id}")
-            #             variety_obj = lot.variety  # Ensure we stay with this variety
-            #         except Lot.DoesNotExist:
-            #             print(f"Lot {lot_id} not found")
-            
-            # elif action == 'edit_variety':
-            #     # Handle editing variety information
-            #     variety_pk = request.POST.get('variety_sku') or request.POST.get('current_variety')
-            #     if variety_pk:
-            #         try:
-            #             variety_to_edit = Variety.objects.get(pk=variety_pk)
-            #             variety_to_edit.var_name = request.POST.get('var_name', variety_to_edit.var_name)
-            #             variety_to_edit.veg_type = request.POST.get('veg_type', variety_to_edit.veg_type)
-            #             variety_to_edit.common_spelling = request.POST.get('common_spelling', variety_to_edit.common_spelling)
-            #             # Add other variety fields as needed
-            #             variety_to_edit.save()
-            #             print(f"Updated variety: {variety_to_edit.var_name}")
-            #             variety_obj = variety_to_edit
-            #         except Variety.DoesNotExist:
-            #             print(f"Variety {variety_pk} not found for editing")
-    
 
     # --- Get associated products and lots for the current variety ---
     if variety_obj:
@@ -820,6 +657,7 @@ def record_stock_seed(request):
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
+
 @login_required
 @user_passes_test(is_employee)
 def record_germination(request):
@@ -837,9 +675,11 @@ def record_germination(request):
             # Find the most recent germination record
             # most_recent_germ = lot.germinations.order_by('-test_date').first()
             germ_record = lot.get_germ_record_with_no_test_date()
+            
             # print(f"{most_recent_germ.lot.variety.sku_prefix}-{most_recent_germ.lot.grower}{most_recent_germ.lot.year} for 20{most_recent_germ.for_year} if most_recent_germ else 'No germination record'")
             if not germ_record:
-                return JsonResponse({'error': 'No empty germ record found for this lot'}, status=404)
+                print("DEBUG: No empty germination record found to update")
+                germ_record = lot.get_most_recent_germination()
             
             # Update the germination record
             germ_record.germination_rate = germination_rate

@@ -2374,10 +2374,18 @@
             form.submit();
         }
 
+
         function showPrintPopup(productId, productName) {
-            // Get the lot text from the product row
-            const productRow = document.querySelector(`[onclick*="'${productId}'"]`).closest('tr');
-            const lotCell = productRow.cells[2]; // Lot column
+            // Use the data-product-id attribute to find the correct row
+            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            
+            if (!productRow) {
+                console.error('Could not find product row for ID:', productId);
+                showMessage('Could not find product information', 'error');
+                return;
+            }
+            
+            const lotCell = productRow.cells[1]; // Lot column is at index 1, not 2
             const lotText = lotCell.textContent.trim().replace(/\s+/g, ''); // Remove all whitespace
             
             // Check if no lot is assigned
@@ -2403,7 +2411,6 @@
                 if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
                     currentProductId = productId;
                     currentProductName = productName;
-                    // console.log('Low inventory warning for:', currentProductName);
                     document.getElementById('lowInventoryWarning').classList.add('show');
                     return;
                 }
@@ -2415,9 +2422,56 @@
                 document.getElementById('pendingStatusWarning').classList.add('show');
                 return;
             }
+            
             // Continue with normal print popup if no issues
             proceedWithPrintPopup(productId, productName);
         }
+
+
+        // function showPrintPopup(productId, productName) {
+        //     // Get the lot text from the product row
+        //     const productRow = document.querySelector(`[onclick*="'${productId}'"]`).closest('tr');
+        //     const lotCell = productRow.cells[2]; // Lot column
+        //     const lotText = lotCell.textContent.trim().replace(/\s+/g, ''); // Remove all whitespace
+            
+        //     // Check if no lot is assigned
+        //     if (lotText === '--' || lotText === '') {
+        //         document.getElementById('noLotWarning').classList.add('show');
+        //         return;
+        //     }
+
+        //     // Search through ALL lots (not just available ones)
+        //     const matchingLot = allLotsData.find(lot => {
+        //         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        //         return lotDisplay === lotText;
+        //     });
+            
+        //     if (matchingLot) {
+        //         // Check if retired (blocks printing)
+        //         if (matchingLot.is_retired) {
+        //             document.getElementById('retiredLotWarning').classList.add('show');
+        //             return;
+        //         }
+                
+        //         // Check if low inventory (asks for confirmation)  
+        //         if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
+        //             currentProductId = productId;
+        //             currentProductName = productName;
+        //             // console.log('Low inventory warning for:', currentProductName);
+        //             document.getElementById('lowInventoryWarning').classList.add('show');
+        //             return;
+        //         }
+        //     }
+            
+        //     // Check if lot status is pending
+        //     const lotStatus = getLotStatus(lotText);
+        //     if (lotStatus && lotStatus.toLowerCase() === 'pending') {
+        //         document.getElementById('pendingStatusWarning').classList.add('show');
+        //         return;
+        //     }
+        //     // Continue with normal print popup if no issues
+        //     proceedWithPrintPopup(productId, productName);
+        // }
 
         function proceedWithPrintPopup(productId, productName) {
             currentProductId = productId;
