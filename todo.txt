@@ -1,6 +1,9 @@
 create end of year function to copy all sales data from the OOinlcudes and SOIncludes
-tables and populates the Sales table. This should be run once the website is turned off.
+tables and populates the Sales table. This should be run once the website is turned off. 
+this will be a command located at products/management/commands/aggregate_sales.py
 
 import smarties varieties and stock seed data from the excel spreadsheet
 
-add bandarossa variety/products to the db
+import end of year sales data from shopify/wholesale
+
+

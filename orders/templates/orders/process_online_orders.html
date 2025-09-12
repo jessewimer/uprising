@@ -598,6 +598,88 @@
             font-weight: 500;
         }
 
+
+
+
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid #ee5a24;
+            transform: translateX(450px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification.error {
+            border-left-color: #ee5a24;
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+            min-width: 20px;
+            color: #ee5a24;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            color: #333;
+        }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            color: #999;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-close:hover {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+
+
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -705,11 +787,29 @@
                 min-width: auto;
                 width: 100%;
             }
+
+
+            .notification-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .notification {
+                transform: translateY(-100px);
+            }
+
+            .notification.show {
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 
 <body>
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer"></div>
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -890,6 +990,77 @@
         const reprocessOrderBtn = document.getElementById('reprocessOrderBtn');
         const cancelReprintOptions = document.getElementById('cancelReprintOptions');
 
+
+        // Notification System
+        function showNotification(type, title, message, duration = 5000) {
+            const container = document.getElementById('notificationContainer');
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-icon">${icons[type] || icons.info}</div>
+                <div class="notification-content">
+                    <div class="notification-title">${escapeHtml(title)}</div>
+                    <div class="notification-message">${escapeHtml(message)}</div>
+                </div>
+                <button class="notification-close" onclick="hideNotification(this)">×</button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto-hide after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    hideNotification(notification.querySelector('.notification-close'));
+                }, duration);
+            }
+            
+            return notification;
+        }
+
+        function hideNotification(closeButton) {
+            const notification = closeButton.closest('.notification');
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 400);
+        }
+
+        // Flask Health Check
+        async function checkFlaskHealth() {
+            try {
+                const response = await fetch('http://localhost:5000/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.status === 'ok';
+                } else {
+                    return false;
+                }
+            } catch (error) {
+                console.error('Flask health check failed:', error);
+                return false;
+            }
+        }
         // Initialize page state
         function initializePageState() {
             // Reset dropdown to first option (Select batch)
@@ -1080,13 +1251,27 @@
             currentFile = null;
         }
 
-        function processOrders() {
+
+        async function processOrders() {
             if (!currentFile) {
                 showErrorModal('Please upload a CSV file first.');
                 return;
             }
 
+            // First, check Flask health
             processButton.disabled = true;
+            processButton.innerHTML = '<span>Checking printer service...</span>';
+            
+            const flaskHealthy = await checkFlaskHealth();
+            
+            if (!flaskHealthy) {
+                showNotification('error', 'Printer Service Unavailable', 'Flask printing app is not running. Please start the service and try again.');
+                processButton.disabled = false;
+                processButton.innerHTML = '<span>Process Orders</span>';
+                return;
+            }
+
+            // If Flask is healthy, proceed with processing
             processButton.innerHTML = '<span>Processing...</span>';
             document.body.classList.add('processing');
 
@@ -1120,7 +1305,6 @@
                         updatePullItems(data.bulk_to_pull);
                         
                         // Add new batch to dropdown and select it
-                        // addNewBatchToDropdown(data.batch_metadata);
                         addNewBatchToDropdown(data.batch_metadata, data.bulk_to_print, data.bulk_to_pull);
                         
                         // Reset upload state after processing
@@ -1138,13 +1322,80 @@
                 console.error('Error:', error);
                 showErrorModal('Network error. Please try again.');
                 clearUploadState();
-                document.body.classList.add('processing');
+            })
+            .finally(() => {
+                processButton.disabled = false;
+                processButton.innerHTML = '<span>Process Orders</span>';
+                document.body.classList.remove('processing');
             });
-            // .finally(() => {
-            //     processButton.disabled = false;
-            //     processButton.innerHTML = '<span>Process Orders</span>';
-            // });
         }
+
+
+        // function processOrders() {
+        //     if (!currentFile) {
+        //         showErrorModal('Please upload a CSV file first.');
+        //         return;
+        //     }
+
+        //     processButton.disabled = true;
+        //     processButton.innerHTML = '<span>Processing...</span>';
+        //     document.body.classList.add('processing');
+
+        //     const formData = new FormData();
+        //     formData.append('csv_file', currentFile);
+
+        //     // Send to Django backend for processing
+        //     fetch('/orders/process-orders/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'X-CSRFToken': getCookie('csrftoken'),
+        //         },
+        //         body: formData
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             if (data.bulk_to_print && data.bulk_to_pull) {
+        //                 // Store all order data for Flask
+        //                 processedOrderData = {
+        //                     customer_orders: data.customer_orders,
+        //                     missing_orders: data.missing_orders,
+        //                     order_data: data.order_data,
+        //                     bulk_orders: data.bulk_orders,
+        //                     misc_orders: data.misc_orders,
+        //                     batch_metadata: data.batch_metadata
+        //                 };
+                        
+        //                 // Update tables
+        //                 updatePrintItems(data.bulk_to_print);
+        //                 updatePullItems(data.bulk_to_pull);
+                        
+        //                 // Add new batch to dropdown and select it
+        //                 // addNewBatchToDropdown(data.batch_metadata);
+        //                 addNewBatchToDropdown(data.batch_metadata, data.bulk_to_print, data.bulk_to_pull);
+                        
+        //                 // Reset upload state after processing
+        //                 resetUploadState();
+                        
+        //                 // Send data to Flask
+        //                 sendToFlaskForPrinting();
+        //             }
+        //         } else {
+        //             showErrorModal(data.error || 'Error processing orders.');
+        //             clearUploadState();
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         showErrorModal('Network error. Please try again.');
+        //         clearUploadState();
+        //         document.body.classList.add('processing');
+        //     });
+        //     // .finally(() => {
+        //     //     processButton.disabled = false;
+        //     //     processButton.innerHTML = '<span>Process Orders</span>';
+        //     // });
+        // }
 
         function addNewBatchToDropdown(batchMetadata, bulkToPrint, bulkToPull) {
             // Create new option with Pacific timezone date (should match Django format)
@@ -1270,7 +1521,9 @@
         }
 
 
-        function printRange() {
+
+
+        async function printRange() {
             const start = parseInt(startRange.value);
             const end = parseInt(endRange.value);
 
@@ -1279,14 +1532,27 @@
                 return;
             }
 
+            // First, check Flask health
             printRangeBtn.disabled = true;
+            printRangeBtn.textContent = 'Checking printer service...';
+            
+            const flaskHealthy = await checkFlaskHealth();
+            
+            if (!flaskHealthy) {
+                showNotification('error', 'Printer Service Unavailable', 'Flask printing app is not running. Please start the service and try again.');
+                printRangeBtn.disabled = false;
+                printRangeBtn.textContent = 'Print Labels';
+                return;
+            }
+
+            // If Flask is healthy, proceed with printing
             const originalText = printRangeBtn.textContent;
             printRangeBtn.textContent = 'Generating...';
-            document.body.classList.add('processing'); // Add spinning cursor
+            document.body.classList.add('processing');
 
             const selectedItems = printItems.slice(start - 1, end);
 
-            // Send to Flask instead of Django
+            // Send to Flask
             fetch('http://localhost:5000/print-range', {
                 method: 'POST',
                 headers: {
@@ -1299,7 +1565,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showSuccessModal(`Labels generated successfully for items ${start}-${end}!`, {});
+                    // No popup needed for successful printing
+                    console.log(`Labels generated successfully for items ${start}-${end}!`);
                 } else {
                     showErrorModal(data.error || 'Error generating labels.');
                 }
@@ -1310,11 +1577,58 @@
             })
             .finally(() => {
                 printRangeBtn.disabled = false;
-                printRangeBtn.textContent = originalText;
-                document.body.classList.remove('processing'); // Remove spinning cursor
+                printRangeBtn.textContent = 'Print Labels';
+                document.body.classList.remove('processing');
                 validateRange();
             });
         }
+
+
+        // function printRange() {
+        //     const start = parseInt(startRange.value);
+        //     const end = parseInt(endRange.value);
+
+        //     if (!start || !end || start > end || start < 1 || end > printItems.length) {
+        //         showErrorModal('Please enter a valid range.');
+        //         return;
+        //     }
+
+        //     printRangeBtn.disabled = true;
+        //     const originalText = printRangeBtn.textContent;
+        //     printRangeBtn.textContent = 'Generating...';
+        //     document.body.classList.add('processing'); // Add spinning cursor
+
+        //     const selectedItems = printItems.slice(start - 1, end);
+
+        //     // Send to Flask instead of Django
+        //     fetch('http://localhost:5000/print-range', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //         },
+        //         body: JSON.stringify({
+        //             items: selectedItems
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             showSuccessModal(`Labels generated successfully for items ${start}-${end}!`, {});
+        //         } else {
+        //             showErrorModal(data.error || 'Error generating labels.');
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error printing range:', error);
+        //         showErrorModal('Could not connect to printing service: ' + error.message);
+        //     })
+        //     .finally(() => {
+        //         printRangeBtn.disabled = false;
+        //         printRangeBtn.textContent = originalText;
+        //         document.body.classList.remove('processing'); // Remove spinning cursor
+        //         validateRange();
+        //     });
+        // }
 
 
 
