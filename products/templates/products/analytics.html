@@ -840,6 +840,222 @@
             font-size: 0.9rem;
         }
 
+
+
+
+        .top-sellers-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .top-seller-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* .top-seller-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        } */
+
+        .top-seller-item[data-rank="1"] {
+            border-left-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+        }
+
+        .top-seller-item[data-rank="2"] {
+            border-left-color: #c0c0c0;
+            background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.05));
+        }
+
+        .top-seller-item[data-rank="3"] {
+            border-left-color: #cd7f32;
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
+        }
+
+        .top-seller-item[data-rank="4"], .top-seller-item[data-rank="5"] {
+            border-left-color: #667eea;
+        }
+
+
+        .seller-rank {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 35px;
+            margin-right: 15px;
+        }
+        /* .seller-rank {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 30px;
+            margin-right: 12px;
+        } */
+
+        .top-seller-item[data-rank="1"] .seller-rank {
+            color: #ffd700;
+        }
+
+        .top-seller-item[data-rank="2"] .seller-rank {
+            color: #c0c0c0;
+        }
+
+        .top-seller-item[data-rank="3"] .seller-rank {
+            color: #cd7f32;
+        }
+
+        /* .seller-details {
+            flex: 1;
+        }
+
+        .seller-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .seller-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            color: #666;
+        } */
+
+
+
+        .seller-details {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .seller-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+            line-height: 1.2;
+            flex: 1;
+            text-align: left;
+            margin-right: 15px;
+        }
+
+        .seller-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #666;
+            align-items: center;
+        }
+
+        .seller-packets, .seller-revenue {
+            font-weight: 600;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .seller-revenue {
+            color: #28a745;
+        }
+
+
+
+        /* Detailed Modal List */
+        .top-sellers-detailed-list {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+        }
+
+        .detailed-seller-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .detailed-seller-item:hover {
+            background: #f8f9fa;
+        }
+
+        .detailed-seller-item:last-child {
+            border-bottom: none;
+        }
+
+        .detailed-seller-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .detailed-seller-rank {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 40px;
+            margin-right: 15px;
+        }
+
+        .detailed-seller-rank.gold { color: #ffd700; }
+        .detailed-seller-rank.silver { color: #c0c0c0; }
+        .detailed-seller-rank.bronze { color: #cd7f32; }
+
+        .detailed-seller-name {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .detailed-seller-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .detailed-seller-stat {
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .detailed-seller-stat-value {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1rem;
+        }
+
+        .detailed-seller-stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detailed-seller-revenue .detailed-seller-stat-value {
+            color: #28a745;
+        }
+
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -944,6 +1160,33 @@
 
             .store-stats {
                 grid-template-columns: 1fr;
+            }
+
+            .seller-stats {
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-start;
+            }
+            
+            .detailed-seller-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .detailed-seller-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .detailed-seller-left {
+                width: 100%;
+            }
+            
+            .detailed-seller-stats {
+                width: 100%;
+                flex-direction: row;
+                justify-content: space-around;
             }
         }
 
@@ -1057,8 +1300,37 @@
 
         <!-- Analytics Cards Grid -->
         <div class="analytics-grid">
-            <!-- Top Sellers Card -->
-            <div class="analytics-card">
+            <div class="analytics-card clickable" id="top-sellers-card" style="cursor: pointer;">
+                <div class="card-header">
+                    <div class="card-icon">🏆</div>
+                    <h3 class="card-title">Top Sellers</h3>
+                </div>
+                <div class="card-content">
+                    {% if top_sellers and top_sellers|length > 0 %}
+                        <div class="top-sellers-list">
+                            {% for item in top_sellers %}
+                                <div class="top-seller-item" data-rank="{{ forloop.counter }}">
+                                    <div class="seller-rank">#{{ forloop.counter }}</div>
+                                    <div class="seller-details">
+                                        <div class="seller-name">{{ item.name }}</div>
+                                        <div class="seller-stats">
+                                            <span class="seller-packets">{{ item.packets|floatformat:0 }}</span>
+                                            <span class="seller-revenue">${{ item.revenue|floatformat:0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="year-label">{{ current_year }} Sales</div>
+                    {% else %}
+                        <div class="chart-placeholder">
+                            <p style="color: #999; font-size: 1rem;">No Sales Data</p>
+                        </div>
+                        <p class="placeholder-text">No sales data available</p>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- <div class="analytics-card">
                 <div class="card-header">
                     <div class="card-icon">🏆</div>
                     <h3 class="card-title">Top Sellers</h3>
@@ -1075,7 +1347,7 @@
                     </div>
                     <p class="placeholder-text">Best selling seed varieties will appear here</p>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Store Sales Card -->
             <div class="analytics-card clickable" id="store-sales-card" style="cursor: pointer;">
@@ -1171,6 +1443,30 @@
             </div>
         </div>
     </div>
+
+
+    <!-- Top Sellers Details Modal (add this with the other modals) -->
+    <div class="modal-overlay" id="top-sellers-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Top Selling Products {{ current_year }}</h2>
+                <button class="modal-close" id="close-top-sellers-modal">&times;</button>
+            </div>
+            
+            <div id="top-sellers-loading" style="text-align: center; display: none;">
+                <div class="loading-spinner"></div>
+                <p>Loading top sellers data...</p>
+            </div>
+            
+            <div id="top-sellers-content">
+                <div class="top-sellers-detailed-list" id="detailed-sellers-list">
+                    <!-- Detailed list will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 
     <!-- Store Sales Details Modal -->
     <div class="modal-overlay" id="store-sales-modal">
@@ -1428,10 +1724,131 @@
             }
 
             // Initialize all functionality
+            initTopSellers(); 
             initShopifyInventory();
             initEnvelopeCount();
             initStoreSales();
         });
+
+
+        function initTopSellers() {
+            const topSellersCard = document.getElementById('top-sellers-card');
+            const topSellersModal = document.getElementById('top-sellers-modal');
+            
+            // Only add click functionality if there's data
+            const hasData = document.querySelector('.top-sellers-list') !== null;
+            
+            if (topSellersCard && hasData) {
+                topSellersCard.addEventListener('click', function() {
+                    console.log('Top sellers card clicked');
+                    showModal(topSellersModal);
+                    loadTopSellersData();
+                });
+                
+                topSellersCard.title = 'Click to view detailed top sellers analytics';
+            }
+            
+            // Close modal events
+            const closeModal = document.getElementById('close-top-sellers-modal');
+            if (closeModal) {
+                closeModal.addEventListener('click', () => {
+                    hideModal(topSellersModal);
+                });
+            }
+            
+            // Close when clicking overlay
+            if (topSellersModal) {
+                topSellersModal.addEventListener('click', function(e) {
+                    if (e.target === topSellersModal) {
+                        hideModal(topSellersModal);
+                    }
+                });
+            }
+        }
+
+        async function loadTopSellersData() {
+            const loadingArea = document.getElementById('top-sellers-loading');
+            const contentArea = document.getElementById('detailed-sellers-list');
+            
+            try {
+                // Show loading
+                loadingArea.style.display = 'block';
+                contentArea.innerHTML = '';
+                
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                
+                const response = await fetch('/office/top-sellers-details/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch top sellers data');
+                }
+                
+                const data = await response.json();
+                
+                // Hide loading
+                loadingArea.style.display = 'none';
+                
+                // Populate the detailed list
+                populateDetailedTopSellers(data.top_sellers || []);
+                
+            } catch (error) {
+                console.error('Error loading top sellers data:', error);
+                loadingArea.style.display = 'none';
+                
+                // Show error message
+                contentArea.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <h3>Error Loading Data</h3>
+                        <p>Unable to load top sellers data. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function populateDetailedTopSellers(sellers) {
+            const container = document.getElementById('detailed-sellers-list');
+            
+            if (!sellers || sellers.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No top sellers data available</p>';
+                return;
+            }
+            
+            let html = '';
+            sellers.forEach((seller, index) => {
+                const rank = index + 1;
+                let rankClass = '';
+                if (rank === 1) rankClass = 'gold';
+                else if (rank === 2) rankClass = 'silver';
+                else if (rank === 3) rankClass = 'bronze';
+                
+                html += `
+                    <div class="detailed-seller-item">
+                        <div class="detailed-seller-left">
+                            <div class="detailed-seller-rank ${rankClass}">#${rank}</div>
+                            <div class="detailed-seller-name">${seller.name}</div>
+                        </div>
+                        <div class="detailed-seller-stats">
+                            <div class="detailed-seller-stat">
+                                <div class="detailed-seller-stat-value">${seller.packets.toLocaleString()}</div>
+                            </div>
+                            <div class="detailed-seller-stat detailed-seller-revenue">
+                                <div class="detailed-seller-stat-value">$${seller.revenue.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
 
         function initStoreSales() {
             const storeSalesCard = document.getElementById('store-sales-card');

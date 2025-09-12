@@ -8,9 +8,11 @@ from django.http import JsonResponse
 from django.contrib.auth import login
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
+from orders.models import OOIncludes, OnlineOrder
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint
 from django.contrib.auth.forms import AuthenticationForm
-from django.db.models import Case, When, IntegerField, Max, Sum, F
+from django.db.models import Case, When, IntegerField, Max, Sum, F, CharField, Value
+from django.db.models.functions import Concat
 from uprising.utils.auth import is_employee
 from uprising import settings
 from django.views.decorators.http import require_http_methods
@@ -287,14 +289,15 @@ def analytics(request):
     # Get envelope count data for the most recent sales year
     envelope_data = get_envelope_count_data()
     total_store_sales, pending_store_sales = Store.get_total_store_sales(settings.CURRENT_ORDER_YEAR)
-    print(f"DEBUG VIEW: total_store_sales = {total_store_sales}")
+    # print(f"DEBUG VIEW: total_store_sales = {total_store_sales}")
     total_store_pkts, pending_store_pkts = Store.get_total_store_packets(settings.CURRENT_ORDER_YEAR)
-    print(f"DEBUG VIEW: total_store_pkts = {total_store_pkts}")
+    # print(f"DEBUG VIEW: total_store_pkts = {total_store_pkts}")
     current_year = f"20{settings.CURRENT_ORDER_YEAR}"
 
     # Ensure we serialize the JSON properly
     envelope_json = json.dumps(envelope_data['envelope_counts'])
-    print(f"DEBUG VIEW: envelope_json = {envelope_json}")
+    # print(f"DEBUG VIEW: envelope_json = {envelope_json}")
+    top_sellers = get_top_selling_products(limit=3)
     
     context = {
         'page_title': 'Analytics Dashboard',
@@ -307,6 +310,7 @@ def analytics(request):
         'total_store_pkts': total_store_pkts,
         'pending_store_pkts': pending_store_pkts,
         'current_year': current_year,
+        'top_sellers': top_sellers,
     }
     
     print(f"DEBUG VIEW: final context envelope_data_json = {context['envelope_data_json']}")
@@ -387,6 +391,95 @@ def get_envelope_count_data():
         'total': total_envelopes,
         'year': latest_year
     }
+
+def get_top_selling_products(limit=5):
+    """
+    Get top selling products by total sales quantity for the most recent sales year
+    """
+    # Get the current order year (two digit) and convert to full year
+    current_year = settings.CURRENT_ORDER_YEAR
+    full_year = 2000 + int(current_year)  # 25 -> 2025
+    
+    # DEBUG: Print what year we're looking for
+    print(f"DEBUG: Looking for orders from year {full_year}")
+    print(f"DEBUG: CURRENT_ORDER_YEAR setting = {current_year}")
+    
+    # DEBUG: Check if we have any orders from this year
+    total_orders = OnlineOrder.objects.filter(date__year=full_year).count()
+    print(f"DEBUG: Found {total_orders} orders from {full_year}")
+    
+    # DEBUG: Check if we have any OOIncludes from this year
+    total_includes = OOIncludes.objects.filter(order__date__year=full_year).count()
+    print(f"DEBUG: Found {total_includes} OOIncludes entries from {full_year}")
+    
+    # Query OOIncludes for orders from that year, aggregate by product
+    top_products = (
+        OOIncludes.objects
+        .filter(order__date__year=full_year)
+        .values('product__variety__var_name', 'product__sku_suffix')
+        .annotate(
+            display_name=Case(
+                When(product__sku_suffix__isnull=True, 
+                     then=F('product__variety__var_name')),
+                When(product__sku_suffix='', 
+                     then=F('product__variety__var_name')),
+                default=Concat(
+                    F('product__variety__var_name'),
+                    Value(' ('),
+                    F('product__sku_suffix'),
+                    Value(')'),
+                    output_field=CharField()
+                )
+            ),
+            total_packets=Sum('qty'),
+            total_revenue=Sum(F('qty') * F('price'))
+        )
+        .order_by('-total_packets')
+        [:limit]
+    )
+    
+    # DEBUG: Print the raw queryset
+    print(f"DEBUG: Query returned {len(list(top_products))} results")
+    
+    # Convert to the format expected by frontend
+    result = []
+    for item in top_products:
+        print(f"DEBUG: Processing item: {item}")
+        result.append({
+            'name': item['display_name'] or 'Unknown Product',
+            'packets': int(item['total_packets'] or 0),
+            'revenue': float(item['total_revenue'] or 0)
+        })
+    
+    print(f"DEBUG: Final result: {result}")
+    return result
+
+def get_detailed_top_sellers(limit=50):
+    """
+    Get detailed top sellers for modal - same logic, more items
+    """
+    return get_top_selling_products(limit=limit)
+
+# Add this API endpoint for the modal
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def top_sellers_details(request):
+    """
+    API endpoint for detailed top sellers data (for the modal)
+    """
+    try:
+        top_sellers = get_detailed_top_sellers(limit=50)
+        
+        return JsonResponse({
+            'success': True,
+            'top_sellers': top_sellers
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 
 @login_required
