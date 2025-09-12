@@ -26,6 +26,18 @@ pacific_tz = pytz.timezone("America/Los_Angeles")
 from django.utils.timezone import localtime
 
 
+from io import BytesIO
+
+# ReportLab imports
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+
+
 def calculate_bulk_pull_and_print(bulk_items):
     bulk_to_print = {}
     bulk_to_pull = {}
@@ -882,7 +894,6 @@ def reprint_order(request):
 
 # For store orders
 @login_required
-@user_passes_test(is_employee)
 def get_order_id_by_number(request, order_number):
     """
     API endpoint to get order ID by order number
@@ -896,7 +907,6 @@ def get_order_id_by_number(request, order_number):
 
 
 @login_required
-@user_passes_test(is_employee)
 def generate_order_pdf(request, order_id):
     try:
         # Get the order and items
@@ -957,6 +967,14 @@ def generate_order_pdf(request, order_id):
             )
         )
 
+                # Add fulfilled date
+        fulfilled_text = "Pending"
+        if order.fulfilled_date:
+            fulfilled_text = order.fulfilled_date.strftime('%B %d, %Y')
+        elements.append(
+            Paragraph(f"<b>Fulfilled Date:</b> {fulfilled_text}", styles["Normal"])
+        )
+        
         if hasattr(order, "store") and order.store:
             elements.append(
                 Paragraph(f"<b>Store:</b> {order.store.store_name}", styles["Normal"])

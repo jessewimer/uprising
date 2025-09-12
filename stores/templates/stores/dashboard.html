@@ -764,8 +764,19 @@
                                         <img src="{{ photo_url }}"
                                             alt="{{ product.variety.var_name }}"
                                             class="photo-thumbnail"
-                                            onclick="openPhotoModal('{{ photo_url }}', '{{ product.variety.var_name }}')">
+                                            onclick="openPhotoModal('{{ photo_url|escapejs }}', '{{ product.variety.var_name|escapejs }}')">
                                     </td>
+                                    <!-- <td>
+                                        {% if product.variety.photo_path %}
+                                            {% static product.variety.photo_path as photo_url %}
+                                        {% else %}
+                                            {% static "default-photo.svg" as photo_url %}
+                                        {% endif %}
+                                        <img src="{{ photo_url }}"
+                                            alt="{{ product.variety.var_name }}"
+                                            class="photo-thumbnail"
+                                            onclick="openPhotoModal('{{ photo_url }}', '{{ product.variety.var_name }}')">
+                                    </td> -->
                                     <td>{{ product.variety.ws_notes }}</td>
                                 </tr>
                                 {% endfor %}
@@ -776,7 +787,82 @@
         </div>
 
 
-    <!-- View Orders Modal -->
+        <!-- View Orders Modal -->
+        <div class="modal-overlay" id="viewOrdersModal">
+            <div class="modal-content" style="max-width: 950px; width: 95%;">
+                <button class="modal-close" onclick="closeViewOrdersModal()">&times;</button>
+                <h2 style="margin-bottom: 20px; color: #333;">Order History (20{{ current_year }})</h2>
+
+                <div class="orders-list" style="max-height: 60vh; overflow-y: auto;">
+                    {% if current_year_orders %}
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; border-right: 1px solid #dee2e6;">Order #</th>
+                                    <th style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;"># Pkts</th>
+                                    <th style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">Date</th>
+                                    <th style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">Subtotal</th>
+                                    <th style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">Shipping</th>
+                                    <th style="padding: 12px; text-align: center;">Fulfilled</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                    {% for order in current_year_orders %}
+                                <tr style="border-bottom: 1px solid #dee2e6; cursor: pointer; transition: background-color 0.2s;"
+                                    onmouseover="this.style.backgroundColor='#f8f9fa'"
+                                    onmouseout="this.style.backgroundColor=''"
+                                    onclick="generatePDF('{{ order.order_number }}')">
+                                    <td style="padding: 12px; border-right: 1px solid #dee2e6; font-weight: bold; color: #007bff;">
+                                        {{ order.order_number }}
+                                    </td>
+                                        <td style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">
+                                        {% if order.total_items %}
+                                            {{ order.total_items|floatformat:0 }}
+                                        {% else %}
+                                            <span style="color: #6c757d;">N/A</span>
+                                        {% endif %}
+                                        </td>
+                                    <td style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">
+                                        {{ order.date }}
+                                    </td>
+                                    <td style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">
+                                        {% if order.total_cost %}
+                                            ${{ order.total_cost|floatformat:2 }}
+                                        {% else %}
+                                            <span style="color: #6c757d;">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 12px; text-align: center; border-right: 1px solid #dee2e6;">
+                                        {% if order.shipping_cost %}
+                                            ${{ order.shipping_cost|floatformat:2 }}
+                                        {% else %}
+                                            <span style="color: #6c757d;">TBD</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 12px; text-align: center;">
+                                        {% if order.fulfilled_status == 'Pending' %}
+                                            <span style="color: #ffa502; font-weight: 600;">Pending</span>
+                                        {% else %}
+                                            <span style="color: #2ed573; font-weight: 600;">{{ order.fulfilled_status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                    {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                            <p>No orders found for 20{{ current_year }}.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeViewOrdersModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    <!-- View Orders Modal
     <div class="modal-overlay" id="viewOrdersModal">
        <div class="modal-content" style="max-width: 800px; width: 90%;">
            <button class="modal-close" onclick="closeViewOrdersModal()">&times;</button>
@@ -848,7 +934,7 @@
                <button type="button" class="btn btn-secondary" onclick="closeViewOrdersModal()">Close</button>
            </div>
        </div>
-    </div>
+    </div> -->
 
 
     <!-- Order Review Modal -->

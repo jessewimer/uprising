@@ -273,6 +273,11 @@ def dashboard(request, store_name):
                 })
                 total_items += so_include.quantity
 
+        # Format fulfilled_date for display
+        fulfilled_status = 'Pending'
+        if order.fulfilled_date:
+            fulfilled_status = order.fulfilled_date.strftime('%m/%d/%Y')
+
         orders_data.append({
             'id': order.id,
             'order_number': order.order_number,
@@ -280,7 +285,8 @@ def dashboard(request, store_name):
             'items': order_items,
             'total_items': total_items,
             'total_cost': total_items * pkt_price,
-            'shipping_cost': getattr(order, 'shipping_cost', None)
+            'shipping_cost': getattr(order, 'shipping_cost', None),
+            'fulfilled_status': fulfilled_status
         })
 
     # --- Prepare product dictionary for JS ---

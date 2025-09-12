@@ -645,6 +645,53 @@
             opacity: 0.5;
         }
 
+
+        /* Message System */
+        .messages-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 5000;
+            max-width: 400px;
+        }
+
+        .message {
+            background: white;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .message-error {
+            border-left-color: #ff6b6b;
+            background: #fef2f2;
+        }
+
+        .message-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #666;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -1224,10 +1271,88 @@
             });
         }
 
+
+
+
+        function showMessage(text, type = 'error') {
+            // Create message container if it doesn't exist
+            let container = document.querySelector('.messages-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'messages-container';
+                document.body.appendChild(container);
+            }
+            
+            // Create message element
+            const message = document.createElement('div');
+            message.className = `message message-${type}`;
+            message.innerHTML = `
+                <span class="message-text">${text}</span>
+                <button class="message-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(message);
+            
+            // Auto-dismiss after 4 seconds
+            setTimeout(function() {
+                if (message.parentElement) {
+                    message.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                    setTimeout(function() {
+                        if (message.parentElement) {
+                            message.remove();
+                        }
+                    }, 300);
+                }
+            }, 4000);
+        }
+
+        function checkFlaskConnection() {
+            return new Promise((resolve) => {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                
+                fetch('http://localhost:5000/health', {
+                    method: 'GET',
+                    signal: controller.signal
+                })
+                .then(response => {
+                    clearTimeout(timeoutId);
+                    if (response.ok) {
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(timeoutId);
+                    resolve(false);
+                });
+            });
+        }
+
+
         // Handle print click
         function handlePrint(lot) {
             console.log('Print clicked for:', lot.variety_name, lot.lot_code);
             
+            // First check if Flask app is running
+            checkFlaskConnection()
+                .then(isFlaskRunning => {
+                    if (!isFlaskRunning) {
+                        showMessage('Local Flask printing app not running', 'error');
+                        return;
+                    }
+                    
+                    // Flask is running, proceed with normal print logic
+                    proceedWithPrintChecks(lot);
+                })
+                .catch(error => {
+                    console.error('Error checking Flask connection:', error);
+                    showMessage('Local Flask printing app not running', 'error');
+                });
+        }
+
+        function proceedWithPrintChecks(lot) {
             currentPrintJob = {
                 lot_id: lot.lot_id,
                 variety_name: lot.variety_name,
@@ -1252,6 +1377,39 @@
                 showModal(hasLabel);
             }
         }
+
+
+
+
+
+        // // Handle print click
+        // function handlePrint(lot) {
+        //     console.log('Print clicked for:', lot.variety_name, lot.lot_code);
+            
+        //     currentPrintJob = {
+        //         lot_id: lot.lot_id,
+        //         variety_name: lot.variety_name,
+        //         sku_prefix: lot.sku_prefix,
+        //         lot_code: lot.lot_code,
+        //         species: lot.species
+        //     };
+            
+        //     // Check if warning needed
+        //     const rightmostYear = appData.germYears[appData.germYears.length - 1];
+        //     const currentGermYearFormatted = String(appData.germYear).padStart(2, '0');
+            
+        //     if (rightmostYear !== currentGermYearFormatted) {
+        //         // New year - no warning
+        //         console.log('New germ year - direct print');
+        //         showModal(false);
+        //     } else {
+        //         // Check existing label
+        //         const display = getGerminationDisplay(lot, rightmostYear);
+        //         const hasLabel = display.text !== '-';
+        //         console.log('Existing check:', display.text, hasLabel);
+        //         showModal(hasLabel);
+        //     }
+        // }
 
         // Show modal
         function showModal(isWarning) {
