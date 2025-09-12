@@ -2398,6 +2398,18 @@
                     </div>
                 </div>
 
+                <!-- Packing History Section -->
+                <div class="history-section" id="packingHistorySection">
+                    <div class="history-section-header">
+                        <h3>Packing History</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div id="packingHistoryContent">
+                            <div class="no-records">No packing records found</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Notes Section -->
                 <div class="history-section" id="notesSection">
                     <div class="history-section-header">
@@ -2735,63 +2747,201 @@
         }
 
 
-        function showPrintPopup(productId, productName) {
-            // Use the data-product-id attribute to find the correct row
-            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
-            
-            if (!productRow) {
-                console.error('Could not find product row for ID:', productId);
-                showMessage('Could not find product information', 'error');
-                return;
-            }
-            
-            const lotCell = productRow.cells[1]; // Lot column is at index 1, not 2
-            const lotText = lotCell.textContent.trim().replace(/\s+/g, ''); // Remove all whitespace
-            
-            // Check if no lot is assigned
-            if (lotText === '--' || lotText === '') {
-                document.getElementById('noLotWarning').classList.add('show');
-                return;
-            }
 
-            // Search through ALL lots (not just available ones)
-            const matchingLot = allLotsData.find(lot => {
-                const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
-                return lotDisplay === lotText;
-            });
+
+
+
+
+        function showPrintPopup(productId, productName) {
+            console.log('showPrintPopup called for:', productId, productName);
             
-            if (matchingLot) {
-                // Check if retired (blocks printing)
-                if (matchingLot.is_retired) {
-                    document.getElementById('retiredLotWarning').classList.add('show');
+            // First check if Flask app is running
+            checkFlaskConnection()
+                .then(isFlaskRunning => {
+                    console.log('Flask running status:', isFlaskRunning);
+                    if (!isFlaskRunning) {
+                        showMessage('Local Flask printing app not running', 'error');
+                        return;
+                    }
+                    
+                    // Flask is running, proceed with normal print popup logic
+                    console.log('Proceeding with print popup checks...');
+                    proceedWithPrintPopupChecks(productId, productName);
+                })
+                .catch(error => {
+                    console.error('Error checking Flask connection:', error);
+                    showMessage('Local Flask printing app not running', 'error');
+                });
+        }
+
+        function checkFlaskConnection() {
+            console.log('Checking Flask connection...');
+            return new Promise((resolve) => {
+                // Set a short timeout for the health check
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    console.log('Flask health check timed out');
+                    controller.abort();
+                }, 2000); // 2 second timeout
+                
+                fetch('http://localhost:5000/health', {
+                    method: 'GET',
+                    signal: controller.signal
+                })
+                .then(response => {
+                    clearTimeout(timeoutId);
+                    console.log('Flask health check response:', response.status, response.ok);
+                    // Check if the response is actually successful
+                    if (response.ok) {
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(timeoutId);
+                    console.log('Flask health check failed:', error.message);
+                    resolve(false);
+                });
+            });
+        }
+
+        function proceedWithPrintPopupChecks(productId, productName) {
+            console.log('proceedWithPrintPopupChecks called for:', productId);
+            
+            try {
+                // Use the corrected row selection method
+                const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+                
+                if (!productRow) {
+                    console.error('Could not find product row for ID:', productId);
+                    showMessage('Could not find product information', 'error');
                     return;
                 }
                 
-                // Check if low inventory (asks for confirmation)  
-                if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
-                    currentProductId = productId;
-                    currentProductName = productName;
-                    document.getElementById('lowInventoryWarning').classList.add('show');
+                console.log('Found product row:', productRow);
+                
+                const lotCell = productRow.cells[1]; // Lot column is at index 1
+                const lotText = lotCell.textContent.trim().replace(/\s+/g, '');
+                
+                console.log('Lot text from cell:', lotText);
+                
+                // Check if no lot is assigned
+                if (lotText === '--' || lotText === '') {
+                    console.log('No lot assigned, showing warning');
+                    document.getElementById('noLotWarning').classList.add('show');
                     return;
                 }
+
+                // Search through ALL lots (not just available ones)
+                const matchingLot = allLotsData.find(lot => {
+                    const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+                    return lotDisplay === lotText;
+                });
+                
+                console.log('Matching lot found:', matchingLot);
+                
+                if (matchingLot) {
+                    console.log('Checking if lot is retired:', matchingLot.is_retired);
+                    // Check if retired (blocks printing)
+                    if (matchingLot.is_retired) {
+                        console.log('Lot is retired, showing warning');
+                        document.getElementById('retiredLotWarning').classList.add('show');
+                        return;
+                    }
+                    
+                    console.log('Checking if lot has low inventory:', matchingLot.low_inv);
+                    // Check if low inventory (asks for confirmation)  
+                    if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
+                        console.log('Low inventory, showing confirmation');
+                        currentProductId = productId;
+                        currentProductName = productName;
+                        document.getElementById('lowInventoryWarning').classList.add('show');
+                        return;
+                    }
+                }
+                
+                console.log('About to check lot status...');
+                // Check if lot status is pending
+                const lotStatus = getLotStatus(lotText);
+                console.log('Lot status result:', lotStatus);
+                
+                if (lotStatus && lotStatus.toLowerCase() === 'pending') {
+                    console.log('Lot status is pending, showing warning');
+                    document.getElementById('pendingStatusWarning').classList.add('show');
+                    return;
+                }
+                
+                // Continue with normal print popup if no issues
+                console.log('All checks passed, calling proceedWithPrintPopup...');
+                proceedWithPrintPopup(productId, productName);
+                console.log('proceedWithPrintPopup completed');
+                
+            } catch (error) {
+                console.error('Error in proceedWithPrintPopupChecks:', error);
+                showMessage('Error processing print request', 'error');
             }
-            
-            // Check if lot status is pending
-            const lotStatus = getLotStatus(lotText);
-            if (lotStatus && lotStatus.toLowerCase() === 'pending') {
-                document.getElementById('pendingStatusWarning').classList.add('show');
-                return;
-            }
-            
-            // Continue with normal print popup if no issues
-            proceedWithPrintPopup(productId, productName);
         }
 
 
+
+
+
+
+
+
         // function showPrintPopup(productId, productName) {
-        //     // Get the lot text from the product row
-        //     const productRow = document.querySelector(`[onclick*="'${productId}'"]`).closest('tr');
-        //     const lotCell = productRow.cells[2]; // Lot column
+        //     // First check if Flask app is running
+        //     checkFlaskConnection()
+        //         .then(isFlaskRunning => {
+        //             if (!isFlaskRunning) {
+        //                 showMessage('Local Flask printing app not running', 'error');
+        //                 return;
+        //             }
+                    
+        //             // Flask is running, proceed with normal print popup logic
+        //             proceedWithPrintPopupChecks(productId, productName);
+        //         })
+        //         .catch(error => {
+        //             console.error('Error checking Flask connection:', error);
+        //             showMessage('Local Flask printing app not running', 'error');
+        //         });
+        // }
+
+        // function checkFlaskConnection() {
+        //     return new Promise((resolve) => {
+        //         // Set a short timeout for the health check
+        //         const controller = new AbortController();
+        //         const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+                
+        //         fetch('http://localhost:5000/health', {
+        //             method: 'GET',
+        //             signal: controller.signal
+        //         })
+        //         .then(response => {
+        //             clearTimeout(timeoutId);
+        //             // If we get any response (even an error), Flask is running
+        //             resolve(true);
+        //         })
+        //         .catch(error => {
+        //             clearTimeout(timeoutId);
+        //             // If fetch fails (connection refused, timeout, etc.), Flask is not running
+        //             resolve(false);
+        //         });
+        //     });
+        // }
+
+        // function proceedWithPrintPopupChecks(productId, productName) {
+        //     // Use the corrected row selection method
+        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            
+        //     if (!productRow) {
+        //         console.error('Could not find product row for ID:', productId);
+        //         showMessage('Could not find product information', 'error');
+        //         return;
+        //     }
+            
+        //     const lotCell = productRow.cells[1]; // Lot column is at index 1, not 2
         //     const lotText = lotCell.textContent.trim().replace(/\s+/g, ''); // Remove all whitespace
             
         //     // Check if no lot is assigned
@@ -2817,7 +2967,6 @@
         //         if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
         //             currentProductId = productId;
         //             currentProductName = productName;
-        //             // console.log('Low inventory warning for:', currentProductName);
         //             document.getElementById('lowInventoryWarning').classList.add('show');
         //             return;
         //         }
@@ -2829,9 +2978,69 @@
         //         document.getElementById('pendingStatusWarning').classList.add('show');
         //         return;
         //     }
+            
         //     // Continue with normal print popup if no issues
         //     proceedWithPrintPopup(productId, productName);
         // }
+
+
+
+
+
+        // function showPrintPopup(productId, productName) {
+        //     // Use the data-product-id attribute to find the correct row
+        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            
+        //     if (!productRow) {
+        //         console.error('Could not find product row for ID:', productId);
+        //         showMessage('Could not find product information', 'error');
+        //         return;
+        //     }
+            
+        //     const lotCell = productRow.cells[1]; // Lot column is at index 1, not 2
+        //     const lotText = lotCell.textContent.trim().replace(/\s+/g, ''); // Remove all whitespace
+            
+        //     // Check if no lot is assigned
+        //     if (lotText === '--' || lotText === '') {
+        //         document.getElementById('noLotWarning').classList.add('show');
+        //         return;
+        //     }
+
+        //     // Search through ALL lots (not just available ones)
+        //     const matchingLot = allLotsData.find(lot => {
+        //         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        //         return lotDisplay === lotText;
+        //     });
+            
+        //     if (matchingLot) {
+        //         // Check if retired (blocks printing)
+        //         if (matchingLot.is_retired) {
+        //             document.getElementById('retiredLotWarning').classList.add('show');
+        //             return;
+        //         }
+                
+        //         // Check if low inventory (asks for confirmation)  
+        //         if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
+        //             currentProductId = productId;
+        //             currentProductName = productName;
+        //             document.getElementById('lowInventoryWarning').classList.add('show');
+        //             return;
+        //         }
+        //     }
+            
+        //     // Check if lot status is pending
+        //     const lotStatus = getLotStatus(lotText);
+        //     if (lotStatus && lotStatus.toLowerCase() === 'pending') {
+        //         document.getElementById('pendingStatusWarning').classList.add('show');
+        //         return;
+        //     }
+            
+        //     // Continue with normal print popup if no issues
+        //     proceedWithPrintPopup(productId, productName);
+        // }
+
+
+       
 
         function proceedWithPrintPopup(productId, productName) {
             currentProductId = productId;
@@ -2845,21 +3054,51 @@
             document.getElementById('printPopupOverlay').classList.add('show');
         }
 
-
         function getLotStatus(lotCode) {
-            // Find the lot status from the lots table
-            const lotRows = document.querySelectorAll('.lots-table tbody tr');
+            console.log('getLotStatus called with lotCode:', lotCode);
             
-            for (const row of lotRows) {
-                const rowLotCode = row.cells[0].textContent.trim().replace(/\s+/g, '');
-                if (rowLotCode === lotCode) {
-                    // Status is in the 4th column (index 3)
-                    return row.cells[3].textContent.trim();
+            try {
+                // Find the lot status from the lots table
+                const lotRows = document.querySelectorAll('.lots-table tbody tr');
+                console.log('Found lot rows:', lotRows.length);
+                
+                if (lotRows.length === 0) {
+                    console.log('No lot rows found in table');
+                    return null;
                 }
+                
+                for (const row of lotRows) {
+                    console.log('Checking row:', row);
+                    const rowLotCode = row.cells[0].textContent.trim().replace(/\s+/g, '');
+                    console.log('Row lot code:', rowLotCode, 'comparing to:', lotCode);
+                    
+                    if (rowLotCode === lotCode) {
+                        console.log('Found matching row, getting status from cells[3]');
+                        // Status is in the 4th column (index 3)
+                        const status = row.cells[3].textContent.trim();
+                        console.log('Status found:', status);
+                        return status;
+                    }
+                }
+                
+                console.log('No matching lot code found in table');
+                return null;
+                
+            } catch (error) {
+                console.error('Error in getLotStatus:', error);
+                throw error; // Re-throw so the calling function can catch it
             }
-            
-            return null;
         }
+
+
+
+
+
+
+
+
+
+
 
         function hidePendingStatusWarning() {
             document.getElementById('pendingStatusWarning').classList.remove('show');
@@ -3331,8 +3570,7 @@
 
 
 
-
-        // Lot History Functions
+        // Updated Lot History Functions
         function viewLotHistory(lotId) {
             hideLotActionsPopup();
             
@@ -3413,6 +3651,9 @@
             // Germination records
             populateGerminationRecords(data.germination_records);
             
+            // Packing history records
+            populatePackingHistoryRecords(data.packing_history);
+            
             // Notes
             populateNotesRecords(data.notes);
         }
@@ -3487,6 +3728,31 @@
             `).join('');
         }
 
+        function populatePackingHistoryRecords(packingHistory) {
+            const container = document.getElementById('packingHistoryContent');
+            
+            if (packingHistory.length === 0) {
+                container.innerHTML = '<div class="no-records">No packing records found</div>';
+                return;
+            }
+            
+            container.innerHTML = packingHistory.map(pack => `
+                <div class="record-item">
+                    <div class="record-main-info">
+                        <span class="record-date">${pack.date}</span>
+                        <div class="record-detail">
+                            <span class="record-detail-label">SKU:</span>
+                            <span class="record-detail-value">${pack.product_sku}</span>
+                        </div>
+                        <div class="record-detail">
+                            <span class="record-detail-label">Qty:</span>
+                            <span class="record-detail-value">${pack.qty}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         function populateNotesRecords(notes) {
             const container = document.getElementById('notesContent');
             
@@ -3507,6 +3773,198 @@
             document.getElementById('lotHistoryPopup').classList.remove('show');
             document.body.classList.remove('modal-open');
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // // Lot History Functions
+        // function viewLotHistory(lotId) {
+        //     hideLotActionsPopup();
+            
+        //     // Show popup immediately
+        //     document.getElementById('lotHistoryPopup').classList.add('show');
+        //     document.body.classList.add('modal-open');
+            
+        //     // Fetch lot history data
+        //     fetch('/office/get-lot-history/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             lot_id: lotId
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             populateLotHistoryPopup(data.data);
+        //         } else {
+        //             showMessage('Error loading lot history: ' + (data.error || 'Unknown error'), 'error');
+        //             hideLotHistoryPopup();
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         showMessage('Network error occurred', 'error');
+        //         hideLotHistoryPopup();
+        //     });
+        // }
+
+        // function populateLotHistoryPopup(data) {
+        //     // Basic info
+        //     document.getElementById('historyVarietyName').textContent = data.variety_name;
+        //     document.getElementById('historySkuDisplay').textContent = data.sku_display;
+            
+        //     // Low inventory status
+        //     const lowInvElement = document.getElementById('historyLowInventory');
+        //     lowInvElement.textContent = data.low_inventory ? 'Yes' : 'No';
+        //     lowInvElement.className = `info-value lot-status-indicator ${data.low_inventory}`;
+            
+        //     // Retired status - always show
+        //     const retiredElement = document.getElementById('historyRetiredStatus');
+        //     const retiredDetailsSection = document.getElementById('retiredDetailsSection');
+            
+        //     if (data.is_retired) {
+        //         retiredElement.textContent = 'Yes';
+        //         retiredElement.className = 'info-value lot-status-indicator retired';
+        //         retiredDetailsSection.style.display = 'block';
+                
+        //         if (data.retired_info) {
+        //             document.getElementById('historyRetiredDate').textContent = data.retired_info.date;
+        //             document.getElementById('historyRetiredLbs').textContent = `${data.retired_info.lbs_remaining} lbs`;
+                    
+        //             const retiredNotesRow = document.getElementById('retiredNotesRow');
+        //             if (data.retired_info.notes) {
+        //                 document.getElementById('historyRetiredNotes').textContent = data.retired_info.notes;
+        //                 retiredNotesRow.style.display = 'flex';
+        //             } else {
+        //                 retiredNotesRow.style.display = 'none';
+        //             }
+        //         }
+        //     } else {
+        //         retiredElement.textContent = 'No';
+        //         retiredElement.className = 'info-value lot-status-indicator false';
+        //         retiredDetailsSection.style.display = 'none';
+        //     }
+            
+        //     // Stock seed records
+        //     populateStockSeedRecords(data.stock_seeds);
+            
+        //     // Inventory records
+        //     populateInventoryRecords(data.inventory_records);
+            
+        //     // Germination records
+        //     populateGerminationRecords(data.germination_records);
+            
+        //     // Notes
+        //     populateNotesRecords(data.notes);
+        // }
+
+        // function populateStockSeedRecords(stockSeeds) {
+        //     const container = document.getElementById('stockSeedContent');
+            
+        //     if (stockSeeds.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No stock seed records found</div>';
+        //         return;
+        //     }
+            
+        //     container.innerHTML = stockSeeds.map(stock => `
+        //         <div class="stock-record-item">
+        //             <div class="stock-record-main">
+        //                 <span class="record-date">${stock.date}</span>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">Qty:</span>
+        //                     <span class="record-detail-value">${stock.qty}</span>
+        //                 </div>
+        //             </div>
+        //             ${stock.notes ? `<div class="record-notes">${stock.notes}</div>` : ''}
+        //         </div>
+        //     `).join('');
+        // }
+
+        // function populateInventoryRecords(inventoryRecords) {
+        //     const container = document.getElementById('inventoryContent');
+            
+        //     if (inventoryRecords.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No inventory records found</div>';
+        //         return;
+        //     }
+            
+        //     container.innerHTML = inventoryRecords.map(inv => `
+        //         <div class="record-item">
+        //             <div class="record-main-info">
+        //                 <span class="record-date">${inv.date}</span>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">Weight:</span>
+        //                     <span class="record-detail-value">${inv.weight} lbs</span>
+        //                 </div>
+        //             </div>
+        //         </div>
+        //     `).join('');
+        // }
+
+        // function populateGerminationRecords(germinationRecords) {
+        //     const container = document.getElementById('germinationContent');
+            
+        //     if (germinationRecords.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No germination records found</div>';
+        //         return;
+        //     }
+            
+        //     container.innerHTML = germinationRecords.map(germ => `
+        //         <div class="record-item">
+        //             <div class="record-main-info">
+        //                 <span class="record-date">${germ.test_date}</span>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">Rate:</span>
+        //                     <span class="record-detail-value">${germ.germination_rate}%</span>
+        //                 </div>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">Year:</span>
+        //                     <span class="record-detail-value">${germ.for_year}</span>
+        //                 </div>
+        //             </div>
+        //             <span class="record-status ${germ.status}">${germ.status}</span>
+        //         </div>
+        //         ${germ.notes ? `<div class="record-notes">${germ.notes}</div>` : ''}
+        //     `).join('');
+        // }
+
+        // function populateNotesRecords(notes) {
+        //     const container = document.getElementById('notesContent');
+            
+        //     if (notes.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No notes found</div>';
+        //         return;
+        //     }
+            
+        //     container.innerHTML = notes.map(note => `
+        //         <div class="note-item">
+        //             <div class="note-date">${note.date}</div>
+        //             <div class="note-text">${note.note}</div>
+        //         </div>
+        //     `).join('');
+        // }
+
+        // function hideLotHistoryPopup() {
+        //     document.getElementById('lotHistoryPopup').classList.remove('show');
+        //     document.body.classList.remove('modal-open');
+        // }
 
 
 
