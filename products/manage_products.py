@@ -22,7 +22,7 @@ sys.path.append(project_path)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
-from products.models import Product, Variety, Sales, MiscProduct
+from products.models import Product, Variety, Sales, MiscProduct, MiscSales
 from django.db import transaction
 
 def print_product_table():
@@ -590,8 +590,6 @@ def import_misc_products(csv_file):
             
             # create misc product object
 
-
-            
             misc_product, created = MiscProduct.objects.update_or_create(
                 sku=sku,
                 lineitem_name=lineitem_name,
@@ -653,8 +651,46 @@ def delete_varieties(sku_prefixes):
             print(f"No variety found with SKU prefix {sku_prefix}")
 
 
-# ####  MAIN PROGRAM BEGINS HERE  #### #
-delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
+@transaction.atomic
+def import_misc_sales(csv_file):
+    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        created = 0
+        skipped = 0
+
+        for row in reader:
+            sku = row["sku"].strip()
+            year = int(row["year"])
+            quantity = int(row["qty"])
+
+            try:
+                product = MiscProduct.objects.get(sku=sku)
+            except MiscProduct.DoesNotExist:
+                print(f"❌ SKU '{sku}' not found. Skipping.")
+                skipped += 1
+                continue
+
+            # Optional: prevent duplicate year entries
+            existing = MiscSales.objects.filter(product=product, year=year).first()
+            if existing:
+                print(f"ℹ️ Sale for SKU '{sku}' in year {year} already exists. Skipping.")
+                skipped += 1
+                continue
+
+            MiscSales.objects.create(
+                product=product,
+                quantity=quantity,
+                year=year
+            )
+            created += 1
+
+        print(f"✅ Imported {created} sales records. Skipped {skipped}.")
+
+
+# #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
+
+# delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
 # delete_variety("TOM-XX")
 # set_all_bulk_pre_pack_to_zero()
@@ -673,6 +709,8 @@ delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "K
 # full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
 # prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
+misc_sales_csv = os.path.join(os.path.dirname(__file__), "misc_product_sales.csv")
+import_misc_sales(misc_sales_csv)
 
 
 # import_sales(import_sales_csv)

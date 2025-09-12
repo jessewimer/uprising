@@ -6,7 +6,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.http import JsonResponse
 from django.contrib.auth import login
-from products.models import Variety, Product, LastSelected, LabelPrint, Sales
+from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
 from orders.models import OOIncludes, OnlineOrder
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint
@@ -377,28 +377,31 @@ def get_envelope_count_data():
         envelope_counts[envelope_type] += quantity
         total_envelopes += quantity
 
-    # Miscellaneous models
-    # class MiscSale(models.Model):
-    #     variety = models.ForeignKey(Variety, on_delete=models.CASCADE, related_name="misc_sales")
-    #     lbs = models.FloatField()
-    #     date = models.DateField()
-    #     customer = models.CharField(max_length=255)
-    #     notes = models.TextField(blank=True, null=True)
+    # --- Misc Sales Mapping ---
+    MISC_ENVELOPE_MAP = {
+        "TOM-CH-pkts": ("Tomato", 7),
+        "PEA-SP-pkts": ("Pea", 3),
+        "BEA-MF-pkts": ("Bean", 4),
+    }
 
+    misc_sales = MiscSales.objects.filter(year=latest_year).select_related("product")
 
-    # class MiscProduct(models.Model):
-    #     lineitem_name = models.CharField(max_length=255)
-    #     sku = models.CharField(max_length=50, unique=True)
-    #     category = models.CharField(max_length=100, blank=True, null=True)
-    #     description = models.TextField(blank=True, null=True)   
+    for misc_sale in misc_sales:
+        sku = misc_sale.product.sku
+        quantity = misc_sale.quantity
 
+        if sku in MISC_ENVELOPE_MAP:
+            env_type, multiplier = MISC_ENVELOPE_MAP[sku]
+            env_count = quantity * multiplier
 
-    # misc products with envelope types
-    # TOM-CH-pkts -> 7 Tomato envelopes
-    # PEA-SP-pkts -> 3 Pea envelopes
-    # BEA-MF-pkts -> 4 Bean envelopes
+            if env_type not in envelope_counts:
+                envelope_counts[env_type] = 0
 
-    # TODO - include misc product sales in envelope counts
+            envelope_counts[env_type] += env_count
+            total_envelopes += env_count
+        else:
+            # Optional: log or skip unknown SKUs
+            print(f"⚠️ Unmapped misc SKU: {sku}")
 
     
     # Sort envelope counts by quantity (descending)
