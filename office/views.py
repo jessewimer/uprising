@@ -313,7 +313,7 @@ def analytics(request):
         'top_sellers': top_sellers,
     }
     
-    print(f"DEBUG VIEW: final context envelope_data_json = {context['envelope_data_json']}")
+    # print(f"DEBUG VIEW: final context envelope_data_json = {context['envelope_data_json']}")
    
     return render(request, 'products/analytics.html', context)
 
@@ -324,7 +324,7 @@ def get_envelope_count_data():
     """
     # Find the most recent sales year
     latest_year = Sales.objects.aggregate(max_year=Max('year'))['max_year']
-    print(f"DEBUG: Latest sales year: {latest_year}")
+    # print(f"DEBUG: Latest sales year: {latest_year}")
     
     if not latest_year:
         return {
@@ -376,12 +376,30 @@ def get_envelope_count_data():
         
         envelope_counts[envelope_type] += quantity
         total_envelopes += quantity
-        # print(f"DEBUG: Added {quantity} to envelope type '{envelope_type}'")
-    
-    # print(f"DEBUG: Products WITH env_type: {products_with_env_type}")
-    # print(f"DEBUG: Products WITHOUT env_type: {products_without_env_type}")
-    # print(f"DEBUG: Final envelope_counts: {envelope_counts}")
-    # print(f"DEBUG: Total envelopes: {total_envelopes}")
+
+    # Miscellaneous models
+    # class MiscSale(models.Model):
+    #     variety = models.ForeignKey(Variety, on_delete=models.CASCADE, related_name="misc_sales")
+    #     lbs = models.FloatField()
+    #     date = models.DateField()
+    #     customer = models.CharField(max_length=255)
+    #     notes = models.TextField(blank=True, null=True)
+
+
+    # class MiscProduct(models.Model):
+    #     lineitem_name = models.CharField(max_length=255)
+    #     sku = models.CharField(max_length=50, unique=True)
+    #     category = models.CharField(max_length=100, blank=True, null=True)
+    #     description = models.TextField(blank=True, null=True)   
+
+
+    # misc products with envelope types
+    # TOM-CH-pkts -> 7 Tomato envelopes
+    # PEA-SP-pkts -> 3 Pea envelopes
+    # BEA-MF-pkts -> 4 Bean envelopes
+
+    # TODO - include misc product sales in envelope counts
+
     
     # Sort envelope counts by quantity (descending)
     envelope_counts = dict(sorted(envelope_counts.items(), key=lambda x: x[1], reverse=True))

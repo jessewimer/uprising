@@ -476,13 +476,6 @@ def process_orders(request):
         # ------------------------------------------------------------
         order_data = {}
 
-        # all_orders = OnlineOrder.objects.filter(
-        #     order_number__in=order_numbers
-        # ).prefetch_related(
-        #     "ooincludes_set__product__variety",
-        #     "ooincludesmisc_set"
-        # )
-
         all_orders = OnlineOrder.objects.filter(
             order_number__in=order_numbers
         ).prefetch_related(
@@ -671,26 +664,6 @@ def reprint_order(request):
         bulk_items_to_print = {}
         bulk_items_to_pull = {}
 
-# class Product(models.Model):
-#     variety = models.ForeignKey("Variety", on_delete=models.CASCADE, related_name="products", null=True, blank=True)
-#     lot = models.ForeignKey("lots.Lot", on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
-#     pkg_size = models.CharField(max_length=50, blank=True, null=True)
-#     sku_suffix = models.CharField(max_length=50, blank=True, null=True)
-#     alt_sku = models.CharField(max_length=50, blank=True, null=True)
-#     lineitem_name = models.CharField(max_length=255, blank=True, null=True)
-
-#     rack_location = models.CharField(max_length=100, blank=True, null=True)
-#     env_type = models.CharField(max_length=50, blank=True, null=True)
-#     env_multiplier = models.IntegerField(blank=True, null=True)
-#     label = models.CharField(max_length=1, blank=True, null=True)
-
-#     num_printed = models.IntegerField(blank=True, null=True)
-#     num_printed_next_year = models.IntegerField(default=0)
-#     scoop_size = models.CharField(max_length=50, blank=True, null=True)
-#     print_back = models.BooleanField(default=False)
-#     bulk_pre_pack = models.IntegerField(blank=True, null=True, default=0)
-#     is_sub_product = models.BooleanField(default=False)
-
         if includes.exists():
             for item in includes:
                 lot = f"{item.product.lot.grower}{item.product.lot.year}{item.product.lot.harvest if item.product.lot.harvest else ''}" if item.product and item.product.lot else "N/A"
@@ -802,88 +775,6 @@ def reprint_order(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-# @login_required
-# @user_passes_test(is_employee)
-# @require_http_methods(["POST"])
-# def print_range(request):
-#     """
-#     Generate PDF for a range of items
-#     Returns PDF file as response
-#     """
-#     try:
-#         data = json.loads(request.body)
-#         start = data.get('start', 0)
-#         end = data.get('end', 0)
-#         items = data.get('items', [])
-        
-#         print(f"Printing range {start+1}-{end+1} with {len(items)} items")
-        
-#         # Generate PDF (implement your PDF generation logic)
-#         # This is a placeholder - replace with actual PDF generation
-#         from reportlab.pdfgen import canvas
-#         from reportlab.lib.pagesizes import letter
-#         import tempfile
-#         import os
-        
-#         # Create temporary file for PDF
-#         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-#             # Create PDF
-#             p = canvas.Canvas(tmp_file.name, pagesize=letter)
-#             y = 750
-            
-#             p.drawString(100, y, f"Bulk Order Labels ({start+1}-{end+1})")
-#             y -= 30
-            
-#             for i, item in enumerate(items):
-#                 p.drawString(100, y, f"{i+1}. {item['name']} - Qty: {item['quantity']}")
-#                 y -= 20
-#                 if y < 100:  # New page if needed
-#                     p.showPage()
-#                     y = 750
-            
-#             p.save()
-            
-#             # Read and return PDF
-#             with open(tmp_file.name, 'rb') as pdf_file:
-#                 response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-#                 response['Content-Disposition'] = f'attachment; filename="bulk_orders_{start+1}-{end+1}.pdf"'
-                
-#             # Clean up temp file
-#             os.unlink(tmp_file.name)
-#             return response
-    
-#     except Exception as e:
-#         print(f"Error generating PDF: {e}")
-#         return JsonResponse({'success': False, 'error': str(e)})
-
-
-# @login_required
-# @user_passes_test(is_employee)
-# # Helper function to send CSV to Flask
-# def send_to_flask_for_printing(csv_content):
-#     """
-#     Send CSV to Flask service for printing processing
-#     This is called after successful Django processing
-#     """
-#     try:
-#         flask_url = 'http://localhost:5000/print-orders'  # Adjust URL as needed
-        
-#         files = {'csv_file': ('orders.csv', csv_content, 'text/csv')}
-#         response = requests.post(flask_url, files=files, timeout=30)
-        
-#         if response.status_code == 200:
-#             print("Flask processing successful")
-#             return response.json()
-#         else:
-#             print(f"Flask processing failed: {response.status_code}")
-#             return None
-            
-#     except Exception as e:
-#         print(f"Error sending to Flask: {e}")
-#         return None
-
-
-
 
 
 # ========================================================================================================== #
@@ -974,7 +865,7 @@ def generate_order_pdf(request, order_id):
         elements.append(
             Paragraph(f"<b>Fulfilled Date:</b> {fulfilled_text}", styles["Normal"])
         )
-        
+
         if hasattr(order, "store") and order.store:
             elements.append(
                 Paragraph(f"<b>Store:</b> {order.store.store_name}", styles["Normal"])

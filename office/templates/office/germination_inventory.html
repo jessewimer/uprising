@@ -1271,9 +1271,6 @@
             });
         }
 
-
-
-
         function showMessage(text, type = 'error') {
             // Create message container if it doesn't exist
             let container = document.querySelector('.messages-container');
@@ -1377,39 +1374,6 @@
                 showModal(hasLabel);
             }
         }
-
-
-
-
-
-        // // Handle print click
-        // function handlePrint(lot) {
-        //     console.log('Print clicked for:', lot.variety_name, lot.lot_code);
-            
-        //     currentPrintJob = {
-        //         lot_id: lot.lot_id,
-        //         variety_name: lot.variety_name,
-        //         sku_prefix: lot.sku_prefix,
-        //         lot_code: lot.lot_code,
-        //         species: lot.species
-        //     };
-            
-        //     // Check if warning needed
-        //     const rightmostYear = appData.germYears[appData.germYears.length - 1];
-        //     const currentGermYearFormatted = String(appData.germYear).padStart(2, '0');
-            
-        //     if (rightmostYear !== currentGermYearFormatted) {
-        //         // New year - no warning
-        //         console.log('New germ year - direct print');
-        //         showModal(false);
-        //     } else {
-        //         // Check existing label
-        //         const display = getGerminationDisplay(lot, rightmostYear);
-        //         const hasLabel = display.text !== '-';
-        //         console.log('Existing check:', display.text, hasLabel);
-        //         showModal(hasLabel);
-        //     }
-        // }
 
         // Show modal
         function showModal(isWarning) {

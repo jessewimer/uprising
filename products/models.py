@@ -183,6 +183,10 @@ class MiscProduct(models.Model):
     category = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)   
 
+class MiscSales(models.Model):
+    product = models.ForeignKey(MiscProduct, on_delete=models.CASCADE, related_name="sales")
+    quantity = models.IntegerField()
+    year = models.IntegerField()
 
 class LastSelected(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
