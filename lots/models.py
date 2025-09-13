@@ -184,3 +184,14 @@ class LotNote(models.Model):
 
     def __str__(self):
         return f"Note for {self.lot} ({self.date:%Y-%m-%d})"
+
+# class Growout(models.Model):
+#     variety = models.OneToOneField("products.Variety", on_delete=models.CASCADE, related_name="growout_info")
+#     location = models.CharField(max_length=100, blank=True, null=True)
+#     planted_date = models.DateField(blank=True, null=True)
+#     expected_harvest_date = models.DateField(blank=True, null=True)
+#     actual_harvest_date = models.DateField(blank=True, null=True)
+#     notes = models.TextField(blank=True, null=True)
+
+#     def __str__(self):
+#         return f"Growout for {self.variety.name}"

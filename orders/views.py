@@ -594,53 +594,51 @@ def process_orders(request):
  
 
 
+# @login_required
+# @user_passes_test(is_employee)
+# def view_packing_slip(request, order_id):
+#     """
+#     View a specific order by order number
+#     """
+#     order = get_object_or_404(OnlineOrder, order_number=order_id)
+#     includes = OOIncludes.objects.filter(order=order).select_related('product__variety')
+#     misc_includes = OOIncludesMisc.objects.filter(order=order)
+
+#     context = {
+#         'order': order,
+#         'includes': includes,
+#         'misc_includes': misc_includes,
+#     }
+#     return render(request, 'orders/view_packing_slip.html', context)
 
 
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
-def reprint_order(request):
-    """
-    Reprint a specific order by order number
-    Expected response format:
-    - success: True/False
-    - message: 'order not found' | success message
-    - bulk_items_to_print: [{'name': str, 'quantity': int}, ...]
-    - bulk_items_to_pull: [{'name': str, 'quantity': int}, ...]
-    """
+def reprint_packing_slip(request, order_id):
     try:
-        data = json.loads(request.body)
-        order_number = data.get('order_number', '').strip()
-        for_year = f"20{settings.CURRENT_ORDER_YEAR}"
-        # validate order number format        
+        order_number = order_id.strip()
+        
         if not order_number:
             return JsonResponse({'success': False, 'error': 'Order number required'})
-        
-        if not order_number.startswith('S' or 's'):
-            order_number = 'S' + order_number
-
-        if order_number.startswith('s'):
-            order_number = 'S' + order_number[1:]
-        
-        if order_number.length < 6 or order_number.length > 6:
-            return JsonResponse({'success': False, 'error': 'Invalid order number format'})
-        
+       
         print(f"Reprinting order: {order_number}")
-        
-        # Query database for the order (implement your database logic)
-        # Example:
+       
+        # Get the order and related data
         order = OnlineOrder.objects.filter(order_number=order_number).first()
         if not order:
             return JsonResponse({
                 'success': True,
                 'message': 'order not found'
             })
+       
+        # Get the order includes/line items
+        order_includes = OOIncludes.objects.filter(order_id=order_number)
+        order_includes_misc = OOIncludesMisc.objects.filter(order_id=order_number)
         
-
-        # Retrieve data from order and OOIncludes tables
+        # Build your order data dictionary (similar to what your original code expects)
         order_data = {
             'order_number': order.order_number,
-            'date': order.date,
             'customer_name': order.customer_name,
             'address': order.address,
             'address2': order.address2,
@@ -652,129 +650,252 @@ def reprint_order(request):
             'subtotal': order.subtotal,
             'tax': order.tax,
             'total': order.total,
-            'bulk': order.bulk,
-            'misc': order.misc,
             'note': order.note,
+            'date': order.date.isoformat(),
+            'misc_items': [],  # populate from order_includes
+            'bulk_items': [],  # populate from order_includes
+            'pkt_items': [],   # populate from order_includes
         }
-
-        includes = OOIncludes.objects.filter(order=order)
-        misc_includes = OOIncludesMisc.objects.filter(order=order)
-        items = {}
-        misc_items = {}
-        bulk_items_to_print = {}
-        bulk_items_to_pull = {}
-
-        if includes.exists():
-            for item in includes:
-                lot = f"{item.product.lot.grower}{item.product.lot.year}{item.product.lot.harvest if item.product.lot.harvest else ''}" if item.product and item.product.lot else "N/A"
-                sku = f"{item.product.variety.sku_prefix}-{item.product.sku_suffix}"
-                
-                if item.product.sku_suffix != 'pkt':
-
-                    # determine how many to print vs pull
-                    if item.product.bulk_pre_pack == 0 or item.product.bulk_pre_pack is None:
-                        quantity_to_print = item.qty
-                    elif item.product.bulk_pre_pack >= item.qty:
-                        quantity_to_pull = item.qty
-                        item.product.bulk_pre_pack -= item.qty
-                        # save to db
-                        item.product.save()
-                    else:
-                        quantity_to_pull = item.product.bulk_pre_pack
-                        quantity_to_print = item.qty - quantity_to_pull
-                        item.product.bulk_pre_pack = 0
-                        # save to db
-                        item.product.save()
-
-
-                    if quantity_to_print > 0:
-                        if item.product.env_multiplier and item.product.env_multiplier > 1:
-                            quantity_to_print = quantity_to_print * item.product.env_multiplier
-                            # look up other product with the alt_sku
-                            alt_product = item.product.variety.products.filter(sku_suffix=item.product.alt_sku).first()
-                            pkg_size = alt_product.pkg_size if alt_product else item.product.pkg_size
-                        else:
-                            pkg_size = item.product.pkg_size
-
-                        if item.product.print_back:
-                            bulk_items_to_print[sku] = {
-                                'quantity': quantity_to_print,
-                                'variety_name': item.product.variety.var_name,
-                                'crop': item.product.variety.crop,
-                                'days': item.product.variety.days,
-                                'common_name': item.product.variety.common_name if item.product.variety.common_name else "",
-                                'desc1': item.product.variety.desc_line1,
-                                'desc2': item.product.variety.desc_line2,
-                                'desc3': item.product.variety.desc_line3 if item.product.variety.desc_line3 else "",
-                                'back1': item.product.variety.back1,
-                                'back2': item.product.variety.back2,
-                                'back3': item.product.variety.back3,
-                                'back4': item.product.variety.back4,
-                                'back5': item.product.variety.back5,
-                                'back6': item.product.variety.back6,
-                                'back7': item.product.variety.back7 if item.product.variety.back7 else "",
-                                'lot': lot,
-                                'pkg_size': pkg_size,
-                                'alt_sku': item.product.alt_sku if item.product.alt_sku else "",
-                                'env_multiplier': item.product.env_multiplier if item.product.env_multiplier else 1,  
-                            }
-                            
-                        else:
-                            bulk_items_to_print[sku] = {
-                                'quantity': quantity_to_print,
-                                'variety_name': item.product.variety.var_name,
-                                'crop': item.product.variety.crop,
-                                'days': item.product.variety.days,
-                                'common_name': item.product.variety.common_name if item.product.variety.common_name else "",
-                                'desc1': item.product.variety.desc_line1,
-                                'desc2': item.product.variety.desc_line2,
-                                'desc3': item.product.variety.desc_line3 if item.product.variety.desc_line3 else "",
-                                'lot': lot,
-                                'pkg_size': pkg_size,
-                                'alt_sku': item.product.alt_sku if item.product.alt_sku else "",
-                                'env_multiplier': item.product.env_multiplier if item.product.env_multiplier else 1,  
-                            }
-            # ENDED HERE, ALTHOUGH ALL CODE BEFORE AND AFTER THIS IS UNTESTED
-                sku_prefix = item.product.variety.sku_prefix if item.product else "N/A"
-                items[sku_prefix] = {
-                    'quantity': item.qty,
-                    'price': float(item.price),
-                    'line_item_name': item.product.lineitem_name if item.product else "N/A",
-                    'rack_location': item.product.rack_location if item.product else "N/A",
-                }
-        if misc_includes.exists():
-            for misc_item in misc_includes:
-                misc_items[misc_item.sku] = {
-                    'quantity': misc_item.qty,
-                    'price': float(misc_item.price),
-                    'line_item_name': misc_item.sku
-                }
-
-
-            # Simulate found order - replace with actual database data
-            bulk_items_to_print = [
-                {'name': f'Item for order {order_number}', 'quantity': 1}
-            ]
-            bulk_items_to_pull = [
-                {'name': f'Pre-packed item for {order_number}', 'quantity': 1}
-            ]
-            
-            return JsonResponse({
-                'success': True,
-                'bulk_items_to_print': bulk_items_to_print,
-                'bulk_items_to_pull': bulk_items_to_pull
-            })
-        else:
-            return JsonResponse({
-                'success': True,
-                'message': 'order not found'
-            })
         
+        # Populate the line items from OOIncludes
+        if order_includes:
+            # print(f"Found {order_includes.count()} line items for order {order_number}")
+            for include in order_includes:
+                line_item = {
+                    'qty': include.qty,
+                    'lineitem': include.product.lineitem_name if include.product else "Unknown",  
+                    'price': str(float(include.price)), 
+                    'rack_location': include.product.rack_location if include.product else "",
+                    'sku_prefix': include.product.variety.sku_prefix if include.product else "",
+                }
+
+                if include.product.sku_suffix == 'pkt':
+                    order_data['pkt_items'].append(line_item)
+                else:
+                    order_data['bulk_items'].append(line_item)
+
+        if order_includes_misc:
+            # print(f"Found {order_includes_misc.count()} misc items for order {order_number}")
+            for include in order_includes_misc:
+                # lookup misc product name
+                misc_product = MiscProduct.objects.filter(sku=include.sku).first()
+                line_item = {
+                    'qty': include.qty,
+                    'lineitem': misc_product.lineitem_name if misc_product else "Unknown",
+                    'price': str(float(include.price)),
+                }
+                order_data['misc_items'].append(line_item)
+        
+        # sort misc by qty desc
+        order_data['misc_items'].sort(key=lambda x: -x['qty'])
+
+        # sort bulk by qty desc, then sku_prefix
+        order_data['bulk_items'].sort(key=lambda x: (-x['qty'], x.get('sku_prefix', '')))
+
+        # sort pkt by qty desc, then rack_location (convert to float for proper numerical sorting)
+        order_data['pkt_items'].sort(key=lambda x: (
+            -x['qty'], 
+            float(x.get('rack_location', 0)) if x.get('rack_location') else 0
+        ))
+
+        print(f"Made it this far!")
+        return JsonResponse({
+            'success': True,
+            'order_data': order_data
+        })
+
     except Exception as e:
-        print(f"Error reprinting order: {e}")
+        print(f"Error generating packing slip: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+
+
+
+
+
+
+# @login_required
+# @user_passes_test(is_employee)
+# @require_http_methods(["POST"])
+# def reprint_packing_slip(request, order_id):  # <-- Add order_id parameter here
+#     """
+#     Reprint a specific order by order number
+#     Expected response format:
+#     - success: True/False
+#     - message: 'order not found' | success message
+#     """
+#     try:
+#         # Use order_id from URL parameter, not request body
+#         order_number = order_id.strip()  # <-- Use order_id parameter
+        
+#         # validate order number format        
+#         if not order_number:
+#             return JsonResponse({'success': False, 'error': 'Order number required'})
+       
+#         # Query database for the order (implement your database logic)
+#         # Example:
+#         order = OnlineOrder.objects.filter(order_number=order_number).first()
+#         if not order:
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': 'order not found'
+#             })
+       
+#         # Retrieve data from order table
+#         order_data = {
+#             'order_number': order.order_number,
+#             'date': order.date,
+#             'customer_name': order.customer_name,
+#             'address': order.address,
+#             'address2': order.address2,
+#             'city': order.city,
+#             'state': order.state,
+#             'postal_code': order.postal_code,
+#             'country': order.country,
+#             'shipping': order.shipping,
+#             'subtotal': order.subtotal,
+#             'tax': order.tax,
+#             'total': order.total,
+#             'bulk': order.bulk,
+#             'misc': order.misc,
+#             'note': order.note,
+#         }
+
+
+    #     print(f"Reprinting Order data: {order_data}")
+    #     return JsonResponse({
+    #         'success': True,
+    #     })
+       
+    # except Exception as e:
+    #     print(f"Error reprinting order: {e}")
+    #     return JsonResponse({'success': False, 'error': str(e)})
+
+    #     includes = OOIncludes.objects.filter(order=order)
+    #     misc_includes = OOIncludesMisc.objects.filter(order=order)
+    #     items = {}
+    #     misc_items = {}
+        # bulk_items_to_print = {}
+        # bulk_items_to_pull = {}
+
+        # if includes.exists():
+        #     for item in includes:
+        #         lot = f"{item.product.lot.grower}{item.product.lot.year}{item.product.lot.harvest if item.product.lot.harvest else ''}" if item.product and item.product.lot else "N/A"
+        #         sku = f"{item.product.variety.sku_prefix}-{item.product.sku_suffix}"
+                
+        #         if item.product.sku_suffix != 'pkt':
+
+                    # # determine how many to print vs pull
+                    # if item.product.bulk_pre_pack == 0 or item.product.bulk_pre_pack is None:
+                    #     quantity_to_print = item.qty
+                    # elif item.product.bulk_pre_pack >= item.qty:
+                    #     quantity_to_pull = item.qty
+                    #     item.product.bulk_pre_pack -= item.qty
+                    #     # save to db
+                    #     item.product.save()
+                    # else:
+                    #     quantity_to_pull = item.product.bulk_pre_pack
+                    #     quantity_to_print = item.qty - quantity_to_pull
+                    #     item.product.bulk_pre_pack = 0
+                    #     # save to db
+                    #     item.product.save()
+
+
+                    # if quantity_to_print > 0:
+                    #     if item.product.env_multiplier and item.product.env_multiplier > 1:
+                    #         quantity_to_print = quantity_to_print * item.product.env_multiplier
+                    #         # look up other product with the alt_sku
+                    #         alt_product = item.product.variety.products.filter(sku_suffix=item.product.alt_sku).first()
+                    #         pkg_size = alt_product.pkg_size if alt_product else item.product.pkg_size
+                    #     else:
+                    #         pkg_size = item.product.pkg_size
+
+                    #     if item.product.print_back:
+                    #         bulk_items_to_print[sku] = {
+                    #             'quantity': quantity_to_print,
+                    #             'variety_name': item.product.variety.var_name,
+                    #             'crop': item.product.variety.crop,
+                    #             'days': item.product.variety.days,
+                    #             'common_name': item.product.variety.common_name if item.product.variety.common_name else "",
+                    #             'desc1': item.product.variety.desc_line1,
+                    #             'desc2': item.product.variety.desc_line2,
+                    #             'desc3': item.product.variety.desc_line3 if item.product.variety.desc_line3 else "",
+                    #             'back1': item.product.variety.back1,
+                    #             'back2': item.product.variety.back2,
+                    #             'back3': item.product.variety.back3,
+                    #             'back4': item.product.variety.back4,
+                    #             'back5': item.product.variety.back5,
+                    #             'back6': item.product.variety.back6,
+                    #             'back7': item.product.variety.back7 if item.product.variety.back7 else "",
+                    #             'lot': lot,
+                    #             'pkg_size': pkg_size,
+                    #             'alt_sku': item.product.alt_sku if item.product.alt_sku else "",
+                    #             'env_multiplier': item.product.env_multiplier if item.product.env_multiplier else 1,  
+                    #         }
+                            
+                    #     else:
+                    #         bulk_items_to_print[sku] = {
+                    #             'quantity': quantity_to_print,
+                    #             'variety_name': item.product.variety.var_name,
+                    #             'crop': item.product.variety.crop,
+                    #             'days': item.product.variety.days,
+                    #             'common_name': item.product.variety.common_name if item.product.variety.common_name else "",
+                    #             'desc1': item.product.variety.desc_line1,
+                    #             'desc2': item.product.variety.desc_line2,
+                    #             'desc3': item.product.variety.desc_line3 if item.product.variety.desc_line3 else "",
+                    #             'lot': lot,
+                    #             'pkg_size': pkg_size,
+                    #             'alt_sku': item.product.alt_sku if item.product.alt_sku else "",
+                    #             'env_multiplier': item.product.env_multiplier if item.product.env_multiplier else 1,  
+                    #         }
+
+
+        #     # ENDED HERE, ALTHOUGH ALL CODE BEFORE AND AFTER THIS IS UNTESTED
+        #         sku_prefix = item.product.variety.sku_prefix if item.product else "N/A"
+        #         items[sku_prefix] = {
+        #             'quantity': item.qty,
+        #             'price': float(item.price),
+        #             'line_item_name': item.product.lineitem_name if item.product else "N/A",
+        #             'rack_location': item.product.rack_location if item.product else "N/A",
+        #         }
+        # if misc_includes.exists():
+        #     for misc_item in misc_includes:
+        #         misc_items[misc_item.sku] = {
+        #             'quantity': misc_item.qty,
+        #             'price': float(misc_item.price),
+        #             'line_item_name': misc_item.sku
+        #         }
+
+
+            # # Simulate found order - replace with actual database data
+            # bulk_items_to_print = [
+            #     {'name': f'Item for order {order_number}', 'quantity': 1}
+            # ]
+            # bulk_items_to_pull = [
+            #     {'name': f'Pre-packed item for {order_number}', 'quantity': 1}
+            # ]
+            
+            # return JsonResponse({
+            #     'success': True,
+            #     # 'bulk_items_to_print': bulk_items_to_print,
+            #     # 'bulk_items_to_pull': bulk_items_to_pull
+        #     # })
+        # else:
+        #     return JsonResponse({
+        #         'success': True,
+        #         'message': 'order not found'
+        #     })
+        
+
+
+@login_required
+@user_passes_test(is_employee)
+def reprocess_order(request):
+    """
+    Reprocess orders page
+    """
+    return render(request, 'orders/reprocess_orders.html')
 
 
 # ========================================================================================================== #

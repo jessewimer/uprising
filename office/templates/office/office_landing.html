@@ -709,6 +709,16 @@
         <div class="inventory-menu-content">
             <button class="inventory-menu-close" onclick="closeInventoryMenu()">&times;</button>
             <h2 class="inventory-menu-title">Inventory & Germination</h2>
+            <!-- <div class="inventory-options">
+                <a href="{% url 'germ_samples' %}" class="inventory-option">
+                    <div class="inventory-option-icon">🧫</div>
+                    <div class="inventory-option-text">Send Germ Samples</div>
+                </a>
+                <a href="{% url 'germination_inventory' %}" class="inventory-option">
+                    <div class="inventory-option-icon">📋</div>
+                    <div class="inventory-option-text">View Germination/Inventory Data</div>
+                </a>
+            </div> -->
             <div class="inventory-options">
                 <a href="{% url 'germ_samples' %}" class="inventory-option">
                     <div class="inventory-option-icon">🧫</div>
@@ -717,6 +727,10 @@
                 <a href="{% url 'germination_inventory' %}" class="inventory-option">
                     <div class="inventory-option-icon">📋</div>
                     <div class="inventory-option-text">View Germination/Inventory Data</div>
+                </a>
+                <a href="{% url 'growouts' %}" class="inventory-option">
+                    <div class="inventory-option-icon">🌿</div>
+                    <div class="inventory-option-text">Growouts</div>
                 </a>
             </div>
         </div>

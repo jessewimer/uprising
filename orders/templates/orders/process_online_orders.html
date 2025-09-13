@@ -598,9 +598,6 @@
             font-weight: 500;
         }
 
-
-
-
         /* Notification System */
         .notification-container {
             position: fixed;
@@ -679,6 +676,54 @@
         }
 
 
+        /* Order Input Modal Styles */
+        .order-input-section {
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.15);
+        }
+
+        .order-input-label {
+            display: block;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .order-input-field {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            background: white;
+            color: #333;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .order-input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .order-input-field::placeholder {
+            color: #999;
+            font-weight: 500;
+        }
+
+        .order-input-hint {
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+            font-style: italic;
+        }
 
         /* Animations */
         @keyframes fadeIn {
@@ -935,11 +980,35 @@
                     <div class="modal-subtitle">Select an action</div>
                 </div>
                 <div class="modal-actions vertical">
-                    <button class="modal-btn modal-btn-info" id="viewInvoiceBtn">View Invoice</button>
-                    <button class="modal-btn modal-btn-success" id="reprintInvoiceBtn">Reprint Invoice</button>
+                    <button class="modal-btn modal-btn-success" id="reprintInvoiceBtn">View/Reprint Packing Slip</button>
                     <button class="modal-btn modal-btn-primary" id="reprocessOrderBtn">Reprocess Order</button>
                     <button class="modal-btn modal-btn-secondary" id="cancelReprintOptions">Cancel</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Input Modal -->
+    <div class="modal-overlay" id="orderInputModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Enter Order Number</div>
+                <div class="modal-subtitle">Please enter the order number to continue</div>
+            </div>
+            <div class="modal-content">
+                <div class="order-input-section">
+                    <label for="orderNumberInput" class="order-input-label">Order Number:</label>
+                    <input type="text" 
+                        id="orderNumberInput" 
+                        class="order-input-field" 
+                        placeholder="e.g. S71900"
+                        maxlength="6">
+                    <div class="order-input-hint">Format: S followed by 5 digits</div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-primary" id="confirmOrderBtn">Continue</button>
+                <button class="modal-btn modal-btn-secondary" id="cancelOrderInput">Cancel</button>
             </div>
         </div>
     </div>
@@ -952,7 +1021,12 @@
         let printItems = [];
         let pullItems = [];
         let processedOrderData = null;
-        
+        // Global variable to track what action we're taking
+        let currentOrderAction = null;
+
+
+
+
         const rawBatchData = JSON.parse(document.getElementById('batch-data').textContent);
         
         // Convert the data to the format our JavaScript expects
@@ -985,7 +1059,6 @@
         const errorMessage = document.getElementById('errorMessage');
         const closeErrorModal = document.getElementById('closeErrorModal');
         const reprintOptionsModal = document.getElementById('reprintOptionsModal');
-        const viewInvoiceBtn = document.getElementById('viewInvoiceBtn');
         const reprintInvoiceBtn = document.getElementById('reprintInvoiceBtn');
         const reprocessOrderBtn = document.getElementById('reprocessOrderBtn');
         const cancelReprintOptions = document.getElementById('cancelReprintOptions');
@@ -1188,11 +1261,46 @@
             printRangeBtn.addEventListener('click', printRange);
             batchSelect.addEventListener('change', handleBatchSelection);
 
+            // Order input modal event listeners
+            const confirmOrderBtn = document.getElementById('confirmOrderBtn');
+            const cancelOrderInput = document.getElementById('cancelOrderInput');
+            const orderInputModal = document.getElementById('orderInputModal');
+            const orderNumberInput = document.getElementById('orderNumberInput');
+
+            if (confirmOrderBtn) {
+                confirmOrderBtn.addEventListener('click', handleOrderSubmission);
+            }
+
+            if (cancelOrderInput) {
+                cancelOrderInput.addEventListener('click', hideOrderInputModal);
+            }
+
+            if (orderInputModal) {
+                orderInputModal.addEventListener('click', (e) => {
+                    if (e.target === orderInputModal) {
+                        hideOrderInputModal();
+                    }
+                });
+            }
+
+            if (orderNumberInput) {
+                // Allow Enter key to submit
+                orderNumberInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        handleOrderSubmission();
+                    }
+                });
+                
+                // Auto-uppercase as user types
+                orderNumberInput.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.toUpperCase();
+                });
+            }
+
             // Modal event listeners
             closeSuccessModal.addEventListener('click', hideSuccessModal);
             closeErrorModal.addEventListener('click', hideErrorModal);
             cancelReprintOptions.addEventListener('click', hideReprintOptionsModal);
-            viewInvoiceBtn.addEventListener('click', viewInvoice);
             reprintInvoiceBtn.addEventListener('click', reprintInvoice);
             reprocessOrderBtn.addEventListener('click', reprocessOrder);
             
@@ -1331,72 +1439,6 @@
         }
 
 
-        // function processOrders() {
-        //     if (!currentFile) {
-        //         showErrorModal('Please upload a CSV file first.');
-        //         return;
-        //     }
-
-        //     processButton.disabled = true;
-        //     processButton.innerHTML = '<span>Processing...</span>';
-        //     document.body.classList.add('processing');
-
-        //     const formData = new FormData();
-        //     formData.append('csv_file', currentFile);
-
-        //     // Send to Django backend for processing
-        //     fetch('/orders/process-orders/', {
-        //         method: 'POST',
-        //         headers: {
-        //             'X-CSRFToken': getCookie('csrftoken'),
-        //         },
-        //         body: formData
-        //     })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.success) {
-        //             if (data.bulk_to_print && data.bulk_to_pull) {
-        //                 // Store all order data for Flask
-        //                 processedOrderData = {
-        //                     customer_orders: data.customer_orders,
-        //                     missing_orders: data.missing_orders,
-        //                     order_data: data.order_data,
-        //                     bulk_orders: data.bulk_orders,
-        //                     misc_orders: data.misc_orders,
-        //                     batch_metadata: data.batch_metadata
-        //                 };
-                        
-        //                 // Update tables
-        //                 updatePrintItems(data.bulk_to_print);
-        //                 updatePullItems(data.bulk_to_pull);
-                        
-        //                 // Add new batch to dropdown and select it
-        //                 // addNewBatchToDropdown(data.batch_metadata);
-        //                 addNewBatchToDropdown(data.batch_metadata, data.bulk_to_print, data.bulk_to_pull);
-                        
-        //                 // Reset upload state after processing
-        //                 resetUploadState();
-                        
-        //                 // Send data to Flask
-        //                 sendToFlaskForPrinting();
-        //             }
-        //         } else {
-        //             showErrorModal(data.error || 'Error processing orders.');
-        //             clearUploadState();
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error('Error:', error);
-        //         showErrorModal('Network error. Please try again.');
-        //         clearUploadState();
-        //         document.body.classList.add('processing');
-        //     });
-        //     // .finally(() => {
-        //     //     processButton.disabled = false;
-        //     //     processButton.innerHTML = '<span>Process Orders</span>';
-        //     // });
-        // }
-
         function addNewBatchToDropdown(batchMetadata, bulkToPrint, bulkToPull) {
             // Create new option with Pacific timezone date (should match Django format)
             const newOption = document.createElement('option');
@@ -1521,6 +1563,72 @@
         }
 
 
+        // Order input modal functions
+        function showOrderInputModal(action) {
+            currentOrderAction = action;
+            const modal = document.getElementById('orderInputModal');
+            const input = document.getElementById('orderNumberInput');
+            
+            // Clear previous input
+            input.value = '';
+            
+            // Update modal title based on action
+            const title = document.querySelector('#orderInputModal .modal-title');
+            if (action === 'reprint') {
+                title.textContent = 'View/Reprint Packing Slip';
+            } else if (action === 'reprocess') {
+                title.textContent = 'Reprocess Order';
+            }
+            
+            modal.classList.add('visible');
+            
+            // Focus the input field
+            setTimeout(() => {
+                input.focus();
+            }, 300);
+        }
+
+        function hideOrderInputModal() {
+            const modal = document.getElementById('orderInputModal');
+            modal.classList.remove('visible');
+            currentOrderAction = null;
+        }
+
+        function validateOrderNumber(input) {
+            // Remove any whitespace and convert to uppercase
+            let orderNumber = input.trim().toUpperCase();
+            
+            // If it's just 5 digits, add 'S' prefix
+            if (/^\d{5}$/.test(orderNumber)) {
+                orderNumber = 'S' + orderNumber;
+            }
+            
+            // Check if it matches the required format: S followed by 5 digits
+            if (/^S\d{5}$/.test(orderNumber)) {
+                return { valid: true, orderNumber: orderNumber };
+            }
+            
+            return { valid: false, orderNumber: null };
+        }
+
+        function handleOrderSubmission() {
+            const input = document.getElementById('orderNumberInput');
+            const validation = validateOrderNumber(input.value);
+            
+            if (!validation.valid) {
+                showNotification('error', 'Invalid Order Number', 'Order number must start with S followed by 5 digits (e.g. S71900)');
+                return;
+            }
+            
+            hideOrderInputModal();
+            
+            // Execute the appropriate action
+            if (currentOrderAction === 'reprint') {
+                executeReprintAction(validation.orderNumber);
+            } else if (currentOrderAction === 'reprocess') {
+                executeReprocessAction(validation.orderNumber);
+            }
+        }
 
 
         async function printRange() {
@@ -1582,117 +1690,6 @@
                 validateRange();
             });
         }
-
-
-        // function printRange() {
-        //     const start = parseInt(startRange.value);
-        //     const end = parseInt(endRange.value);
-
-        //     if (!start || !end || start > end || start < 1 || end > printItems.length) {
-        //         showErrorModal('Please enter a valid range.');
-        //         return;
-        //     }
-
-        //     printRangeBtn.disabled = true;
-        //     const originalText = printRangeBtn.textContent;
-        //     printRangeBtn.textContent = 'Generating...';
-        //     document.body.classList.add('processing'); // Add spinning cursor
-
-        //     const selectedItems = printItems.slice(start - 1, end);
-
-        //     // Send to Flask instead of Django
-        //     fetch('http://localhost:5000/print-range', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         },
-        //         body: JSON.stringify({
-        //             items: selectedItems
-        //         })
-        //     })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.success) {
-        //             showSuccessModal(`Labels generated successfully for items ${start}-${end}!`, {});
-        //         } else {
-        //             showErrorModal(data.error || 'Error generating labels.');
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error('Error printing range:', error);
-        //         showErrorModal('Could not connect to printing service: ' + error.message);
-        //     })
-        //     .finally(() => {
-        //         printRangeBtn.disabled = false;
-        //         printRangeBtn.textContent = originalText;
-        //         document.body.classList.remove('processing'); // Remove spinning cursor
-        //         validateRange();
-        //     });
-        // }
-
-
-
-        // function printRange() {
-        //     const start = parseInt(startRange.value);
-        //     const end = parseInt(endRange.value);
-
-        //     if (!start || !end || start > end || start < 1 || end > printItems.length) {
-        //         showErrorModal('Please enter a valid range.');
-        //         return;
-        //     }
-
-        //     printRangeBtn.disabled = true;
-        //     const originalText = printRangeBtn.textContent;
-        //     printRangeBtn.textContent = 'Generating...';
-
-        //     const selectedItems = printItems.slice(start - 1, end);
-
-        //     fetch('/orders/print-range/', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //             'X-CSRFToken': getCookie('csrftoken'),
-        //         },
-        //         body: JSON.stringify({
-        //             start: start - 1,
-        //             end: end - 1,
-        //             items: selectedItems
-        //         })
-        //     })
-        //     .then(response => {
-        //         if (!response.ok) {
-        //             throw new Error(`HTTP error! status: ${response.status}`);
-        //         }
-        //         return response.blob();
-        //     })
-        //     .then(blob => {
-        //         const url = window.URL.createObjectURL(blob);
-        //         const a = document.createElement('a');
-        //         a.style.display = 'none';
-        //         a.href = url;
-        //         a.download = `bulk_orders_${start}-${end}.pdf`;
-        //         document.body.appendChild(a);
-        //         a.click();
-        //         window.URL.revokeObjectURL(url);
-        //         document.body.removeChild(a);
-                
-        //         showSuccessModal(`Labels generated successfully for items ${start}-${end}!`, {});
-        //     })
-        //     .catch(error => {
-        //         console.error('Error printing range:', error);
-        //         showErrorModal('Error generating labels: ' + error.message);
-        //     })
-        //     .finally(() => {
-        //         printRangeBtn.disabled = false;
-        //         printRangeBtn.textContent = originalText;
-        //         validateRange();
-        //     });
-        // }
-
-
-
-
-
 
 
         // Modal functions
@@ -1766,20 +1763,143 @@
             }
         }
 
-        // Placeholder functions for reprint options
-        function viewInvoice() {
+
+       function reprintInvoice() {
+            console.log('reprintInvoice called');
             hideReprintOptionsModal();
-            console.log('View Invoice clicked - implement functionality');
+            showOrderInputModal('reprint');
         }
 
-        function reprintInvoice() {
-            hideReprintOptionsModal();
-            console.log('Reprint Invoice clicked - implement functionality');
+        function handleOrderSubmission() {
+            console.log('handleOrderSubmission called');
+            const input = document.getElementById('orderNumberInput');
+            console.log('Input value:', input.value);
+            
+            const validation = validateOrderNumber(input.value);
+            console.log('Validation result:', validation);
+            
+            if (!validation.valid) {
+                showNotification('error', 'Invalid Order Number', 'Order number must start with S followed by 5 digits (e.g. S71900)');
+                return;
+            }
+            
+            // Store the action BEFORE hiding the modal (which resets currentOrderAction to null)
+            const actionToTake = currentOrderAction;
+            console.log('Action to take:', actionToTake);
+            
+            hideOrderInputModal();
+            
+            // Execute the appropriate action using the stored value
+            if (actionToTake === 'reprint') {
+                console.log('Calling executeReprintAction with:', validation.orderNumber);
+                executeReprintAction(validation.orderNumber);
+            } else if (actionToTake === 'reprocess') {
+                executeReprocessAction(validation.orderNumber);
+            } else {
+                console.log('No matching action for actionToTake:', actionToTake);
+            }
+        }
+
+
+        async function executeReprintAction(orderNumber) {
+            try {
+                document.body.classList.add('processing');
+                
+                // Step 1: Get order data from Django
+                const djangoResponse = await fetch(`/orders/reprint-packing-slip/${orderNumber}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const djangoData = await djangoResponse.json();
+                
+                // Handle Django response errors
+                if (!djangoData.success) {
+                    showErrorModal(djangoData.error || 'Error fetching order data.');
+                    return;
+                }
+                
+                // Check for "order not found" case
+                if (djangoData.message && djangoData.message.toLowerCase().includes('order not found')) {
+                    showNotification('error', 'Order Not Found', `Order ${orderNumber} was not found in the system.`);
+                    return;
+                }
+                
+                // Step 2: Check Flask health before sending
+                const flaskHealthy = await checkFlaskHealth();
+                if (!flaskHealthy) {
+                    showNotification('error', 'Printer Service Unavailable', 'Flask printing app is not running. Please start the service and try again.');
+                    return;
+                }
+                
+                // Step 3: Send order data to Flask for PDF generation and local opening
+                const flaskResponse = await fetch('http://localhost:5000/generate-packing-slip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order: djangoData.order_data,
+                        reprint: true
+                    })
+                });
+                
+                const flaskResult = await flaskResponse.json();
+                
+                if (flaskResult.success) {
+                    showNotification('info', 'Packing Slip Generated', 
+                        flaskResult.message || `Packing slip for order ${orderNumber} opened locally.`);
+                } else {
+                    showErrorModal(flaskResult.error || 'Error generating packing slip.');
+                }
+                
+            } catch (error) {
+                console.error('Error in executeReprintAction:', error);
+                showErrorModal('Network error while processing request.');
+            } finally {
+                document.body.classList.remove('processing');
+            }
         }
 
         function reprocessOrder() {
             hideReprintOptionsModal();
-            console.log('Reprocess Order clicked - implement functionality');
+            showOrderInputModal('reprocess');
+        }
+
+        async function executeReprocessAction(orderNumber) {
+            try {
+                document.body.classList.add('processing');
+                
+                const response = await fetch(`/orders/reprocess-order/${orderNumber}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update tables with reprocessed data if provided
+                    if (data.bulk_to_print && data.bulk_to_pull) {
+                        updatePrintItems(data.bulk_to_print);
+                        updatePullItems(data.bulk_to_pull);
+                    }
+                    
+                    showNotification('info', 'Success', data.message || 'Order reprocessed successfully.');
+                } else {
+                    showErrorModal(data.error || 'Error reprocessing order.');
+                }
+            } catch (error) {
+                console.error('Error reprocessing:', error);
+                showErrorModal('Network error while reprocessing.');
+            } finally {
+                document.body.classList.remove('processing');
+            }
         }
 
         function escapeHtml(text) {

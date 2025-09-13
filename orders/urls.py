@@ -12,10 +12,12 @@ urlpatterns = [
     path('api/get-order-id/<str:order_number>/', views.get_order_id_by_number, name='get_order_id'),
     path('generate-pdf/<int:order_id>/', views.generate_order_pdf, name='generate_order_pdf'),
     
-    # URL patterns for online order
+    # URL patterns for online order(s)
     path('process-orders/', views.process_orders, name='process_orders'),
-    path('reprint-order/', views.reprint_order, name='reprint_order'),
-    # path('print-range/', views.print_range, name='print_range'),
+    # path('view-packing-slip/<str:order_id>/', views.view_packing_slip, name='view_packing_slip'),
+    path('reprint-packing-slip/<str:order_id>/', views.reprint_packing_slip, name='reprint_packing_slip'), 
+    path('reprocess-order/<str:order_id>/', views.reprocess_order, name='reprocess_order'),
+
 
     # Old URL patterns for outdated functionality
     # path('api/', include(router.urls)),

@@ -413,7 +413,7 @@ def get_envelope_count_data():
         'year': latest_year
     }
 
-def get_top_selling_products(limit=5):
+def get_top_selling_products(limit=4):
     """
     Get top selling products by total sales quantity for the most recent sales year
     """

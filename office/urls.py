@@ -31,8 +31,9 @@ urlpatterns = [
     path('save-order-changes/', save_order_changes, name='save_order_changes'),
     path('finalize-order/', finalize_order, name='finalize_order'),
     
-    # path('germ-samples/', lot_views.germ_samples, name='germ_samples'),
+
     path('germ-samples/', lot_views.send_germ_samples, name='germ_samples'),
+    path('growouts/', lot_views.growouts, name='growouts'),
     path('api/variety-sales/<str:sku_prefix>/', variety_sales_data, name='variety_sales_data'),
     path('api/create-batch/', lot_views.create_new_batch, name='create_new_batch'),
     path('api/submit-batch/', lot_views.submit_batch, name='submit_batch'),

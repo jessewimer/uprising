@@ -862,7 +862,7 @@
             transition: all 0.3s ease;
             position: relative;
         }
-
+/* 
         .top-seller-item[data-rank="1"] {
             border-left-color: #ffd700;
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
@@ -876,10 +876,25 @@
         .top-seller-item[data-rank="3"] {
             border-left-color: #cd7f32;
             background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
+        } */
+
+        .top-seller-item[data-rank="1"] {
+            border-left-color: #cd7f32;
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
         }
 
-        .top-seller-item[data-rank="4"], .top-seller-item[data-rank="5"] {
-            border-left-color: #667eea;
+        .top-seller-item[data-rank="2"] {
+            border-left-color: #cd7f32;
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
+        }
+
+        .top-seller-item[data-rank="3"] {
+            border-left-color: #cd7f32;
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.05));
+        }
+
+        .top-seller-item[data-rank="4"] {
+            border-left-color: #cd7f32;
         }
 
 
@@ -892,14 +907,17 @@
         }
 
         .top-seller-item[data-rank="1"] .seller-rank {
-            color: #ffd700;
+            color: #cd7f32;
         }
 
         .top-seller-item[data-rank="2"] .seller-rank {
-            color: #c0c0c0;
+            color: #cd7f32;
         }
 
         .top-seller-item[data-rank="3"] .seller-rank {
+            color: #cd7f32;
+        }
+        .top-seller-item[data-rank="4"] .seller-rank {
             color: #cd7f32;
         }
 
@@ -974,13 +992,13 @@
         .detailed-seller-rank {
             font-size: 1.1rem;
             font-weight: 700;
-            color: #667eea;
+            color: #cd7f32;
             min-width: 40px;
             margin-right: 15px;
         }
 
-        .detailed-seller-rank.gold { color: #ffd700; }
-        .detailed-seller-rank.silver { color: #c0c0c0; }
+        .detailed-seller-rank.gold { color: #cd7f32; }
+        .detailed-seller-rank.silver { color: #cd7f32; }
         .detailed-seller-rank.bronze { color: #cd7f32; }
 
         .detailed-seller-name {

@@ -15,7 +15,7 @@ sys.path.append(project_path)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
-from orders.models import Order, OrderIncludes
+from orders.models import OnlineOrder, OOIncludes, OOIncludesMisc, BatchMetadata
 
 def view_order_includes(store_num):
 
@@ -23,22 +23,27 @@ def view_order_includes(store_num):
 
 # Deletes all order from the database
 def delete_orders():
-    orders = Order.objects.all()
+    orders = OnlineOrder.objects.all()
     for order in orders:
         order.delete()
     print('orders deleted')
 
+    batch_metadata = BatchMetadata.objects.all()
+    for batch in batch_metadata:
+        batch.delete()
+    print('batch metadata deleted')
+
 
 
 def view_orders():
-    orders = Order.objects.all()
+    orders = OnlineOrder.objects.all()
     for order in orders:
         print("current order: ", order.order_number, " - ", order.order_date)
 
     print("End of list")
 
 def view_single_store_orders(store_num):
-    orders = Order.objects.all()
+    orders = OnlineOrder.objects.all()
     for order in orders:
         order_number_str = str(order.order_number)
         store_num_str = str(store_num)

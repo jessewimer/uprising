@@ -83,6 +83,9 @@ class Product(models.Model):
             order__date__year=current_year
         ).aggregate(total=Sum('qty'))['total'] or 0
         
+        if self.sku_suffix != 'pkt':
+            return f"{oo_total}"
+        
         # Get SOIncludes total for current year  
         so_total = self.soincludes_set.filter(
             store_order__date__year=current_year,
