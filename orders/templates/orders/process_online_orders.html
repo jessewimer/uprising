@@ -928,7 +928,10 @@
             <div class="table-container">
                 <div class="table-header">
                     <h3 class="table-title">Pre-packed Items to Pull</h3>
-                    <div class="table-count" id="pullItemsCount">0 items</div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="table-count" id="pullItemsCount">0 items</div>
+                        <button class="print-btn" id="printPullItemsBtn" disabled>Print</button>
+                    </div>
                 </div>
 
                 <div class="table-container-scrollable" id="pullItemsContainer">
@@ -1051,7 +1054,8 @@
         const endRange = document.getElementById('endRange');
         const printRangeBtn = document.getElementById('printRangeBtn');
         const batchSelect = document.getElementById('batchSelect');
-
+        // Add this with your other DOM elements
+        const printPullItemsBtn = document.getElementById('printPullItemsBtn');
         // Modal elements
         const successModal = document.getElementById('successModal');
         const closeSuccessModal = document.getElementById('closeSuccessModal');
@@ -1214,6 +1218,9 @@
 
             pullItemsCount.textContent = `${pullItems.length} items`;
 
+            // Enable/disable print button based on items
+            printPullItemsBtn.disabled = pullItems.length === 0;
+
             if (pullItems.length === 0) {
                 pullItemsContainer.innerHTML = `
                     <div class="empty-state">
@@ -1250,6 +1257,73 @@
             pullItemsContainer.innerHTML = tableHtml;
         }
 
+        async function printPullItems() {
+    if (pullItems.length === 0) {
+        showErrorModal('No items to print.');
+        return;
+    }
+
+    // Get selected batch date
+    const selectedIndex = parseInt(batchSelect.value);
+    let batchDate = "Unknown";
+    
+    if (!isNaN(selectedIndex) && selectedIndex >= 0 && batchData[selectedIndex]) {
+        batchDate = batchData[selectedIndex].batchDate;
+    }
+
+    // Check Flask health first
+    printPullItemsBtn.disabled = true;
+    printPullItemsBtn.textContent = 'Checking...';
+    
+    const flaskHealthy = await checkFlaskHealth();
+    
+    if (!flaskHealthy) {
+        showNotification('error', 'Printer Service Unavailable', 'Flask printing app is not running. Please start the service and try again.');
+        printPullItemsBtn.disabled = false;
+        printPullItemsBtn.textContent = 'Print';
+        return;
+    }
+
+    // Prepare data for Flask
+    printPullItemsBtn.textContent = 'Printing...';
+    document.body.classList.add('processing');
+
+    const itemsData = pullItems.map(item => ({
+        variety_name: item.var_name || '',
+        type: item.veg_type || '',
+        sku_suffix: item.sku_suffix || '',
+        quantity: item.quantity || 0
+    }));
+
+    try {
+        const response = await fetch('http://localhost:5000/print-items-to-pull', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                items: itemsData,
+                batch_date: batchDate  // Add batch date
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('Items to pull printed successfully!');
+        } else {
+            showErrorModal(data.error || 'Error printing items to pull.');
+        }
+    } catch (error) {
+        console.error('Error printing items to pull:', error);
+        showErrorModal('Could not connect to printing service: ' + error.message);
+    } finally {
+        printPullItemsBtn.disabled = pullItems.length === 0;
+        printPullItemsBtn.textContent = 'Print';
+        document.body.classList.remove('processing');
+    }
+}
+
         // Initialize event listeners
         function initializeEventListeners() {
             uploadButton.addEventListener('click', () => fileInput.click());
@@ -1259,8 +1333,9 @@
             startRange.addEventListener('input', validateRange);
             endRange.addEventListener('input', validateRange);
             printRangeBtn.addEventListener('click', printRange);
-            batchSelect.addEventListener('change', handleBatchSelection);
-
+            
+            // Add this line in initializeEventListeners()
+            printPullItemsBtn.addEventListener('click', printPullItems);
             // Order input modal event listeners
             const confirmOrderBtn = document.getElementById('confirmOrderBtn');
             const cancelOrderInput = document.getElementById('cancelOrderInput');
@@ -1303,7 +1378,7 @@
             cancelReprintOptions.addEventListener('click', hideReprintOptionsModal);
             reprintInvoiceBtn.addEventListener('click', reprintInvoice);
             reprocessOrderBtn.addEventListener('click', reprocessOrder);
-            
+            batchSelect.addEventListener('change', handleBatchSelection);
             // Close modals when clicking overlay
             successModal.addEventListener('click', handleModalOverlayClick);
             errorModal.addEventListener('click', handleModalOverlayClick);

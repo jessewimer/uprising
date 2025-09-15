@@ -88,9 +88,12 @@ def calculate_bulk_pull_and_print(bulk_items):
             # ---- BUILD bulk_to_print dict ----
             if quantity_to_print > 0:
                 if product.env_multiplier and product.env_multiplier > 1:
+                    alt_sku = product.alt_sku
+                    # extract portion of alt sku after the last dash
+                    alt_sku_suffix = alt_sku.split("-")[-1] if alt_sku else ""
                     # alt_quantity_to_print *= product.env_multiplier
                     alt_product = product.variety.products.filter(
-                        sku_suffix=product.alt_sku
+                        sku_suffix=alt_sku_suffix
                     ).first()
                     env_type = alt_product.env_type
                     pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
@@ -120,6 +123,7 @@ def calculate_bulk_pull_and_print(bulk_items):
                 }
 
                 if product.print_back:
+                    print(f"Processing print back for SKU {sku}")
                     entry.update({
                         "back1": product.variety.back1,
                         "back2": product.variety.back2,
@@ -184,8 +188,11 @@ def enrich_bulk_to_pull_and_print(bulk_items):
 
             if product.env_multiplier and product.env_multiplier > 1:
                 # alt_quantity_to_print *= product.env_multiplier
+                alt_sku = product.alt_sku
+                # extract portion of alt sku after the last dash
+                alt_sku_suffix = alt_sku.split("-")[-1] if alt_sku else ""
                 alt_product = product.variety.products.filter(
-                    sku_suffix=product.alt_sku
+                    sku_suffix=alt_sku_suffix
                 ).first()
                 env_type = alt_product.env_type
                 pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
@@ -203,14 +210,14 @@ def enrich_bulk_to_pull_and_print(bulk_items):
             germination = current_germ_obj.germination_rate if current_germ_obj else None
             for_year = current_germ_obj.for_year if current_germ_obj else None
 
-            if product.env_multiplier and product.env_multiplier > 1:
-                qty *= product.env_multiplier
-                alt_product = product.variety.products.filter(
-                    sku_suffix=product.alt_sku
-                ).first()
-                pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
-            else:
-                pkg_size = product.pkg_size
+            # if product.env_multiplier and product.env_multiplier > 1:
+            #     qty *= product.env_multiplier
+            #     alt_product = product.variety.products.filter(
+            #         sku_suffix=product.alt_sku
+            #     ).first()
+            #     pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
+            # else:
+            #     pkg_size = product.pkg_size
 
             entry = {
                 "quantity": print_qty,
