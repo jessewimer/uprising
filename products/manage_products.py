@@ -601,7 +601,15 @@ def set_all_bulk_pre_pack_to_zero():
     for product in products:
         if product.bulk_pre_pack is None:
             product.bulk_pre_pack = 0
+            product.save()      
+
+def set_all_bulk_pre_pack_to_1():
+    products = Product.objects.all()
+    for product in products:
+        if product.bulk_pre_pack is None or product.bulk_pre_pack == 0:
+            product.bulk_pre_pack = 2
             product.save()
+
 
 def import_lineitem_names_from_csv(csv_file):
     with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
@@ -693,7 +701,8 @@ def import_misc_sales(csv_file):
 # delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
 # delete_variety("TOM-XX")
-# set_all_bulk_pre_pack_to_zero()
+set_all_bulk_pre_pack_to_zero()
+set_all_bulk_pre_pack_to_1()
 # add_variety_and_product()
 # misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
 # import_misc_products(misc_products_csv)
@@ -709,8 +718,8 @@ def import_misc_sales(csv_file):
 # full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
 # prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
-misc_sales_csv = os.path.join(os.path.dirname(__file__), "misc_product_sales.csv")
-import_misc_sales(misc_sales_csv)
+# misc_sales_csv = os.path.join(os.path.dirname(__file__), "misc_product_sales.csv")
+# import_misc_sales(misc_sales_csv)
 
 
 # import_sales(import_sales_csv)

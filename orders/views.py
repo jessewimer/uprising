@@ -24,8 +24,6 @@ import pytz
 from django.utils import timezone
 pacific_tz = pytz.timezone("America/Los_Angeles")
 from django.utils.timezone import localtime
-
-
 from io import BytesIO
 
 # ReportLab imports
@@ -38,7 +36,12 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 
 
+""" The following functionn takes a dict of bulk items. Full product SKU (e.g. BEA-TA-1/2lb) as keys and quantities as values
+    and calculates how many bulk need to be printed vs. pulled and returns two dicts. If items need to be printed,
+    the product.bulk_pre_pack field is updated accordingly."""
+
 def calculate_bulk_pull_and_print(bulk_items):
+
     bulk_to_print = {}
     bulk_to_pull = {}
 
@@ -49,7 +52,6 @@ def calculate_bulk_pull_and_print(bulk_items):
             sku_suffix=sku[7:]
         ).select_related("variety").first()
 
-        
         if not product:
             print(f"Product with SKU {sku} not found!")
             continue
@@ -79,17 +81,22 @@ def calculate_bulk_pull_and_print(bulk_items):
                 lot_value = f"{product.lot.grower}{product.lot.year}"
             else:
                 lot_value = "N/A"
-            
+            current_germ_obj = product.lot.get_most_recent_germination() if product.lot else None
+            germination = current_germ_obj.germination_rate if current_germ_obj else None
+            for_year = current_germ_obj.for_year if current_germ_obj else None
+
             # ---- BUILD bulk_to_print dict ----
             if quantity_to_print > 0:
                 if product.env_multiplier and product.env_multiplier > 1:
-                    quantity_to_print *= product.env_multiplier
+                    # alt_quantity_to_print *= product.env_multiplier
                     alt_product = product.variety.products.filter(
                         sku_suffix=product.alt_sku
                     ).first()
+                    env_type = alt_product.env_type
                     pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
                 else:
                     pkg_size = product.pkg_size
+                    env_type = product.env_type
 
                 entry = {
                     "quantity": quantity_to_print,
@@ -103,11 +110,13 @@ def calculate_bulk_pull_and_print(bulk_items):
                     "lot": lot_value,
                     "pkg_size": pkg_size,
                     "alt_sku": product.alt_sku or "",
-                    "env_multiplier": product.env_multiplier or 1,
+                    "env_multiplier": product.env_multiplier,
                     "print_back": product.print_back,
-                    "env_type": product.env_type,   # include for sorting
+                    "env_type": env_type,   # include for sorting
                     "sku_prefix": product.variety.sku_prefix,  # include for sorting
                     "rad_type": product.get_rad_type(),
+                    "germination": germination,
+                    "for_year": for_year,
                 }
 
                 if product.print_back:
@@ -149,6 +158,116 @@ def calculate_bulk_pull_and_print(bulk_items):
 
     return bulk_to_print, bulk_to_pull
 
+def enrich_bulk_to_pull_and_print(bulk_items):
+    # print("Enriching bulk items:", bulk_items)
+    bulk_to_print = {}
+    bulk_to_pull = {}
+
+    # new format of bulk_items:
+    # sku: [print_qty, pull_qty]
+    for sku, [print_qty, pull_qty] in bulk_items.items():
+        # print(f"Processing SKU {sku} for action {action} with qty {qty}")
+        # Find product by prefix/suffix
+        product = Product.objects.filter(
+            variety=sku[:6],
+            sku_suffix=sku[7:]
+        ).select_related("variety").first()
+        # if action == 'print':
+            # print(f'Enriching for print: {sku} qty {qty}') 
+        if not product:
+            print(f"Product with SKU {sku} not found!")
+            continue
+
+        if print_qty > 0:
+            # quantity_to_print = qty
+            # print(f'action is print for {sku} qty {qty}')
+
+            if product.env_multiplier and product.env_multiplier > 1:
+                # alt_quantity_to_print *= product.env_multiplier
+                alt_product = product.variety.products.filter(
+                    sku_suffix=product.alt_sku
+                ).first()
+                env_type = alt_product.env_type
+                pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
+            else:
+                pkg_size = product.pkg_size
+                env_type = product.env_type
+
+            lot_value = ""
+            if product.lot:
+                lot_value = f"{product.lot.grower}{product.lot.year}"
+            else:
+                lot_value = "N/A"
+            
+            current_germ_obj = product.lot.get_most_recent_germination() if product.lot else None
+            germination = current_germ_obj.germination_rate if current_germ_obj else None
+            for_year = current_germ_obj.for_year if current_germ_obj else None
+
+            if product.env_multiplier and product.env_multiplier > 1:
+                qty *= product.env_multiplier
+                alt_product = product.variety.products.filter(
+                    sku_suffix=product.alt_sku
+                ).first()
+                pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
+            else:
+                pkg_size = product.pkg_size
+
+            entry = {
+                "quantity": print_qty,
+                "variety_name": product.variety.var_name,
+                "crop": product.variety.crop,
+                "days": product.variety.days,
+                "common_name": product.variety.common_name or "",
+                "desc1": product.variety.desc_line1,
+                "desc2": product.variety.desc_line2,
+                "desc3": product.variety.desc_line3 or "",
+                "lot": lot_value,
+                "pkg_size": pkg_size,
+                "alt_sku": product.alt_sku or "",
+                "env_multiplier": product.env_multiplier,
+                "print_back": product.print_back,
+                "env_type": env_type,   # include for sorting
+                "sku_prefix": product.variety.sku_prefix,  # include for sorting
+                "rad_type": product.get_rad_type(),
+                "germination": germination,
+                "for_year": for_year,
+            }
+
+            if product.print_back:
+                entry.update({
+                    "back1": product.variety.back1,
+                    "back2": product.variety.back2,
+                    "back3": product.variety.back3,
+                    "back4": product.variety.back4,
+                    "back5": product.variety.back5,
+                    "back6": product.variety.back6,
+                    "back7": product.variety.back7 or "",
+                })
+
+            bulk_to_print[sku] = entry
+        if pull_qty > 0:
+
+            bulk_to_pull[sku] = {
+                "var_name": product.variety.var_name,
+                "veg_type": product.variety.veg_type,
+                "sku_suffix": product.sku_suffix,
+                "quantity": pull_qty,
+            }
+
+
+    # sort dicts by SKU
+    # bulk_to_print = dict(sorted(bulk_to_print.items()))
+    bulk_to_print = dict(
+        sorted(
+            bulk_to_print.items(),
+            key=lambda item: (item[1].get("env_type", ""), item[1].get("sku_prefix", ""))
+        )
+    )
+
+    bulk_to_pull = dict(sorted(bulk_to_pull.items()))
+
+    return bulk_to_print, bulk_to_pull
+
 
 @login_required
 @user_passes_test(is_employee)
@@ -160,15 +279,27 @@ def process_online_orders(request):
     recent_batches = BatchMetadata.objects.order_by('-batch_date')[:5]
     batch_list = []
     
+    """ Dict should take this form: {SKU: [print_qty, pull_qty]} """
     for batch in recent_batches:
         bulk_items = {}
-        for bulk in batch.bulk_batches.all():
-            sku = bulk.sku
-            qty = bulk.quantity
-            bulk_items[sku] = bulk_items.get(sku, 0) + qty
-        
-        # Use your existing function to enrich SKUs with product info
-        bulk_to_print, bulk_to_pull = calculate_bulk_pull_and_print(bulk_items)
+        for bulk_item in batch.bulk_batches.all():
+            sku = bulk_item.sku
+            qty = bulk_item.quantity
+            action = bulk_item.bulk_type  
+
+                    # Initialize the list if this SKU doesn't exist yet
+            if sku not in bulk_items:
+                bulk_items[sku] = [0, 0]  # [print_qty, pull_qty]
+
+            if action == 'print':
+              bulk_items[sku][0] = qty
+            elif action == 'pull':
+              bulk_items[sku][1] = qty
+
+
+        # print(f"Batch {batch.batch_identifier} bulk_items: {bulk_items}")
+        # # Use your existing function to enrich SKUs with product info
+        bulk_to_print, bulk_to_pull = enrich_bulk_to_pull_and_print(bulk_items)
         
         batch_list.append({
             'id': batch.id,
@@ -297,6 +428,23 @@ def process_orders(request):
                         item.order = current_order
                         item.save()
 
+                # # Parse dates with multiple format fallbacks
+                # date_string = row['Created at'].strip()
+                # formats = [
+                #     '%m/%d/%Y %H:%M',
+                #     '%Y-%m-%d %H:%M:%S %z',
+                #     '%Y-%m-%d %H:%M:%S',
+                # ]
+                # for fmt in formats:
+                #     try:
+                #         date = datetime.strptime(date_string, fmt)
+                #         # date = timezone.make_aware(date)
+                #         date = pacific_tz.localize(date)
+                #         break
+                #     except ValueError:
+                #         continue
+                # else:
+                #     raise ValueError(f"Unexpected date format: {date_string}")
                 # Parse dates with multiple format fallbacks
                 date_string = row['Created at'].strip()
                 formats = [
@@ -307,14 +455,19 @@ def process_orders(request):
                 for fmt in formats:
                     try:
                         date = datetime.strptime(date_string, fmt)
-                        # date = timezone.make_aware(date)
-                        date = pacific_tz.localize(date)
+                        
+                        # Handle timezone properly based on whether date already has timezone info
+                        if date.tzinfo is None:
+                            # Naive datetime - localize to Pacific timezone
+                            date = pacific_tz.localize(date)
+                        else:
+                            # Already has timezone info - convert to Pacific timezone
+                            date = date.astimezone(pacific_tz)
                         break
                     except ValueError:
                         continue
                 else:
                     raise ValueError(f"Unexpected date format: {date_string}")
-
                 # date = date.date()
                 order_start_date = min(order_start_date, date) if order_start_date else date
                 order_end_date = max(order_end_date, date) if order_end_date else date
@@ -593,25 +746,6 @@ def process_orders(request):
         return JsonResponse({'success': False, 'error': f"Error processing orders: {e}"})
  
 
-
-# @login_required
-# @user_passes_test(is_employee)
-# def view_packing_slip(request, order_id):
-#     """
-#     View a specific order by order number
-#     """
-#     order = get_object_or_404(OnlineOrder, order_number=order_id)
-#     includes = OOIncludes.objects.filter(order=order).select_related('product__variety')
-#     misc_includes = OOIncludesMisc.objects.filter(order=order)
-
-#     context = {
-#         'order': order,
-#         'includes': includes,
-#         'misc_includes': misc_includes,
-#     }
-#     return render(request, 'orders/view_packing_slip.html', context)
-
-
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -889,15 +1023,108 @@ def reprint_packing_slip(request, order_id):
         
 
 
+
+
+
+# NEEDS WORK !!!!!!!!!!!
 @login_required
 @user_passes_test(is_employee)
-def reprocess_order(request):
-    """
-    Reprocess orders page
-    """
-    return render(request, 'orders/reprocess_orders.html')
+@require_http_methods(["POST"])
+def reprocess_order(request, order_id):
+    try:
+        order_number = order_id.strip()
+        
+        if not order_number:
+            return JsonResponse({'success': False, 'error': 'Order number required'})
+       
+        print(f"Reprocessing order: {order_number}")
+       
+        # Get the order and related data (same as reprint)
+        order = OnlineOrder.objects.filter(order_number=order_number).first()
+        if not order:
+            return JsonResponse({
+                'success': True,
+                'message': 'order not found'
+            })
+       
+        # Get the order includes/line items (same as reprint)
+        order_includes = OOIncludes.objects.filter(order_id=order_number)
+        order_includes_misc = OOIncludesMisc.objects.filter(order_id=order_number)
+        
+        # Build order data (same as reprint function)
+        order_data = {
+            'order_number': order.order_number,
+            'customer_name': order.customer_name,
+            'address': order.address,
+            'address2': order.address2,
+            'city': order.city,
+            'state': order.state,
+            'postal_code': order.postal_code,
+            'country': order.country,
+            'shipping': order.shipping,
+            'subtotal': order.subtotal,
+            'tax': order.tax,
+            'total': order.total,
+            'note': order.note,
+            'date': order.date.isoformat(),
+            'misc_items': [],
+            'bulk_items': [],
+            'pkt_items': [],
+        }
+        
+        bulk_items = {}
+
+        # Populate line items (same as reprint function)
+        if order_includes:
+            for include in order_includes:
+                line_item = {
+                    'qty': include.qty,
+                    'lineitem': include.product.lineitem_name if include.product else "Unknown",  
+                    'price': str(float(include.price)),
+                    'rack_location': include.product.rack_location if include.product else "",
+                    'sku_prefix': include.product.variety.sku_prefix if include.product else "",
+                }
+                if include.product.sku_suffix == 'pkt':
+                    order_data['pkt_items'].append(line_item)
+                else:
+                    order_data['bulk_items'].append(line_item)
+                    sku = f"{include.product.variety_id}-{include.product.sku_suffix}"
+                    print(f"Adding bulk item SKU: {sku} Qty: {include.qty}")
+                    bulk_items[sku] = bulk_items.get(sku, 0) + include.qty
 
 
+        if order_includes_misc:
+            for include in order_includes_misc:
+                misc_product = MiscProduct.objects.filter(sku=include.sku).first()
+                line_item = {
+                    'qty': include.qty,
+                    'lineitem': misc_product.lineitem_name if misc_product else "Unknown",
+                    'price': str(float(include.price)),
+                }
+                order_data['misc_items'].append(line_item)
+       
+        # Apply same sorting as reprint
+        order_data['misc_items'].sort(key=lambda x: -x['qty'])
+        order_data['bulk_items'].sort(key=lambda x: (-x['qty'], x.get('sku_prefix', '')))
+        order_data['pkt_items'].sort(key=lambda x: (
+            -x['qty'],
+            float(x.get('rack_location', 0)) if x.get('rack_location') else 0
+        ))
+        
+        bulk_to_print, bulk_to_pull = calculate_bulk_pull_and_print(bulk_items)
+        print(f"Bulk to print: {bulk_to_print}")
+        print(f"Bulk to pull: {bulk_to_pull}")
+
+        return JsonResponse({
+            'success': True,
+            'order_data': order_data,
+            'bulk_to_print': bulk_to_print,
+            'bulk_to_pull': bulk_to_pull
+        })
+        
+    except Exception as e:
+        print(f"Error reprocessing order: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
 # ========================================================================================================== #
 
 

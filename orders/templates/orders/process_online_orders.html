@@ -1424,17 +1424,24 @@
                 } else {
                     showErrorModal(data.error || 'Error processing orders.');
                     clearUploadState();
+                    document.body.classList.remove('processing');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 showErrorModal('Network error. Please try again.');
                 clearUploadState();
+                document.body.classList.remove('processing');
             })
             .finally(() => {
-                processButton.disabled = false;
-                processButton.innerHTML = '<span>Process Orders</span>';
-                document.body.classList.remove('processing');
+                // processButton.disabled = false;
+                // processButton.innerHTML = '<span>Process Orders</span>';
+                // document.body.classList.remove('processing');
+                if (!currentFile) {
+                    processButton.disabled = true;
+                    processButton.innerHTML = '<span>Process Orders</span>';
+                    // document.body.classList.remove('processing');
+                }
             });
         }
 
@@ -1492,6 +1499,9 @@
         function sendToFlaskForPrinting() {
             if (!processedOrderData) {
                 showErrorModal('No order data to send to printer.');
+                processButton.disabled = false;
+                processButton.innerHTML = '<span>Process Orders</span>';
+                document.body.classList.remove('processing');
                 return;
             }
 
@@ -1515,7 +1525,13 @@
                 showErrorModal('Could not connect to printing service. Orders were processed but may not have been sent to printer.');
             })
             .finally(() => {
+                processButton.disabled = !currentFile;
+                processButton.innerHTML = '<span>Process Orders</span>';
                 document.body.classList.remove('processing');
+                // processButton.disabled = false;
+                // processButton.innerHTML = '<span>Process Orders</span>';
+                // document.body.classList.remove('processing');
+                // document.body.classList.remove('processing');
             });
         }
 
@@ -1693,32 +1709,21 @@
 
 
         // Modal functions
+        // Display count of customers with multiple orders
         function showSuccessModal(message, multipleOrderCustomers) {
             const successContent = document.getElementById('successContent');
             
             let content = `<div class="success-message">${escapeHtml(message)}</div>`;
             
-            // Display customers with multiple orders if any
+            // Display count of customers with multiple orders
             if (multipleOrderCustomers && Object.keys(multipleOrderCustomers).length > 0) {
+                const customerCount = Object.keys(multipleOrderCustomers).length;
                 content += `
                     <div class="multiple-orders-section">
-                        <div class="multiple-orders-title">Customers with Multiple Orders</div>
+                        <div class="multiple-orders-title">${customerCount} customer${customerCount === 1 ? '' : 's'} placed duplicate orders</div>
+                    </div>
                 `;
-                
-                for (const [customerName, orderNumbers] of Object.entries(multipleOrderCustomers)) {
-                    content += `
-                        <div class="customer-card">
-                            <div class="customer-name">${escapeHtml(customerName)}</div>
-                            <div class="order-numbers">
-                                ${orderNumbers.map(order => `<span class="order-number">${escapeHtml(order)}</span>`).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                content += `</div>`;
             } else {
-                // Add this else block for when there are no duplicates
                 content += `
                     <div class="multiple-orders-section">
                         <div class="multiple-orders-title">No duplicate orders found</div>
@@ -1729,7 +1734,7 @@
             successContent.innerHTML = content;
             successModal.classList.add('visible');
         }
-
+      
         function hideSuccessModal() {
             successModal.classList.remove('visible');
         }
@@ -1864,6 +1869,12 @@
             }
         }
 
+
+
+
+
+
+
         function reprocessOrder() {
             hideReprintOptionsModal();
             showOrderInputModal('reprocess');
@@ -1873,7 +1884,15 @@
             try {
                 document.body.classList.add('processing');
                 
-                const response = await fetch(`/orders/reprocess-order/${orderNumber}/`, {
+                // Step 1: Check Flask health first
+                const flaskHealthy = await checkFlaskHealth();
+                if (!flaskHealthy) {
+                    showNotification('error', 'Printer Service Unavailable', 'Flask printing app is not running. Please start the service and try again.');
+                    return;
+                }
+                
+                // Step 2: Get order data from Django
+                const djangoResponse = await fetch(`/orders/reprocess-order/${orderNumber}/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken'),
@@ -1881,26 +1900,130 @@
                     }
                 });
                 
-                const data = await response.json();
+                const djangoData = await djangoResponse.json();
                 
-                if (data.success) {
-                    // Update tables with reprocessed data if provided
-                    if (data.bulk_to_print && data.bulk_to_pull) {
-                        updatePrintItems(data.bulk_to_print);
-                        updatePullItems(data.bulk_to_pull);
-                    }
-                    
-                    showNotification('info', 'Success', data.message || 'Order reprocessed successfully.');
-                } else {
-                    showErrorModal(data.error || 'Error reprocessing order.');
+                // Handle Django response errors
+                if (!djangoData.success) {
+                    showErrorModal(djangoData.error || 'Error fetching order data.');
+                    return;
                 }
+                
+                // Check for "order not found" case
+                if (djangoData.message && djangoData.message.toLowerCase().includes('order not found')) {
+                    showNotification('error', 'Order Not Found', `Order ${orderNumber} was not found in the system.`);
+                    return;
+                }
+                
+                // Step 3: Send order data + bulk_to_print to Flask for processing/printing
+                const flaskResponse = await fetch('http://localhost:5000/reprocess-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order: djangoData.order_data,
+                        bulk_to_print: djangoData.bulk_to_print,
+                        reprocess: true
+                    })
+                });
+                
+                const flaskResult = await flaskResponse.json();
+                
+                if (flaskResult.success) {
+                    // Step 4: Show bulk_to_pull data to user in popup AFTER Flask completes
+                    showBulkToPullModal(orderNumber, djangoData.bulk_to_pull);
+                    
+                    showNotification('info', 'Order Reprocessed', 
+                        flaskResult.message || `Order ${orderNumber} has been reprocessed and sent to printer.`);
+                } else {
+                    showErrorModal(flaskResult.error || 'Error reprocessing order.');
+                }
+                
             } catch (error) {
-                console.error('Error reprocessing:', error);
-                showErrorModal('Network error while reprocessing.');
+                console.error('Error in executeReprocessAction:', error);
+                showErrorModal('Network error while processing request.');
             } finally {
                 document.body.classList.remove('processing');
             }
         }
+
+        // Function to show bulk items to pull in a modal
+        function showBulkToPullModal(orderNumber, bulkToPull) {
+            // Create modal HTML dynamically
+            const modalHtml = `
+                <div class="modal-overlay" id="bulkToPullModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <div class="modal-title">Items to Pull - Order ${orderNumber}</div>
+                        </div>
+                        <div class="modal-content">
+                            <div id="bulkToPullContent">
+                                ${generateBulkToPullTable(bulkToPull)}
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="modal-btn modal-btn-success" onclick="closeBulkToPullModal()">Got It</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal
+            document.getElementById('bulkToPullModal').classList.add('visible');
+        }
+
+        function generateBulkToPullTable(bulkToPull) {
+            if (!bulkToPull || Object.keys(bulkToPull).length === 0) {
+                return '<p>No bulk items to pull for this order.</p>';
+            }
+            
+            let tableHtml = `
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const [sku, itemData] of Object.entries(bulkToPull)) {
+                tableHtml += `
+                    <tr>
+                        <td class="sku-cell">${escapeHtml(sku)}</td>
+                        <td class="variety-cell">${escapeHtml(itemData.var_name || itemData.name || 'Unknown')}</td>
+                        <td><span class="quantity-cell">${itemData.quantity || 0}</span></td>
+                    </tr>
+                `;
+            }
+            
+            tableHtml += '</tbody></table>';
+            return tableHtml;
+        }
+
+        function closeBulkToPullModal() {
+            const modal = document.getElementById('bulkToPullModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
 
         function escapeHtml(text) {
             if (!text) return '';

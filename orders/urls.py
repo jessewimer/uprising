@@ -14,7 +14,6 @@ urlpatterns = [
     
     # URL patterns for online order(s)
     path('process-orders/', views.process_orders, name='process_orders'),
-    # path('view-packing-slip/<str:order_id>/', views.view_packing_slip, name='view_packing_slip'),
     path('reprint-packing-slip/<str:order_id>/', views.reprint_packing_slip, name='reprint_packing_slip'), 
     path('reprocess-order/<str:order_id>/', views.reprocess_order, name='reprocess_order'),
 
