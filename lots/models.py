@@ -87,6 +87,24 @@ class Lot(models.Model):
         germination = self.get_most_recent_germination()
         return germination.for_year if germination else None
 
+
+    def is_next_year_only_lot(self, current_packed_year):
+        """
+        Check if this lot should only be used for next year (packed_for_year + 1).
+        This happens when a new lot only has germination test(s) for the next year.
+        """
+        germinations = self.germinations.all().order_by('for_year')
+        
+        if not germinations.exists():
+            return False
+        
+        earliest_germ_year = germinations.first().for_year
+        current_year_int = int(current_packed_year)
+        
+        # If the earliest (and possibly only) germination is for next year,
+        # this is a "next year only" lot
+        return earliest_germ_year == (current_year_int + 1)
+
     # method to return most recent inventory record
     def get_most_recent_inventory(self):
         inventory = self.inventory.order_by("-inv_date").first() if self.inventory.exists() else None

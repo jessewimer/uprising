@@ -76,6 +76,107 @@ def office_landing(request):
     return render(request, 'office/office_landing.html', context)
 
 
+# @login_required
+# @user_passes_test(is_employee)
+# def view_variety(request):
+#     """
+#     View all varieties, last selected variety, products, lots, and all_vars dictionary.
+#     Handles POSTs for selecting variety, printing, editing, and adding records.
+#     """
+#     user = request.user
+    
+#     # --- Get the user's last selected variety (if any), else default to AST-HP ---
+#     last_selected_entry = LastSelected.objects.filter(user=user).last()
+#     last_selected_variety = (
+#         last_selected_entry.variety if last_selected_entry else Variety.objects.get(pk="BEA-CA")
+#     )
+    
+#     packed_for_year = settings.CURRENT_ORDER_YEAR
+
+#     # --- All varieties ---
+#     varieties = Variety.objects.all().order_by('veg_type', 'sku_prefix')
+    
+#     # --- Build all_vars dict for front-end dropdown (JS-friendly) ---
+#     all_vars = {
+#         v.sku_prefix: {
+#             'common_spelling': v.common_spelling,
+#             'var_name': v.var_name,
+#             'veg_type': v.veg_type,
+
+#         }
+#         for v in varieties
+#     }
+
+#     # Add this line to convert to JSON
+#     all_vars_json = json.dumps(all_vars)
+    
+#     # --- Initialize objects to pass to template ---
+#     variety_obj = last_selected_variety  # Default to last selected
+#     products = None
+#     lots = None
+    
+#     # --- Handle POST actions ---
+#     if request.method == 'POST':
+#         action = request.POST.get('action')
+        
+#         # Handle variety selection (this changes the current variety)
+#         if action == 'select_variety':
+#             selected_variety_pk = request.POST.get('variety_sku')
+#             if selected_variety_pk:
+#                 variety_obj = get_object_or_404(Variety, pk=selected_variety_pk)
+#                 # Save as last selected for this user
+#                 LastSelected.objects.update_or_create(
+#                     user=user,
+#                     defaults={'variety': variety_obj}
+#                 )
+#                 return redirect('view_variety')
+
+#     # --- Get associated products and lots for the current variety ---
+#     if variety_obj:
+#         products = Product.objects.filter(variety=variety_obj)
+#         # sort products based on SKU_SUFFIXES
+#         products = Product.objects.filter(variety=variety_obj).order_by(
+#             Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
+#                 output_field=IntegerField())
+#         )
+#         lots = Lot.objects.filter(variety=variety_obj).order_by("year")
+#         # sort lots based on year
+
+#         growers = Grower.objects.all().order_by('code') 
+
+#         lots_json = json.dumps([
+#             {
+#                 'id': lot.id,
+#                 'grower': str(lot.grower) if lot.grower else '',
+#                 'year': lot.year,
+#                 'harvest': lot.harvest or '',
+#                 'is_retired': hasattr(lot, 'retired_info'),
+#                 'low_inv': lot.low_inv,
+#             }
+#             for lot in lots
+#         ])
+
+#     else:
+#         products = Product.objects.none()
+
+#         lots = Lot.objects.none()
+    
+#     context = {
+#         'last_selected': last_selected_variety,
+#         'variety': variety_obj,
+#         'products': products,
+#         'lots': lots,
+#         'lots_json': lots_json,
+#         'all_vars_json': all_vars_json,
+#         'growers': growers,
+#         'env_types': settings.ENV_TYPES,
+#         'sku_suffixes': settings.SKU_SUFFIXES,
+#         'pkg_sizes': settings.PKG_SIZES,
+#         'packed_for_year': packed_for_year,
+#         'transition': settings.TRANSITION,
+#     }
+#     return render(request, 'office/view_variety.html', context)
+
 @login_required
 @user_passes_test(is_employee)
 def view_variety(request):
@@ -84,39 +185,42 @@ def view_variety(request):
     Handles POSTs for selecting variety, printing, editing, and adding records.
     """
     user = request.user
-    
+   
     # --- Get the user's last selected variety (if any), else default to AST-HP ---
     last_selected_entry = LastSelected.objects.filter(user=user).last()
     last_selected_variety = (
         last_selected_entry.variety if last_selected_entry else Variety.objects.get(pk="BEA-CA")
     )
+   
+    packed_for_year = settings.CURRENT_ORDER_YEAR
     
     # --- All varieties ---
     varieties = Variety.objects.all().order_by('veg_type', 'sku_prefix')
-    
+   
     # --- Build all_vars dict for front-end dropdown (JS-friendly) ---
     all_vars = {
         v.sku_prefix: {
             'common_spelling': v.common_spelling,
             'var_name': v.var_name,
             'veg_type': v.veg_type,
-
         }
         for v in varieties
     }
-
     # Add this line to convert to JSON
     all_vars_json = json.dumps(all_vars)
-    
+   
     # --- Initialize objects to pass to template ---
     variety_obj = last_selected_variety  # Default to last selected
     products = None
     lots = None
-    
+    lots_json = '[]'  # Default empty JSON
+    lots_extra_data = '[]'  # Default empty JSON
+    growers = Grower.objects.none()  # Default empty queryset
+   
     # --- Handle POST actions ---
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+       
         # Handle variety selection (this changes the current variety)
         if action == 'select_variety':
             selected_variety_pk = request.POST.get('variety_sku')
@@ -128,7 +232,7 @@ def view_variety(request):
                     defaults={'variety': variety_obj}
                 )
                 return redirect('view_variety')
-
+    
     # --- Get associated products and lots for the current variety ---
     if variety_obj:
         products = Product.objects.filter(variety=variety_obj)
@@ -138,10 +242,9 @@ def view_variety(request):
                 output_field=IntegerField())
         )
         lots = Lot.objects.filter(variety=variety_obj).order_by("year")
-        # sort lots based on year
-
-        growers = Grower.objects.all().order_by('code') 
-
+        growers = Grower.objects.all().order_by('code')
+        
+        # Build lots JSON data
         lots_json = json.dumps([
             {
                 'id': lot.id,
@@ -153,29 +256,32 @@ def view_variety(request):
             }
             for lot in lots
         ])
+        
+        # Build lots extra data for next-year-only detection
+        lots_extra_data_list = []
+        for lot in lots:
+            lots_extra_data_list.append({
+                'id': lot.id,
+                'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
+            })
+        lots_extra_data = json.dumps(lots_extra_data_list)
 
-    else:
-        products = Product.objects.none()
-
-        lots = Lot.objects.none()
-    
     context = {
         'last_selected': last_selected_variety,
         'variety': variety_obj,
         'products': products,
         'lots': lots,
         'lots_json': lots_json,
+        'lots_extra_data': lots_extra_data,  # Add this new context variable
         'all_vars_json': all_vars_json,
         'growers': growers,
         'env_types': settings.ENV_TYPES,
         'sku_suffixes': settings.SKU_SUFFIXES,
         'pkg_sizes': settings.PKG_SIZES,
-        'packed_for_year': settings.CURRENT_ORDER_YEAR,
+        'packed_for_year': packed_for_year,
         'transition': settings.TRANSITION,
     }
     return render(request, 'office/view_variety.html', context)
-
-
 
 @login_required
 @user_passes_test(is_employee)
@@ -246,56 +352,6 @@ def print_product_labels(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
-# @login_required
-# @user_passes_test(is_employee)
-# def print_product_labels(request):
-    
-#     from datetime import date
-#     if request.method == 'POST':
-#         if request.user.username not in ["office", "admin"]:
-#             return JsonResponse({'error': 'You are not allowed to print labels'}, status=403)
-        
-        
-#         try:
-#             data = json.loads(request.body)
-#             product_id = data.get('product_id')
-#             print_type = data.get('print_type')
-#             quantity = int(data.get('quantity', 1))
-#             packed_for_year = int(data.get('packed_for_year', 1))
-#             print(f"Packed for year: {packed_for_year}")
-#             product = Product.objects.get(pk=product_id)
-                        
-#             # Only log if not printing back-only labels
-#             if print_type not in ['back_single', 'back_sheet']:
-#                 # Calculate actual label quantity
-#                 if print_type in ['front_sheet', 'front_back_sheet']:
-#                     actual_qty = quantity * 30  # 30 labels per sheet
-#                 else:
-#                     actual_qty = quantity  # Singles and front_back_single
-                
-#                 # Log the print job in LabelPrint table
-#                 LabelPrint.objects.create(
-#                     product=product,
-#                     lot=product.lot,
-#                     date=date.today(),
-#                     qty=actual_qty,
-#                     for_year=packed_for_year,
-#                 )
-            
-#             print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
-#             # Add your actual printing logic here
-            
-#             return JsonResponse({
-#                 'success': True, 
-#                 'message': f"Printing {quantity} {print_type} labels for {product.variety}."
-#             })
-            
-#         except Product.DoesNotExist:
-#             return JsonResponse({'error': 'Product not found'}, status=404)
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)
-    
-#     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 @login_required

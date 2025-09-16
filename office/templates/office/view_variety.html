@@ -2606,7 +2606,7 @@
                             <span class="info-value" id="historyVarietyName">--</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">SKU:</span>
+                            <span class="info-label">Lot ID:</span>
                             <span class="info-value" id="historySkuDisplay">--</span>
                         </div>
                         <div class="info-row">
@@ -2933,6 +2933,7 @@
         const varietyDataString = '{{ all_vars_json|escapejs }}';
         const packedForYear = '{{ packed_for_year }}'; // e.g., "26" or "25"
         const isTransition = JSON.parse('{{ transition|yesno:"true,false"|lower }}');
+        const lotsExtraData = JSON.parse('{{ lots_extra_data|escapejs }}');
         let allVarieties = JSON.parse(varietyDataString);
         const lotsDataString = '{{ lots_json|escapejs }}';
         let allLotsData = JSON.parse(lotsDataString);
@@ -3360,63 +3361,59 @@
         }
 
 
-        // function proceedWithPrintPopup(productId, productName) {
-        //     currentProductId = productId;
-        //     document.querySelector('.print-popup-title').innerHTML = `Print labels for<br>${productName}`;
-        //     document.getElementById('printQuantity').value = 1;
-            
-        //     document.querySelectorAll('.print-option-btn').forEach(btn => btn.classList.remove('selected'));
-        //     document.querySelector('[data-option="front_single"]').classList.add('selected');
-        //     selectedPrintOption = 'front_single';
-            
-        //     document.getElementById('printPopupOverlay').classList.add('show');
-        // }
-
-
-
-
         function setupPackedForYearControl(productId) {
             const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
             const lotGermForYear = productRow ? productRow.dataset.lotForYear : null;
             
+            // Get the lot code to find extra data
+            const lotCode = productRow ? productRow.dataset.lotCode : null;
+            
+            // Find if this is a next-year-only lot
+            const matchingLot = allLotsData.find(lot => {
+                const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+                return lotDisplay === lotCode;
+            });
+            
+            const lotExtraData = lotsExtraData.find(extra => extra.id === matchingLot?.id);
+            const isNextYearOnly = lotExtraData?.is_next_year_only || false;
+            
             const inputElement = document.getElementById('packedForYearInput');
             const selectElement = document.getElementById('packedForYearSelect');
             
-            // Clear any existing options
             selectElement.innerHTML = '';
             
-            if (!isTransition) {
-                // Non-transition: always show non-editable input
+            if (isNextYearOnly) {
+                // Special case: next year only lot - force next year
+                const nextYear = parseInt(packedForYear) + 1;
+                inputElement.value = `20${nextYear}`;
+                inputElement.style.display = 'inline-block';
+                selectElement.style.display = 'none';
+                console.log('Next year only lot detected - forcing year', nextYear);
+            } else if (!isTransition) {
+                // Non-transition: show current packed year
                 inputElement.value = `20${packedForYear}`;
                 inputElement.style.display = 'inline-block';
                 selectElement.style.display = 'none';
             } else {
-                // Transition mode
+                // Transition mode - existing logic
                 const lotYear = lotGermForYear ? parseInt(lotGermForYear) : null;
                 const packedYear = parseInt(packedForYear);
                 
                 if (lotYear && lotYear > packedYear) {
-                    // Show dropdown with two options
                     selectElement.innerHTML = `
                         <option value="${packedYear}">20${packedYear}</option>
                         <option value="${packedYear + 1}">20${packedYear + 1}</option>
                     `;
-                    selectElement.value = packedYear; // Default to original packed year
+                    selectElement.value = packedYear;
                     selectElement.style.display = 'inline-block';
                     inputElement.style.display = 'none';
                 } else {
-                    // Show non-editable input (lot year equals packed year)
                     inputElement.value = `20${packedForYear}`;
                     inputElement.style.display = 'inline-block';
                     selectElement.style.display = 'none';
                 }
             }
         }
-
-
-
-
-
 
 
         function showProductActionsPopup(productId) {
@@ -3540,14 +3537,6 @@
         }
 
 
-
-
-
-
-
-
-
-
         function getLotStatus(lotCode) {
             console.log('getLotStatus called with lotCode:', lotCode);
             
@@ -3585,15 +3574,6 @@
         }
 
 
-
-
-
-
-
-
-
-
-
         function hidePendingStatusWarning() {
             document.getElementById('pendingStatusWarning').classList.remove('show');
         }
@@ -3627,92 +3607,7 @@
             proceedWithPrintPopup(productId, productName);
         }
 
-        // function submitPrintJob() {
-        //     const quantity = document.getElementById('printQuantity').value;
-            
-        //     if (!currentProductId || !quantity || quantity < 1) {
-        //         showMessage('Please enter a valid quantity', 'error');
-        //         return;
-        //     }
-
-        //     try {
-        //         // Collect all data from the page
-        //         const printData = collectPrintData(currentProductId, quantity);
-                
-        //         if (!printData) {
-        //             showMessage('Could not collect print data', 'error');
-        //             return;
-        //         }
-
-        //         // Determine Flask endpoints based on print option
-        //         const endpoints = getFlaskEndpoints(selectedPrintOption);
-                
-        //         if (endpoints.length === 0) {
-        //             showMessage('Invalid print option selected', 'error');
-        //             return;
-        //         }
-
-        //         console.log('Sending to Flask:', printData);
-
-        //         // Step 1: Send to Flask for printing
-        //         Promise.all(endpoints.map(endpoint => 
-        //             fetch(`http://localhost:5000${endpoint}`, {
-        //                 method: 'POST',
-        //                 headers: { 'Content-Type': 'application/json' },
-        //                 body: JSON.stringify(printData)
-        //             })
-        //         ))
-        //         .then(responses => {
-        //             const allSuccessful = responses.every(response => response.ok);
-                    
-        //             if (allSuccessful) {
-        //                 // Step 2: Record print job in Django
-        //                 return fetch('/office/print-product-labels/', {
-        //                     method: 'POST',
-        //                     headers: {
-        //                         'Content-Type': 'application/json',
-        //                         'X-CSRFToken': getCookie('csrftoken')
-        //                     },
-        //                     body: JSON.stringify({
-        //                         product_id: currentProductId,
-        //                         print_type: selectedPrintOption,
-        //                         quantity: quantity
-        //                     })
-        //                 });
-        //             } else {
-        //                 throw new Error('Flask printing failed');
-        //             }
-        //         })
-        //         .then(response => response.json())
-        //         .then(data => {
-        //             if (data.success) {
-        //                 showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
-        //                 hidePrintPopup();
-        //                 // Refresh page after 2 seconds to show updated print count
-        //                 setTimeout(() => {
-        //                     window.location.href = window.location.pathname;
-        //                 }, 2000);
-        //             } else {
-        //                 showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
-        //                 hidePrintPopup();
-        //             }
-        //         })
-        //         .catch(error => {
-        //             console.error('Print job error:', error);
-        //             console.log('This is the data that would be sent to Flask:', printData);
-        //             showMessage('Printing failed: ' + error.message, 'error');
-        //             hidePrintPopup();
-        //         });
-
-        //     } catch (error) {
-        //         console.error('Data collection error:', error);
-        //         console.log('This is the data that would be sent to Flask: [Data collection failed]');
-        //         showMessage('Failed to collect print data', 'error');
-        //     }
-        // }
-
-
-
+       
         function submitPrintJob() {
             const quantity = document.getElementById('printQuantity').value;
             
@@ -3842,36 +3737,6 @@
                 back7: productRow.dataset.back7
             };
         }
-
-
-        // function collectPrintData(productId, quantity) {
-        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
-        //     if (!productRow) return null;
-
-        //     return {
-        //         quantity: parseInt(quantity),
-        //         variety_name: productRow.dataset.varietyName,
-        //         crop: productRow.dataset.crop,
-        //         days: productRow.dataset.days,
-        //         sku_suffix: productRow.dataset.skuSuffix,
-        //         pkg_size: productRow.dataset.pkgSize,
-        //         env_type: productRow.dataset.envType,
-        //         lot_code: productRow.dataset.lotCode,
-        //         germination: productRow.dataset.germination,
-        //         for_year: productRow.dataset.forYear,
-        //         rad_type: productRow.dataset.radType,
-        //         desc1: productRow.dataset.desc1,
-        //         desc2: productRow.dataset.desc2,
-        //         desc3: productRow.dataset.desc3,
-        //         back1: productRow.dataset.back1,
-        //         back2: productRow.dataset.back2,
-        //         back3: productRow.dataset.back3,
-        //         back4: productRow.dataset.back4,
-        //         back5: productRow.dataset.back5,
-        //         back6: productRow.dataset.back6,
-        //         back7: productRow.dataset.back7
-        //     };
-        // }
 
 
         function getFlaskEndpoints(printOption) {
@@ -4441,31 +4306,6 @@
             container.innerHTML = html;
         }
 
-
-        // function populatePackingHistoryRecords(packingHistory) {
-        //     const container = document.getElementById('packingHistoryContent');
-            
-        //     if (packingHistory.length === 0) {
-        //         container.innerHTML = '<div class="no-records">No packing records found</div>';
-        //         return;
-        //     }
-            
-        //     container.innerHTML = packingHistory.map(pack => `
-        //         <div class="record-item">
-        //             <div class="record-main-info">
-        //                 <span class="record-date">${pack.date}</span>
-        //                 <div class="record-detail">
-        //                     <span class="record-detail-label">SKU:</span>
-        //                     <span class="record-detail-value">${pack.product_sku}</span>
-        //                 </div>
-        //                 <div class="record-detail">
-        //                     <span class="record-detail-label">Qty:</span>
-        //                     <span class="record-detail-value">${pack.qty}</span>
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     `).join('');
-        // }
 
         function populateNotesRecords(notes) {
             const container = document.getElementById('notesContent');

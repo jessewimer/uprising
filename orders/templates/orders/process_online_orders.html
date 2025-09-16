@@ -1017,6 +1017,7 @@
     </div>
 
     {{ recent_batches|json_script:"batch-data" }}
+    {{ current_order_year|json_script:"current-order-year" }}
 
     <script>
         // Global variables
@@ -1024,12 +1025,8 @@
         let printItems = [];
         let pullItems = [];
         let processedOrderData = null;
-        // Global variable to track what action we're taking
         let currentOrderAction = null;
-
-
-
-
+        const currentOrderYear = JSON.parse(document.getElementById('current-order-year').textContent);
         const rawBatchData = JSON.parse(document.getElementById('batch-data').textContent);
         
         // Convert the data to the format our JavaScript expects
@@ -1758,7 +1755,8 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    items: selectedItems
+                    items: selectedItems,
+                    current_order_year: currentOrderYear
                 })
             })
             .then(response => response.json())
@@ -2092,17 +2090,6 @@
                 modal.remove();
             }
         }
-
-
-
-
-
-
-
-
-
-
-
 
 
         function escapeHtml(text) {

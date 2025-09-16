@@ -306,9 +306,10 @@ def process_online_orders(request):
             'bulk_to_pull': bulk_to_pull,
         })
     
-    year = settings.CURRENT_
+    # cuyear = settings.CURRENT_ORDER_YEAR
     context = {
         'recent_batches': batch_list,
+        'current_order_year': settings.CURRENT_ORDER_YEAR,
     }
     return render(request, 'orders/process_online_orders.html', context)
 
