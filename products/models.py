@@ -116,13 +116,21 @@ class Product(models.Model):
 
         return f"{retail_total} ({wholesale_total})"
         
-    
+    # CHANGED THIS SO THAT IT ONLY PULLS LABEL PRINTS FOR CURRENT ORDER YEAR... 
     def get_total_printed(self):
-        total = self.label_prints.aggregate(
+        total = self.label_prints.filter(for_year=settings.CURRENT_ORDER_YEAR).aggregate(
             total=Sum('qty')
         )['total'] or 0
         
         return total
+    
+    def get_last_print_date(self):
+        last_print = self.label_prints.filter(for_year=settings.CURRENT_ORDER_YEAR).order_by('-date').first()
+        if last_print:
+            return last_print.date.strftime("%m/%d/%Y")
+        return "--"
+    
+
     
 
 class VarNote(models.Model):

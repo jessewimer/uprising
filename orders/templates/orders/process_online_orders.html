@@ -1764,8 +1764,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // No popup needed for successful printing
                     console.log(`Labels generated successfully for items ${start}-${end}!`);
+                    
+                    // Check if there are items with missing data
+                    if (data.items_missing_data && data.items_missing_data.length > 0) {
+                        const skuList = data.items_missing_data.join(', ');
+                        showErrorModal(`Cannot print the following items due to missing data: ${skuList}`);
+                    }
                 } else {
                     showErrorModal(data.error || 'Error generating labels.');
                 }

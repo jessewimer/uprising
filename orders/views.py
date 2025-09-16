@@ -210,15 +210,6 @@ def enrich_bulk_to_pull_and_print(bulk_items):
             germination = current_germ_obj.germination_rate if current_germ_obj else None
             for_year = current_germ_obj.for_year if current_germ_obj else None
 
-            # if product.env_multiplier and product.env_multiplier > 1:
-            #     qty *= product.env_multiplier
-            #     alt_product = product.variety.products.filter(
-            #         sku_suffix=product.alt_sku
-            #     ).first()
-            #     pkg_size = alt_product.pkg_size if alt_product else product.pkg_size
-            # else:
-            #     pkg_size = product.pkg_size
-
             entry = {
                 "quantity": print_qty,
                 "variety_name": product.variety.var_name,
@@ -315,6 +306,7 @@ def process_online_orders(request):
             'bulk_to_pull': bulk_to_pull,
         })
     
+    year = settings.CURRENT_
     context = {
         'recent_batches': batch_list,
     }

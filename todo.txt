@@ -6,4 +6,12 @@ import smarties varieties and stock seed data from the excel spreadsheet
 
 import end of year sales data from shopify/wholesale
 
+need to decide how to handle the transition time
+in settings.py:
+    -> FOR_YEAR -> this sets the for_year attribute when printing germ labels and creating new germ objects
+                   it gets switch from one year to the next ~ July (when starting to )
+    -> CURRENT_ORDER_YEAR
+    -> TRANSITION = TRUE/FALSE
 
+
+    C

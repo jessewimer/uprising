@@ -56,6 +56,7 @@ urlpatterns = [
 
     path('print-product-labels/', print_product_labels, name='print_product_labels'),
     path('assign-lot-to-product/', assign_lot_to_product, name='assign_lot_to_product'),
+    path('edit-product/', edit_product, name='edit_product'),
     path('set-lot-low-inv/', set_lot_low_inv, name='set_lot_low_inv'),
     path('add-lot/', add_lot, name='add_lot'),
     path('delete-lot/', delete_lot, name='delete_lot'),

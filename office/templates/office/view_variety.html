@@ -481,6 +481,22 @@
             border-collapse: collapse;
         }
 
+        .product-cell-content {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Even spacing between all elements */
+        }
+
+        .product-cell-content .print-icon,
+        .product-cell-content .edit-icon {
+            margin: 0; /* Remove any existing margins */
+            flex-shrink: 0; /* Don't shrink the icons */
+        }
+
+        .product-sku {
+            flex: 1; /* Take up remaining space */
+            min-width: 0; /* Allow text to shrink if needed */
+        }
 
         /* Center all columns in products table */
         .products-table th,
@@ -494,9 +510,21 @@
             text-align: left;
         }
 
+
+        /* Keep your existing rule */
         .lots-table th:first-child,
         .lots-table td:first-child {
             text-align: left;
+        }
+
+        /* Add this new rule */
+        .lots-table td:first-child {
+            padding-left: 12px; /* Match the products table padding */
+        }
+
+        .lots-table .edit-icon {
+            margin-left: 0; /* Remove any left margin */
+            margin-right: 8px; /* Add consistent spacing after icon */
         }
 
         .lots-table th:not(:first-child),
@@ -887,6 +915,28 @@
         .print-quantity-input:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        .print-inputs-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-end;
+            margin-bottom: 25px;
+        }
+
+        .print-inputs-row .print-quantity-container {
+            margin-bottom: 0; /* Remove bottom margin since parent handles spacing */
+            flex: 0 0 auto; /* Don't grow or shrink */
+        }
+
+        /* Make sure the year select has consistent width */
+        #packedForYearSelect {
+            width: 110px; /* Slightly wider for "20XX" format */
+        }
+
+        #packedForYearInput {
+            width: 110px; /* Match the select width */
         }
 
         .print-options {
@@ -1540,6 +1590,37 @@
             line-height: 1.4;
         }
 
+        /* Packing history year headers */
+        .packing-year-header {
+            margin: 20px 0 10px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .packing-year-header:first-child {
+            margin-top: 0;
+        }
+
+        .packing-year-header h4 {
+            margin: 0;
+            color: #667eea;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Spacing between year groups */
+        .year-group-spacing {
+            height: 15px;
+        }
+
+        /* Only indent record items within packing history section */
+        #packingHistoryContent .packing-year-header + .record-item,
+        #packingHistoryContent .record-item + .record-item {
+            margin-left: 15px;
+        }
+
         @keyframes slideInRight {
             from {
                 opacity: 0;
@@ -1820,6 +1901,13 @@
                                         data-sku-suffix="{{ product.sku_suffix|default:'' }}"
                                         data-pkg-size="{{ product.pkg_size|default:'' }}"
                                         data-env-type="{{ product.env_type|default:'' }}"
+                                        data-alt-sku="{{ product.alt_sku|default:'' }}"
+                                        data-lineitem-name="{{ product.lineitem_name|default:'' }}"
+                                        data-rack-location="{{ product.rack_location|default:'' }}"
+                                        data-env-multiplier="{{ product.env_multiplier|default:'' }}"
+                                        data-scoop-size="{{ product.scoop_size|default:'' }}"
+                                        data-print-back="{{ product.print_back|yesno:'true,false' }}"
+                                        data-is-sub-product="{{ product.is_sub_product|yesno:'true,false' }}"
                                         data-rad-type="{{ product.variety.get_rad_type|default:'' }}"
                                         data-desc1="{{ product.variety.desc_line1|default:'' }}"
                                         data-desc2="{{ product.variety.desc_line2|default:'' }}"
@@ -1833,16 +1921,26 @@
                                         data-back7="{{ product.variety.back7|default:'' }}"
                                         data-lot-code="{% if product.lot %}{% if product.lot.grower and product.lot.year %}{{ product.lot.grower }}{{ product.lot.year }}{% if product.lot.harvest %}{{ product.lot.harvest }}{% endif %}{% endif %}{% endif %}"
                                         data-germination="{% if product.lot %}{{ product.lot.get_most_recent_germ_percent|default:'' }}{% endif %}"
-                                        data-for-year="25">
+                                        data-lot-for-year="{% if product.lot %}{{ product.lot.get_most_recent_germ_for_year|default:'' }}{% endif %}"
+                                        data-for-year="25"
+                                        data-last-print-date="{{ product.get_last_print_date }}">
                                         <td>
-                                            <span class="print-icon" onclick="showPrintPopup('{{ product.pk }}', '{{ product.variety.var_name }} - {{ product.sku_suffix|escapejs }}')" style="margin-right: 8px;">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
-                                                    <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-                                                    <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-                                                </svg>
-                                            </span>
-                                            {{ product.sku_suffix|default:"--" }}
+                                            <div class="product-cell-content">
+                                                <span class="print-icon" onclick="showPrintPopup('{{ product.pk }}', '{{ product.variety.var_name }} - {{ product.sku_suffix|escapejs }}')">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                                                        <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                                                        <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                                                    </svg>
+                                                </span>
+                                                <span class="edit-icon" onclick="showProductActionsPopup('{{ product.pk }}')">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="product-sku">{{ product.sku_suffix|default:"--" }}</span>
+                                            </div>
                                         </td>
                                         <td>
                                             {% if product.lot %}
@@ -1854,12 +1952,12 @@
                                             {% else %}
                                                 --
                                             {% endif %}
-                                            <span class="edit-icon" onclick="editProductLot('{{ product.pk }}')">
+                                            <!-- <span class="edit-icon" onclick="editProductLot('{{ product.pk }}')">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                                 </svg>
-                                            </span>
+                                            </span> -->
                                         </td>
                                         <td>{{ product.get_ytd_sales|default:"--" }}</td>
                                         <td>{{ product.get_last_year_sales|default:"--" }}</td>
@@ -1905,17 +2003,17 @@
                                 {% for lot in lots %}
                                 <tr>
                                     <td>
-                                        {% if lot.grower and lot.year %}
-                                            {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
-                                        {% else %}
-                                            --
-                                        {% endif %}
                                         <span class="edit-icon" data-lot-id="{{ lot.pk }}" data-low-inv="{{ lot.low_inv|yesno:'true,false' }}" onclick="showLotActionsPopup(this)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                             </svg>
                                         </span>
+                                        {% if lot.grower and lot.year %}
+                                            {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
+                                        {% else %}
+                                            --
+                                        {% endif %}
                                     </td>
                                     <td>{{ lot.get_most_recent_germ_percent|default:"--" }}</td>
                                     <td>{{ lot.get_most_recent_inventory|default:"--" }}</td>
@@ -2041,7 +2139,46 @@
     </div>
 
     <!-- Print Popup -->
+
     <div class="print-popup-overlay" id="printPopupOverlay">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Print Labels</h3>
+                <button class="print-popup-close" onclick="hidePrintPopup()">×</button>
+            </div>
+        
+            <!-- Wrap both inputs in a flex container -->
+            <div class="print-inputs-row">
+                <div class="print-quantity-container">
+                    <label class="print-quantity-label" for="printQuantity">Quantity:</label>
+                    <input type="number" class="print-quantity-input" id="printQuantity" min="1" value="1">
+                </div>
+                <div class="print-quantity-container">
+                    <label class="print-quantity-label" for="packedForYearSelect">Packed for year:</label>
+                    <input type="text" class="print-quantity-input" id="packedForYearInput" style="display: none;" readonly>
+                    <select class="print-quantity-input" id="packedForYearSelect" style="display: none;">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="print-options">
+                <button class="print-option-btn selected" data-option="front_single">Front Single</button>
+                <button class="print-option-btn" data-option="front_sheet">Front Sheet</button>
+                <button class="print-option-btn" data-option="back_single">Back Single</button>
+                <button class="print-option-btn" data-option="back_sheet">Back Sheet</button>
+                <button class="print-option-btn" data-option="front_back_single">Front/Back Single</button>
+                <button class="print-option-btn" data-option="front_back_sheet">Front/Back Sheet</button>
+            </div>
+        
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hidePrintPopup()">Cancel</button>
+                <button class="print-action-btn print-btn" onclick="submitPrintJob()">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="print-popup-overlay" id="printPopupOverlay">
         <div class="print-popup">
             <div class="print-popup-header">
                 <h3 class="print-popup-title">Print Labels</h3>
@@ -2052,7 +2189,14 @@
                 <label class="print-quantity-label" for="printQuantity">Quantity:</label>
                 <input type="number" class="print-quantity-input" id="printQuantity" min="1" value="1">
             </div>
-            
+            <div class="print-quantity-container">
+                <label class="print-quantity-label" for="packedForYearSelect">Packed for year:</label>
+                <input type="text" class="print-quantity-input" id="packedForYearInput" style="display: none;" readonly>
+                <select class="print-quantity-input" id="packedForYearSelect" style="display: none;">
+                
+                </select>
+            </div>
+
             <div class="print-options">
                 <button class="print-option-btn selected" data-option="front_single">Front Single</button>
                 <button class="print-option-btn" data-option="front_sheet">Front Sheet</button>
@@ -2067,7 +2211,7 @@
                 <button class="print-action-btn print-btn" onclick="submitPrintJob()">Print</button>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Low Inventory Warning Popup -->
     <div class="print-popup-overlay" id="lowInventoryWarning">
@@ -2083,6 +2227,24 @@
             <div class="print-actions">
                 <button class="print-action-btn cancel-btn" onclick="hideLowInventoryWarning()">Cancel</button>
                 <button class="print-action-btn print-btn" onclick="continuePrintDespiteLowInv()">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Print Warning Popup -->
+    <div class="print-popup-overlay" id="recentPrintWarning">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Recent Print Detected</h3>
+                <button class="print-popup-close" onclick="hideRecentPrintWarning()">×</button>
+            </div>
+            <p style="text-align: center; margin-bottom: 25px; color: #ff6b6b;">
+                This product was last printed on <strong id="lastPrintDateDisplay"></strong>.<br>
+                <strong>Do you want to continue printing?</strong>
+            </p>
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hideRecentPrintWarning()">Cancel</button>
+                <button class="print-action-btn print-btn" onclick="continueRecentPrint()">Continue</button>
             </div>
         </div>
     </div>
@@ -2169,6 +2331,116 @@
             </div>
         </div>
     </div>
+
+
+    <!-- Product Actions Popup -->
+    <div class="print-popup-overlay" id="productActionsPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Product Actions</h3>
+                <button class="print-popup-close" onclick="hideProductActionsPopup()">×</button>
+            </div>
+            
+            <div class="lot-actions">
+                <button class="lot-action-btn" onclick="changeProductLot(currentProductId)">Change Lot</button>
+                <button class="lot-action-btn" onclick="editProduct(currentProductId)">Edit Product</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Edit Product Popup -->
+    <div id="editProductPopup" class="modal-overlay">
+        <div class="modal">
+            <button class="close-modal" onclick="hideEditProductPopup()">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Product</h2>
+            </div>
+
+            <div id="editProductSuccessMessage" class="success-message" style="display: none;">
+                Product updated successfully! 
+            </div>
+
+            <form id="editProductForm" onsubmit="submitEditProduct(event)">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editProductVariety">Variety</label>
+                        <input type="text" id="editProductVariety" name="variety" class="field-medium" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductSkuSuffix">SKU Suffix *</label>
+                        <select id="editProductSkuSuffix" name="sku_suffix" class="field-medium" required>
+                            {% for suffix in sku_suffixes %}
+                                <option value="{{ suffix }}">{{ suffix }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="error-message" id="edit_sku_suffix_error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductPkgSize">Package Size</label>
+                        <select id="editProductPkgSize" name="pkg_size" class="field-narrow">
+                            {% for size in pkg_sizes %}
+                                <option value="{{ size }}">{{ size }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductAltSku">Alternative SKU</label>
+                        <input type="text" id="editProductAltSku" name="alt_sku" class="field-medium">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductLineitemName">Line Item Name</label>
+                        <input type="text" id="editProductLineitemName" name="lineitem_name" class="field-wide">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductRackLocation">Rack Location</label>
+                        <input type="text" id="editProductRackLocation" name="rack_location" class="field-medium">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductEnvType">Envelope Type</label>
+                        <select id="editProductEnvType" name="env_type" class="field-medium">
+                            {% for env in env_types %}
+                                <option value="{{ env }}">{{ env }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductEnvMultiplier">Envelope Multiplier</label>
+                        <input type="number" id="editProductEnvMultiplier" name="env_multiplier" value="1" class="field-narrow">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProductScoopSize">Scoop Size</label>
+                        <input type="text" id="editProductScoopSize" name="scoop_size" class="field-medium">
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="editProductPrintBack" name="print_back">
+                        <label for="editProductPrintBack">Print Back</label>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="editProductIsSubProduct" name="is_sub_product">
+                        <label for="editProductIsSubProduct">Is Sub Product</label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideEditProductPopup()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <!-- Lot Actions Popup -->
     <div class="print-popup-overlay" id="lotActionsPopup">
@@ -2637,8 +2909,30 @@
         </div>
     </div>
 
+
+    <!-- For Year Mismatch Warning Popup -->
+    <div class="print-popup-overlay" id="forYearMismatchWarning">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Cannot Print</h3>
+                <button class="print-popup-close" onclick="hideForYearMismatchWarning()">×</button>
+            </div>
+            <p style="text-align: center; margin-bottom: 20px; color: #dc3545;">
+                <strong>Year Mismatch Detected</strong><br>
+                <span id="forYearMismatchMessage">The lot's year doesn't match the current printing year.</span><br>
+                Please check the lot assignment.
+            </p>
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hideForYearMismatchWarning()">OK</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         const varietyDataString = '{{ all_vars_json|escapejs }}';
+        const packedForYear = '{{ packed_for_year }}'; // e.g., "26" or "25"
+        const isTransition = JSON.parse('{{ transition|yesno:"true,false"|lower }}');
         let allVarieties = JSON.parse(varietyDataString);
         const lotsDataString = '{{ lots_json|escapejs }}';
         let allLotsData = JSON.parse(lotsDataString);
@@ -2651,6 +2945,7 @@
         // Filter out retired lots
         availableLots = availableLots.filter(lot => !lot.is_retired);
         let currentProductId = null;
+        let currentEditProductId = null;
         let selectedPrintOption = 'front_single';
 
         // Initialize on page load
@@ -2748,10 +3043,6 @@
 
 
 
-
-
-
-
         function showPrintPopup(productId, productName) {
             console.log('showPrintPopup called for:', productId, productName);
             
@@ -2806,11 +3097,87 @@
             });
         }
 
-        function proceedWithPrintPopupChecks(productId, productName) {
+        // function proceedWithPrintPopupChecks(productId, productName) {
+        //     console.log('proceedWithPrintPopupChecks called for:', productId);
+            
+        //     try {
+        //         // Use the corrected row selection method
+        //         const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+                
+        //         if (!productRow) {
+        //             console.error('Could not find product row for ID:', productId);
+        //             showMessage('Could not find product information', 'error');
+        //             return;
+        //         }
+                
+        //         console.log('Found product row:', productRow);
+                
+        //         const lotCell = productRow.cells[1]; // Lot column is at index 1
+        //         const lotText = lotCell.textContent.trim().replace(/\s+/g, '');
+                
+        //         console.log('Lot text from cell:', lotText);
+                
+        //         // Check if no lot is assigned
+        //         if (lotText === '--' || lotText === '') {
+        //             console.log('No lot assigned, showing warning');
+        //             document.getElementById('noLotWarning').classList.add('show');
+        //             return;
+        //         }
+
+        //         // Search through ALL lots (not just available ones)
+        //         const matchingLot = allLotsData.find(lot => {
+        //             const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        //             return lotDisplay === lotText;
+        //         });
+                
+        //         console.log('Matching lot found:', matchingLot);
+                
+        //         if (matchingLot) {
+        //             console.log('Checking if lot is retired:', matchingLot.is_retired);
+        //             // Check if retired (blocks printing)
+        //             if (matchingLot.is_retired) {
+        //                 console.log('Lot is retired, showing warning');
+        //                 document.getElementById('retiredLotWarning').classList.add('show');
+        //                 return;
+        //             }
+                    
+        //             console.log('Checking if lot has low inventory:', matchingLot.low_inv);
+        //             // Check if low inventory (asks for confirmation)  
+        //             if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
+        //                 console.log('Low inventory, showing confirmation');
+        //                 currentProductId = productId;
+        //                 currentProductName = productName;
+        //                 document.getElementById('lowInventoryWarning').classList.add('show');
+        //                 return;
+        //             }
+        //         }
+                
+        //         console.log('About to check lot status...');
+        //         // Check if lot status is pending
+        //         const lotStatus = getLotStatus(lotText);
+        //         console.log('Lot status result:', lotStatus);
+                
+        //         if (lotStatus && lotStatus.toLowerCase() === 'pending') {
+        //             console.log('Lot status is pending, showing warning');
+        //             document.getElementById('pendingStatusWarning').classList.add('show');
+        //             return;
+        //         }
+                
+        //         // Continue with normal print popup if no issues
+        //         console.log('All checks passed, calling proceedWithPrintPopup...');
+        //         proceedWithPrintPopup(productId, productName);
+        //         console.log('proceedWithPrintPopup completed');
+                
+        //     } catch (error) {
+        //         console.error('Error in proceedWithPrintPopupChecks:', error);
+        //         showMessage('Error processing print request', 'error');
+        //     }
+        // }
+       function proceedWithPrintPopupChecks(productId, productName) {
             console.log('proceedWithPrintPopupChecks called for:', productId);
             
             try {
-                // Use the corrected row selection method
+                // Find the product row
                 const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
                 
                 if (!productRow) {
@@ -2819,70 +3186,163 @@
                     return;
                 }
                 
-                console.log('Found product row:', productRow);
-                
+                // Get lot information from the display
                 const lotCell = productRow.cells[1]; // Lot column is at index 1
                 const lotText = lotCell.textContent.trim().replace(/\s+/g, '');
                 
                 console.log('Lot text from cell:', lotText);
                 
-                // Check if no lot is assigned
+                // Check 1: No lot assigned
                 if (lotText === '--' || lotText === '') {
                     console.log('No lot assigned, showing warning');
                     document.getElementById('noLotWarning').classList.add('show');
                     return;
                 }
 
-                // Search through ALL lots (not just available ones)
+                // Find the matching lot in our data
                 const matchingLot = allLotsData.find(lot => {
                     const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
                     return lotDisplay === lotText;
                 });
                 
-                console.log('Matching lot found:', matchingLot);
+                if (!matchingLot) {
+                    console.log('Could not find matching lot data');
+                    showMessage('Could not find lot information', 'error');
+                    return;
+                }
                 
-                if (matchingLot) {
-                    console.log('Checking if lot is retired:', matchingLot.is_retired);
-                    // Check if retired (blocks printing)
-                    if (matchingLot.is_retired) {
-                        console.log('Lot is retired, showing warning');
-                        document.getElementById('retiredLotWarning').classList.add('show');
-                        return;
-                    }
-                    
-                    console.log('Checking if lot has low inventory:', matchingLot.low_inv);
-                    // Check if low inventory (asks for confirmation)  
-                    if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
-                        console.log('Low inventory, showing confirmation');
-                        currentProductId = productId;
-                        currentProductName = productName;
-                        document.getElementById('lowInventoryWarning').classList.add('show');
+                // Check 2: Retired lot (blocks all printing)
+                if (matchingLot.is_retired) {
+                    console.log('Lot is retired, showing warning');
+                    document.getElementById('retiredLotWarning').classList.add('show');
+                    return;
+                }
+                
+                // Check 3: Year mismatch checking (NEW LOGIC)
+                const lotGermForYear = productRow.dataset.lotForYear; // Get lot's most recent germ for_year
+                
+                console.log('Year check - Packed for year:', packedForYear, 'Lot germ for_year:', lotGermForYear, 'Transition:', isTransition);
+                
+                // Check for front label printing options
+                if (selectedPrintOption && shouldCheckForYear(selectedPrintOption)) {
+                    if (lotGermForYear && packedForYear) {
+                        const lotYear = parseInt(lotGermForYear);
+                        const packedYear = parseInt(packedForYear);
+                        
+                        if (isTransition) {
+                            // Transition mode: lot year must be >= packed year
+                            if (lotYear < packedYear) {
+                                console.log('Transition mode: Lot year < packed year, showing warning');
+                                showForYearMismatchWarning(packedForYear, lotGermForYear, lotText);
+                                return;
+                            }
+                        } else {
+                            // Non-transition mode: lot year must equal packed year
+                            if (lotYear !== packedYear) {
+                                console.log('Non-transition mode: Lot year != packed year, showing warning');
+                                showForYearMismatchWarning(packedForYear, lotGermForYear, lotText);
+                                return;
+                            }
+                        }
+                    } else {
+                        console.log('Missing year data for comparison');
+                        showMessage('Missing year information for comparison', 'error');
                         return;
                     }
                 }
                 
-                console.log('About to check lot status...');
-                // Check if lot status is pending
+                // Check 4: Pending status (blocks all printing)
                 const lotStatus = getLotStatus(lotText);
-                console.log('Lot status result:', lotStatus);
-                
                 if (lotStatus && lotStatus.toLowerCase() === 'pending') {
                     console.log('Lot status is pending, showing warning');
                     document.getElementById('pendingStatusWarning').classList.add('show');
                     return;
                 }
                 
-                // Continue with normal print popup if no issues
-                console.log('All checks passed, calling proceedWithPrintPopup...');
+                // Check 5: Low inventory (asks for confirmation)
+                if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
+                    console.log('Low inventory, showing confirmation');
+                    currentProductId = productId;
+                    currentProductName = productName;
+                    document.getElementById('lowInventoryWarning').classList.add('show');
+                    return;
+                }
+                
+
+                const lastPrintDate = productRow.dataset.lastPrintDate;
+                if (lastPrintDate && lastPrintDate !== '--' && isWithinLastWeek(lastPrintDate)) {
+                    console.log('Recent print detected:', lastPrintDate);
+                    currentProductId = productId;
+                    currentProductName = productName;
+                    document.getElementById('lastPrintDateDisplay').textContent = lastPrintDate;
+                    document.getElementById('recentPrintWarning').classList.add('show');
+                    return;
+                }
+
+                // All checks passed - proceed with printing
+                console.log('All checks passed, proceeding with print popup');
                 proceedWithPrintPopup(productId, productName);
-                console.log('proceedWithPrintPopup completed');
                 
             } catch (error) {
                 console.error('Error in proceedWithPrintPopupChecks:', error);
                 showMessage('Error processing print request', 'error');
             }
         }
-       
+
+
+
+        // Check if a date is within the last 7 days
+        function isWithinLastWeek(dateString) {
+            if (dateString === '--') return false;
+            
+            try {
+                const printDate = new Date(dateString);
+                const today = new Date();
+                const oneWeekAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+                
+                return printDate >= oneWeekAgo && printDate <= today;
+            } catch (error) {
+                console.log('Error parsing date:', dateString);
+                return false;
+            }
+        }
+
+        function hideRecentPrintWarning() {
+            document.getElementById('recentPrintWarning').classList.remove('show');
+            currentProductId = null;
+            currentProductName = null;
+        }
+
+        function continueRecentPrint() {
+            const productId = currentProductId;
+            const productName = currentProductName;
+            hideRecentPrintWarning();
+            proceedWithPrintPopup(productId, productName);
+        }
+        
+        // Helper function to determine if we should check for_year for this print option
+        function shouldCheckForYear(printOption) {
+            const frontLabelOptions = [
+                'front_single',
+                'front_sheet', 
+                'front_back_single',
+                'front_back_sheet'
+            ];
+            
+            return frontLabelOptions.includes(printOption);
+        }
+
+        // Function to show the for_year mismatch warning
+        function showForYearMismatchWarning(currentYear, lotYear, lotCode) {
+            const message = `Current year: 20${currentYear} | Lot ${lotCode} year: 20${lotYear}`;
+            document.getElementById('forYearMismatchMessage').textContent = message;
+            document.getElementById('forYearMismatchWarning').classList.add('show');
+        }
+
+        // Function to hide the for_year mismatch warning
+        function hideForYearMismatchWarning() {
+            document.getElementById('forYearMismatchWarning').classList.remove('show');
+        }
 
         function proceedWithPrintPopup(productId, productName) {
             currentProductId = productId;
@@ -2893,8 +3353,200 @@
             document.querySelector('[data-option="front_single"]').classList.add('selected');
             selectedPrintOption = 'front_single';
             
+            // Set up the packed for year input/dropdown
+            setupPackedForYearControl(productId);
+            
             document.getElementById('printPopupOverlay').classList.add('show');
         }
+
+
+        // function proceedWithPrintPopup(productId, productName) {
+        //     currentProductId = productId;
+        //     document.querySelector('.print-popup-title').innerHTML = `Print labels for<br>${productName}`;
+        //     document.getElementById('printQuantity').value = 1;
+            
+        //     document.querySelectorAll('.print-option-btn').forEach(btn => btn.classList.remove('selected'));
+        //     document.querySelector('[data-option="front_single"]').classList.add('selected');
+        //     selectedPrintOption = 'front_single';
+            
+        //     document.getElementById('printPopupOverlay').classList.add('show');
+        // }
+
+
+
+
+        function setupPackedForYearControl(productId) {
+            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            const lotGermForYear = productRow ? productRow.dataset.lotForYear : null;
+            
+            const inputElement = document.getElementById('packedForYearInput');
+            const selectElement = document.getElementById('packedForYearSelect');
+            
+            // Clear any existing options
+            selectElement.innerHTML = '';
+            
+            if (!isTransition) {
+                // Non-transition: always show non-editable input
+                inputElement.value = `20${packedForYear}`;
+                inputElement.style.display = 'inline-block';
+                selectElement.style.display = 'none';
+            } else {
+                // Transition mode
+                const lotYear = lotGermForYear ? parseInt(lotGermForYear) : null;
+                const packedYear = parseInt(packedForYear);
+                
+                if (lotYear && lotYear > packedYear) {
+                    // Show dropdown with two options
+                    selectElement.innerHTML = `
+                        <option value="${packedYear}">20${packedYear}</option>
+                        <option value="${packedYear + 1}">20${packedYear + 1}</option>
+                    `;
+                    selectElement.value = packedYear; // Default to original packed year
+                    selectElement.style.display = 'inline-block';
+                    inputElement.style.display = 'none';
+                } else {
+                    // Show non-editable input (lot year equals packed year)
+                    inputElement.value = `20${packedForYear}`;
+                    inputElement.style.display = 'inline-block';
+                    selectElement.style.display = 'none';
+                }
+            }
+        }
+
+
+
+
+
+
+
+        function showProductActionsPopup(productId) {
+            currentProductId = productId;
+            document.getElementById('productActionsPopup').classList.add('show');
+        }
+
+        function hideProductActionsPopup() {
+            document.getElementById('productActionsPopup').classList.remove('show');
+            currentProductId = null;
+        }
+
+        function changeProductLot(productId) {
+            hideProductActionsPopup();
+            editProductLot(productId); // Your existing function
+        }
+
+        function editProduct(productId) {
+            hideProductActionsPopup();
+            
+            currentProductId = productId || currentProductId;
+            // Get product data from the row
+            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            
+            if (!productRow) {
+                showMessage('Could not find product data', 'error');
+                return;
+            }
+            
+            // Pre-fill all the form fields
+            document.getElementById('editProductVariety').value = productRow.dataset.varietyName || '';
+            document.getElementById('editProductSkuSuffix').value = productRow.dataset.skuSuffix || '';
+            document.getElementById('editProductPkgSize').value = productRow.dataset.pkgSize || '';
+            document.getElementById('editProductAltSku').value = productRow.dataset.altSku || '';
+            document.getElementById('editProductLineitemName').value = productRow.dataset.lineitemName || '';
+            document.getElementById('editProductRackLocation').value = productRow.dataset.rackLocation || '';
+            document.getElementById('editProductEnvType').value = productRow.dataset.envType || '';
+            document.getElementById('editProductEnvMultiplier').value = productRow.dataset.envMultiplier || '1';
+            document.getElementById('editProductScoopSize').value = productRow.dataset.scoopSize || '';
+            
+            // Handle checkboxes - convert string to boolean
+            document.getElementById('editProductPrintBack').checked = productRow.dataset.printBack === 'true';
+            document.getElementById('editProductIsSubProduct').checked = productRow.dataset.isSubProduct === 'true';
+            
+            // Show the popup
+            document.getElementById('editProductPopup').classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+
+        function hideEditProductPopup() {
+            document.getElementById('editProductPopup').classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+        function submitEditProduct(event) {
+            event.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('product_id', currentProductId);
+            formData.append('sku_suffix', document.getElementById('editProductSkuSuffix').value);
+            formData.append('pkg_size', document.getElementById('editProductPkgSize').value);
+            formData.append('env_type', document.getElementById('editProductEnvType').value);
+            formData.append('alt_sku', document.getElementById('editProductAltSku').value);
+            formData.append('lineitem_name', document.getElementById('editProductLineitemName').value);
+            formData.append('rack_location', document.getElementById('editProductRackLocation').value);
+            formData.append('env_multiplier', document.getElementById('editProductEnvMultiplier').value);
+            formData.append('scoop_size', document.getElementById('editProductScoopSize').value);
+            
+            // Handle checkboxes - only append if checked
+            if (document.getElementById('editProductPrintBack').checked) {
+                formData.append('print_back', 'on');
+            }
+            if (document.getElementById('editProductIsSubProduct').checked) {
+                formData.append('is_sub_product', 'on');
+            }
+            
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            
+            fetch('/office/edit-product/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the DOM data attributes with new values
+                    const productRow = document.querySelector(`tr[data-product-id="${currentProductId}"]`);
+                    if (productRow) {
+                        productRow.dataset.skuSuffix = document.getElementById('editProductSkuSuffix').value;
+                        productRow.dataset.pkgSize = document.getElementById('editProductPkgSize').value;
+                        productRow.dataset.envType = document.getElementById('editProductEnvType').value;
+                        productRow.dataset.altSku = document.getElementById('editProductAltSku').value;
+                        productRow.dataset.lineitemName = document.getElementById('editProductLineitemName').value;
+                        productRow.dataset.rackLocation = document.getElementById('editProductRackLocation').value;
+                        productRow.dataset.envMultiplier = document.getElementById('editProductEnvMultiplier').value;
+                        productRow.dataset.scoopSize = document.getElementById('editProductScoopSize').value;
+                        productRow.dataset.printBack = document.getElementById('editProductPrintBack').checked.toString();
+                        productRow.dataset.isSubProduct = document.getElementById('editProductIsSubProduct').checked.toString();
+                        
+                        // Also update the visible SKU suffix in the table cell
+                        const skuCell = productRow.querySelector('.product-sku');
+                        if (skuCell) {
+                            skuCell.textContent = document.getElementById('editProductSkuSuffix').value || '--';
+                        }
+                    }
+                    
+                    showMessage('Product updated successfully', 'success');
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showMessage('Error updating product: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+            });
+            
+            hideEditProductPopup();
+        }
+
+
+
+
+
+
+
+
+
 
         function getLotStatus(lotCode) {
             console.log('getLotStatus called with lotCode:', lotCode);
@@ -2975,6 +3627,92 @@
             proceedWithPrintPopup(productId, productName);
         }
 
+        // function submitPrintJob() {
+        //     const quantity = document.getElementById('printQuantity').value;
+            
+        //     if (!currentProductId || !quantity || quantity < 1) {
+        //         showMessage('Please enter a valid quantity', 'error');
+        //         return;
+        //     }
+
+        //     try {
+        //         // Collect all data from the page
+        //         const printData = collectPrintData(currentProductId, quantity);
+                
+        //         if (!printData) {
+        //             showMessage('Could not collect print data', 'error');
+        //             return;
+        //         }
+
+        //         // Determine Flask endpoints based on print option
+        //         const endpoints = getFlaskEndpoints(selectedPrintOption);
+                
+        //         if (endpoints.length === 0) {
+        //             showMessage('Invalid print option selected', 'error');
+        //             return;
+        //         }
+
+        //         console.log('Sending to Flask:', printData);
+
+        //         // Step 1: Send to Flask for printing
+        //         Promise.all(endpoints.map(endpoint => 
+        //             fetch(`http://localhost:5000${endpoint}`, {
+        //                 method: 'POST',
+        //                 headers: { 'Content-Type': 'application/json' },
+        //                 body: JSON.stringify(printData)
+        //             })
+        //         ))
+        //         .then(responses => {
+        //             const allSuccessful = responses.every(response => response.ok);
+                    
+        //             if (allSuccessful) {
+        //                 // Step 2: Record print job in Django
+        //                 return fetch('/office/print-product-labels/', {
+        //                     method: 'POST',
+        //                     headers: {
+        //                         'Content-Type': 'application/json',
+        //                         'X-CSRFToken': getCookie('csrftoken')
+        //                     },
+        //                     body: JSON.stringify({
+        //                         product_id: currentProductId,
+        //                         print_type: selectedPrintOption,
+        //                         quantity: quantity
+        //                     })
+        //                 });
+        //             } else {
+        //                 throw new Error('Flask printing failed');
+        //             }
+        //         })
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             if (data.success) {
+        //                 showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
+        //                 hidePrintPopup();
+        //                 // Refresh page after 2 seconds to show updated print count
+        //                 setTimeout(() => {
+        //                     window.location.href = window.location.pathname;
+        //                 }, 2000);
+        //             } else {
+        //                 showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
+        //                 hidePrintPopup();
+        //             }
+        //         })
+        //         .catch(error => {
+        //             console.error('Print job error:', error);
+        //             console.log('This is the data that would be sent to Flask:', printData);
+        //             showMessage('Printing failed: ' + error.message, 'error');
+        //             hidePrintPopup();
+        //         });
+
+        //     } catch (error) {
+        //         console.error('Data collection error:', error);
+        //         console.log('This is the data that would be sent to Flask: [Data collection failed]');
+        //         showMessage('Failed to collect print data', 'error');
+        //     }
+        // }
+
+
+
         function submitPrintJob() {
             const quantity = document.getElementById('printQuantity').value;
             
@@ -3014,7 +3752,7 @@
                     const allSuccessful = responses.every(response => response.ok);
                     
                     if (allSuccessful) {
-                        // Step 2: Record print job in Django
+                        // Step 2: Record print job in Django (include selected year)
                         return fetch('/office/print-product-labels/', {
                             method: 'POST',
                             headers: {
@@ -3024,7 +3762,8 @@
                             body: JSON.stringify({
                                 product_id: currentProductId,
                                 print_type: selectedPrintOption,
-                                quantity: quantity
+                                quantity: quantity,
+                                packed_for_year: printData.for_year // Include the selected year
                             })
                         });
                     } else {
@@ -3059,10 +3798,26 @@
             }
         }
 
+
+
         function collectPrintData(productId, quantity) {
             const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
             if (!productRow) return null;
-
+            
+            // Get the selected year from either input or dropdown
+            let selectedYear;
+            const inputElement = document.getElementById('packedForYearInput');
+            const selectElement = document.getElementById('packedForYearSelect');
+            
+            if (inputElement.style.display !== 'none') {
+                // Using input - extract 2-digit year from "20XX" format
+                selectedYear = inputElement.value.slice(-2);
+            } else {
+                // Using dropdown - convert selected value to 2-digit string
+                const selectedValue = parseInt(selectElement.value);
+                selectedYear = selectedValue.toString().padStart(2, '0');
+            }
+            
             return {
                 quantity: parseInt(quantity),
                 variety_name: productRow.dataset.varietyName,
@@ -3073,7 +3828,7 @@
                 env_type: productRow.dataset.envType,
                 lot_code: productRow.dataset.lotCode,
                 germination: productRow.dataset.germination,
-                for_year: productRow.dataset.forYear,
+                for_year: selectedYear, // Use the selected year instead of fixed value
                 rad_type: productRow.dataset.radType,
                 desc1: productRow.dataset.desc1,
                 desc2: productRow.dataset.desc2,
@@ -3087,6 +3842,36 @@
                 back7: productRow.dataset.back7
             };
         }
+
+
+        // function collectPrintData(productId, quantity) {
+        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+        //     if (!productRow) return null;
+
+        //     return {
+        //         quantity: parseInt(quantity),
+        //         variety_name: productRow.dataset.varietyName,
+        //         crop: productRow.dataset.crop,
+        //         days: productRow.dataset.days,
+        //         sku_suffix: productRow.dataset.skuSuffix,
+        //         pkg_size: productRow.dataset.pkgSize,
+        //         env_type: productRow.dataset.envType,
+        //         lot_code: productRow.dataset.lotCode,
+        //         germination: productRow.dataset.germination,
+        //         for_year: productRow.dataset.forYear,
+        //         rad_type: productRow.dataset.radType,
+        //         desc1: productRow.dataset.desc1,
+        //         desc2: productRow.dataset.desc2,
+        //         desc3: productRow.dataset.desc3,
+        //         back1: productRow.dataset.back1,
+        //         back2: productRow.dataset.back2,
+        //         back3: productRow.dataset.back3,
+        //         back4: productRow.dataset.back4,
+        //         back5: productRow.dataset.back5,
+        //         back6: productRow.dataset.back6,
+        //         back7: productRow.dataset.back7
+        //     };
+        // }
 
 
         function getFlaskEndpoints(printOption) {
@@ -3408,6 +4193,19 @@
                 }
             });
 
+            document.getElementById('forYearMismatchWarning').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideForYearMismatchWarning();
+                }
+            });
+
+            // Recent print warning popup click outside to close
+            document.getElementById('recentPrintWarning').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideRecentPrintWarning();
+                }
+            });
+
         }
         
 
@@ -3571,6 +4369,8 @@
             `).join('');
         }
 
+
+
         function populatePackingHistoryRecords(packingHistory) {
             const container = document.getElementById('packingHistoryContent');
             
@@ -3579,22 +4379,93 @@
                 return;
             }
             
-            container.innerHTML = packingHistory.map(pack => `
-                <div class="record-item">
-                    <div class="record-main-info">
-                        <span class="record-date">${pack.date}</span>
-                        <div class="record-detail">
-                            <span class="record-detail-label">SKU:</span>
-                            <span class="record-detail-value">${pack.product_sku}</span>
-                        </div>
-                        <div class="record-detail">
-                            <span class="record-detail-label">Qty:</span>
-                            <span class="record-detail-value">${pack.qty}</span>
-                        </div>
+            // Group by for_year and sort
+            const groupedByYear = {};
+            
+            packingHistory.forEach(pack => {
+                const year = pack.for_year || 'Unknown';
+                if (!groupedByYear[year]) {
+                    groupedByYear[year] = [];
+                }
+                groupedByYear[year].push(pack);
+            });
+            
+            // Sort years (newest first) and sort records within each year by date (newest first)
+            const sortedYears = Object.keys(groupedByYear).sort((a, b) => {
+                if (a === 'Unknown') return 1;
+                if (b === 'Unknown') return -1;
+                return b.localeCompare(a); // Descending order
+            });
+            
+            let html = '';
+            
+            sortedYears.forEach(year => {
+                // Sort records within year by date (newest first)
+                const sortedRecords = groupedByYear[year].sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                );
+                
+                // Add year header
+                const displayYear = year.length === 2 ? `20${year}` : year;
+                html += `
+                    <div class="packing-year-header">
+                        <h4>Packed for ${displayYear}:</h4>
                     </div>
-                </div>
-            `).join('');
+                `;
+                
+                // Add records for this year
+                sortedRecords.forEach(pack => {
+                    html += `
+                        <div class="record-item">
+                            <div class="record-main-info">
+                                <span class="record-date">${pack.date}</span>
+                                <div class="record-detail">
+                                    <span class="record-detail-label">SKU:</span>
+                                    <span class="record-detail-value">${pack.product_sku}</span>
+                                </div>
+                                <div class="record-detail">
+                                    <span class="record-detail-label">Qty:</span>
+                                    <span class="record-detail-value">${pack.qty}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // Add spacing between year groups
+                if (year !== sortedYears[sortedYears.length - 1]) {
+                    html += '<div class="year-group-spacing"></div>';
+                }
+            });
+            
+            container.innerHTML = html;
         }
+
+
+        // function populatePackingHistoryRecords(packingHistory) {
+        //     const container = document.getElementById('packingHistoryContent');
+            
+        //     if (packingHistory.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No packing records found</div>';
+        //         return;
+        //     }
+            
+        //     container.innerHTML = packingHistory.map(pack => `
+        //         <div class="record-item">
+        //             <div class="record-main-info">
+        //                 <span class="record-date">${pack.date}</span>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">SKU:</span>
+        //                     <span class="record-detail-value">${pack.product_sku}</span>
+        //                 </div>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">Qty:</span>
+        //                     <span class="record-detail-value">${pack.qty}</span>
+        //                 </div>
+        //             </div>
+        //         </div>
+        //     `).join('');
+        // }
 
         function populateNotesRecords(notes) {
             const container = document.getElementById('notesContent');

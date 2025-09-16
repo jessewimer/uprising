@@ -82,6 +82,11 @@ class Lot(models.Model):
         year = germination.for_year if germination else None
         return f"{germination.germination_rate}% (20{year})" if germination else None
 
+    # In your Lot model, add a method similar to get_most_recent_germ_percent
+    def get_most_recent_germ_for_year(self):
+        germination = self.get_most_recent_germination()
+        return germination.for_year if germination else None
+
     # method to return most recent inventory record
     def get_most_recent_inventory(self):
         inventory = self.inventory.order_by("-inv_date").first() if self.inventory.exists() else None
