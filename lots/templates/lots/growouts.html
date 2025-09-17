@@ -17,50 +17,30 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 20px 0;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1600px;
             width: 100%;
             margin: 0 auto;
             padding: 20px;
         }
 
+        /* Header Section */
         .header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 40px 30px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            text-align: center;
             animation: fadeInUp 0.4s ease-out;
-        }
-
-        .brand-title {
-            font-size: 3rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-        }
-
-        .brand-subtitle {
-            font-size: 1.3rem;
-            color: #666;
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
-
-        .placeholder-text {
-            font-size: 1.1rem;
-            color: #888;
-            font-style: italic;
-            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
         }
 
         .back-button {
@@ -77,16 +57,202 @@
             gap: 8px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            border: 2px solid transparent;
         }
 
         .back-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-            color: white;
-            text-decoration: none;
         }
 
+        .header-content {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .brand-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Year Selector */
+        .year-dropdown {
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            font-weight: 500;
+        }
+
+        .year-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .year-dropdown:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Table Section */
+        .table-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .table-count {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Data Table */
+        .table-container-scrollable {
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 12px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s ease;
+        }
+
+        .data-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .variety-cell {
+            font-weight: 600;
+            color: #333;
+            min-width: 150px;
+        }
+
+        .lot-cell {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 6px;
+            padding: 6px 10px;
+            min-width: 100px;
+        }
+
+        .location-cell {
+            color: #333;
+            min-width: 120px;
+        }
+
+        .date-cell {
+            font-size: 0.9rem;
+            color: #666;
+            min-width: 110px;
+        }
+
+        .notes-cell {
+            color: #555;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .notes-cell:hover {
+            white-space: normal;
+            overflow: visible;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Status indicators for dates */
+        .date-planted {
+            color: #10ac84;
+        }
+
+        .date-expected {
+            color: #ff8c42;
+        }
+
+        .date-harvested {
+            color: #667eea;
+        }
+
+        .date-empty {
+            color: #ccc;
+            font-style: italic;
+        }
+
+        /* Animations */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -98,21 +264,52 @@
             }
         }
 
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .notes-cell {
+                max-width: 150px;
+            }
+        }
+
         @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+                flex-direction: column;
+                gap: 20px;
+                align-items: stretch;
+            }
+
+            .brand-title {
+                font-size: 2rem;
+            }
+
             .container {
                 padding: 15px;
             }
 
-            .header {
-                padding: 30px 20px;
+            .table-section {
+                padding: 20px;
             }
 
-            .brand-title {
-                font-size: 2.2rem;
+            .data-table th,
+            .data-table td {
+                padding: 8px 6px;
+                font-size: 0.8rem;
             }
 
-            .brand-subtitle {
-                font-size: 1.1rem;
+            .year-dropdown {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .table-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .notes-cell {
+                max-width: 100px;
             }
         }
     </style>
@@ -120,15 +317,94 @@
 
 <body>
     <div class="container">
+        <!-- Header Section -->
         <div class="header">
-            <h1 class="brand-title">Growouts</h1>
-            <p class="brand-subtitle">Uprising Seeds</p>
-            <p class="placeholder-text">This page is under construction</p>
-            
-            <a href="javascript:history.back()" class="back-button">
-                ← Dashboard
+            <a href="/office/dashboard/" class="back-button">
+                <span>← Dashboard</span>
             </a>
+            
+            <div class="header-content">
+                <h1 class="brand-title">Growouts</h1>
+            </div>
+
+            <!-- Year Selector -->
+            <select id="yearSelect" class="year-dropdown">
+                <option value="">Select year</option>
+                {% for year in available_years %}
+                    <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                        {{ year }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-section">
+            <div class="table-header">
+                <h3 class="table-title">Growout Tracking</h3>
+                <div class="table-count" id="growoutCount">{{ lots|length }} lots</div>
+            </div>
+
+            <div class="table-container-scrollable" id="growoutContainer">
+                {% if lots %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Variety</th>
+                                <th>Lot</th>
+                                <th>Location</th>
+                                <th>Planted Date</th>
+                                <th>Expected Harvest</th>
+                                <th>Actual Harvest</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lot in lots %}
+                                <tr>
+                                    <td class="variety-cell">{{ lot.variety.var_name|default:"Unknown" }}</td>
+                                    <td><span class="lot-cell">{{ lot.grower }}{{ lot.year }}</span></td>
+                                    <td class="location-cell">{{ lot.growout_info.location|default:"—" }}</td>
+                                    <td class="date-cell {% if lot.growout_info.planted_date %}date-planted{% else %}date-empty{% endif %}">
+                                        {{ lot.growout_info.planted_date|date:"M d, Y"|default:"Not planted" }}
+                                    </td>
+                                    <td class="date-cell {% if lot.growout_info.expected_harvest_date %}date-expected{% else %}date-empty{% endif %}">
+                                        {{ lot.growout_info.expected_harvest_date|date:"M d, Y"|default:"Not set" }}
+                                    </td>
+                                    <td class="date-cell {% if lot.growout_info.actual_harvest_date %}date-harvested{% else %}date-empty{% endif %}">
+                                        {{ lot.growout_info.actual_harvest_date|date:"M d, Y"|default:"Not harvested" }}
+                                    </td>
+                                    <td class="notes-cell" title="{{ lot.growout_info.notes|default:'' }}">
+                                        {{ lot.growout_info.notes|default:"—"|truncatechars:50 }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌱</div>
+                        <div class="empty-state-text">No growouts found for the selected year</div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <script>
+        // Year selector functionality
+        document.getElementById('yearSelect').addEventListener('change', function(e) {
+            const selectedYear = e.target.value;
+            if (selectedYear) {
+                // Reload page with selected year
+                window.location.href = `?year=${selectedYear}`;
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Growouts page loaded');
+        });
+    </script>
 </body>
 </html>

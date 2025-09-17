@@ -8,6 +8,8 @@ from .models import Lot, GerminationBatch, Germination
 import json
 from django.views.decorators.http import require_http_methods
 from products.models import Variety
+from datetime import datetime
+from django.db.models import Q
 
 @login_required
 @user_passes_test(is_employee)
@@ -227,5 +229,38 @@ def inventory(request):
 
 
 def growouts(request):
-    context = {}
+    # Get year parameter from URL, default to current year
+    selected_year = request.GET.get('year')
+    current_year = datetime.now().year
+    
+    if selected_year:
+        try:
+            selected_year = int(selected_year)
+        except (ValueError, TypeError):
+            selected_year = current_year
+    else:
+        selected_year = current_year
+    
+    # Get available years from existing lots (ordered newest to oldest)
+    available_years = (Lot.objects
+                      .values_list('year', flat=True)
+                      .distinct()
+                      .order_by('-year'))
+    
+    # Query lots for the selected year with related data
+    lots = (Lot.objects
+            .filter(year=selected_year)
+            .select_related(
+                'variety',          # For lot.variety.var_name
+                'growout_info'      # For growout data (may be None)
+            )
+            .order_by('variety__var_name', 'grower'))  # Sort by variety name, then grower
+    
+    context = {
+        'lots': lots,
+        'available_years': list(available_years),
+        'current_year': selected_year,
+        'selected_year': selected_year,  # For template logic if needed
+    }
+    
     return render(request, 'lots/growouts.html', context)
