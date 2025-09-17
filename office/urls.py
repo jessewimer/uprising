@@ -34,6 +34,7 @@ urlpatterns = [
 
     path('germ-samples/', lot_views.send_germ_samples, name='germ_samples'),
     path('growouts/', lot_views.growouts, name='growouts'),
+    path('update-growout/<int:lot_id>/', lot_views.update_growout, name='update_growout'),
     path('api/variety-sales/<str:sku_prefix>/', variety_sales_data, name='variety_sales_data'),
     path('api/create-batch/', lot_views.create_new_batch, name='create_new_batch'),
     path('api/submit-batch/', lot_views.submit_batch, name='submit_batch'),

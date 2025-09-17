@@ -210,7 +210,6 @@ class LotNote(models.Model):
 
 class Growout(models.Model):
     lot = models.OneToOneField("lots.Lot", on_delete=models.CASCADE, related_name="growout_info")
-    # location = models.CharField(max_length=100, blank=True, null=True)
     planted_date = models.CharField(max_length=100, blank=True, null=True)
     transplant_date = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.CharField(max_length=100, blank=True, null=True)

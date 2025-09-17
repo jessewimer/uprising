@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from uprising.utils.auth import is_employee
-from .models import Lot, GerminationBatch, Germination
+from .models import Lot, GerminationBatch, Germination, Grower, Growout
 import json
 from django.views.decorators.http import require_http_methods
 from products.models import Variety
@@ -227,40 +227,87 @@ def inventory(request):
     # Point to lots app template if that's where it's located
     return render(request, 'lots/inventory.html', context)
 
-
+@login_required
+@user_passes_test(is_employee)
 def growouts(request):
+    # Define SKU prefixes to exclude
+    excluded_sku_prefixes = ['FLO-ED', 'CAR-RA', 'MIX-BR', 'MIX-MI', 'MIX-SP', 'LET-MX', 'BEE-3B']
+    
     # Get year parameter from URL, default to current year
-    selected_year = request.GET.get('year')
+    selected_year_param = request.GET.get('year')
     current_year = datetime.now().year
-    
-    if selected_year:
+   
+    if selected_year_param:
         try:
-            selected_year = int(selected_year)
+            selected_year_4digit = int(selected_year_param)
+            # Convert 4-digit year back to 2-digit for database query
+            selected_year = selected_year_4digit - 2000 if selected_year_4digit >= 2000 else selected_year_4digit
         except (ValueError, TypeError):
-            selected_year = current_year
+            selected_year = current_year - 2000  # Convert current year to 2-digit
     else:
-        selected_year = current_year
+        selected_year = current_year - 2000  # Convert current year to 2-digit
+   
+    # Get available years from existing lots, excluding specified sku_prefixes
+    raw_years = (Lot.objects
+                .exclude(variety__sku_prefix__in=excluded_sku_prefixes)
+                .values_list('year', flat=True)
+                .distinct()
+                .order_by('-year'))
     
-    # Get available years from existing lots (ordered newest to oldest)
-    available_years = (Lot.objects
-                      .values_list('year', flat=True)
-                      .distinct()
-                      .order_by('-year'))
+    # Convert 2-digit years to 4-digit years for display
+    available_years = [year + 2000 if year < 100 else year for year in raw_years]
     
-    # Query lots for the selected year with related data
+    growers = {g.code: g.name for g in Grower.objects.all()}
+    
+    # Query lots for the selected year (using 2-digit year for database)
     lots = (Lot.objects
-            .filter(year=selected_year)
+            .filter(year=selected_year)  # Now uses 2-digit year
+            .exclude(variety__sku_prefix__in=excluded_sku_prefixes)
             .select_related(
-                'variety',          # For lot.variety.var_name
-                'growout_info'      # For growout data (may be None)
+                'variety',
+                'growout_info'
             )
-            .order_by('variety__var_name', 'grower'))  # Sort by variety name, then grower
-    
+            .order_by(
+                'variety__category',
+                'variety__sku_prefix',
+                'variety__var_name',
+                'grower'
+            ))
+   
     context = {
         'lots': lots,
-        'available_years': list(available_years),
-        'current_year': selected_year,
-        'selected_year': selected_year,  # For template logic if needed
+        'available_years': available_years,
+        'current_year': selected_year + 2000,  # Display as 4-digit
+        'selected_year': selected_year,
+        'growers': growers,
     }
-    
+   
     return render(request, 'lots/growouts.html', context)
+
+@login_required
+@user_passes_test(is_employee)
+def update_growout(request, lot_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            lot = Lot.objects.get(id=lot_id)
+            
+            # Get or create growout info
+            growout, created = Growout.objects.get_or_create(lot=lot)
+            
+            # Update fields
+            growout.planted_date = data.get('planted_date', '')
+            growout.transplant_date = data.get('transplant_date', '')
+            growout.quantity = data.get('quantity', '')
+            growout.price_per_lb = data.get('price_per_lb', '')
+            growout.bed_ft = data.get('bed_ft', '')
+            growout.amt_sown = data.get('amt_sown', '')
+            growout.notes = data.get('notes', '')
+            
+            growout.save()
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid method'})
