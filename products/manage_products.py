@@ -696,13 +696,55 @@ def import_misc_sales(csv_file):
         print(f"✅ Imported {created} sales records. Skipped {skipped}.")
 
 
+def import_2025_store_sales(csv_file, dry_run=True):
+    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        created = 0
+        skipped = 0
+
+        for row in reader:
+            sku_prefix = row["sku"].strip()[:6]
+            sku_suffix = 'pkt'
+            quantity = int(row["qty"])
+
+            try:
+                product = Product.objects.get(
+                    variety__sku_prefix=sku_prefix,
+                    sku_suffix=sku_suffix
+                )
+            except Product.DoesNotExist:
+                print(f"❌ Product not found for {sku_prefix}-{sku_suffix}. Skipping.")
+                skipped += 1
+                continue
+
+            existing = Sales.objects.filter(product=product, year=2025, wholesale=False).first()
+            if existing:
+                print(f"ℹ️ Sale for {sku_prefix}-{sku_suffix} in 2025 already exists. Skipping.")
+                skipped += 1
+                continue
+
+            if dry_run:
+                print(f"🔍 [Dry Run] Would create sale: {sku_prefix}-{sku_suffix} | Qty: {quantity}")
+            else:
+                Sales.objects.create(
+                    product=product,
+                    quantity=quantity,
+                    year=25,
+                    wholesale=True
+                )
+                print(f"✅ Created sale: {sku_prefix}-{sku_suffix} | Qty: {quantity}")
+                created += 1
+
+        print(f"\n🎯 Summary — Created: {created}, Skipped: {skipped}, Dry Run: {dry_run}")
+
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
 
 # delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
 # delete_variety("TOM-XX")
-set_all_bulk_pre_pack_to_zero()
-set_all_bulk_pre_pack_to_1()
+# set_all_bulk_pre_pack_to_zero()
+# set_all_bulk_pre_pack_to_1()
 # add_variety_and_product()
 # misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
 # import_misc_products(misc_products_csv)
@@ -720,6 +762,8 @@ set_all_bulk_pre_pack_to_1()
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # misc_sales_csv = os.path.join(os.path.dirname(__file__), "misc_product_sales.csv")
 # import_misc_sales(misc_sales_csv)
+store_sales_2025_csv = os.path.join(os.path.dirname(__file__), "2025_store_sales.csv")
+import_2025_store_sales(store_sales_2025_csv, dry_run=False)
 
 
 # import_sales(import_sales_csv)
