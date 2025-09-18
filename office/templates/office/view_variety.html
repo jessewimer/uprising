@@ -2547,9 +2547,9 @@
         <div class="modal lot-history-modal">
             <button class="close-modal" onclick="hideProductPackingHistoryPopup()">&times;</button>
             
-            <div class="modal-header">
+            <!-- <div class="modal-header">
                 <h2 class="modal-title" id="productPackingHistoryTitle">Product Packing History</h2>
-            </div>
+            </div> -->
             
             <div class="lot-history-content">
                 <!-- Basic Info Section -->
@@ -2565,11 +2565,7 @@
                         <div class="info-row">
                             <span class="info-label">Product SKU:</span>
                             <span class="info-value" id="productHistorySkuDisplay">--</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Total Printed:</span>
-                            <span class="info-value" id="productHistoryTotalPrinted">--</span>
-                        </div>
+                        </div> 
                     </div>
                 </div>
 
@@ -3698,7 +3694,7 @@
             // Set title
             const varietyName = productRow.dataset.varietyName || 'Unknown';
             const skuSuffix = productRow.dataset.skuSuffix || 'Unknown';
-            document.getElementById('productPackingHistoryTitle').textContent = `Print History`;
+            // document.getElementById('productPackingHistoryTitle').textContent = `Print History`;
             
             // Show popup immediately
             document.getElementById('productPackingHistoryPopup').classList.add('show');
