@@ -1470,6 +1470,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: relative; /* Make sure this line exists */
         }
 
         .record-item:last-child {
@@ -1654,6 +1655,65 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+
+
+        /* Clickable row with note */
+        .record-item.has-note {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .record-item.has-note:hover {
+            background: rgba(102, 126, 234, 0.08);
+            border-color: rgba(102, 126, 234, 0.2);
+        }
+
+        /* Note popup */
+        .note-popup {
+            position: fixed;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 15px;
+            max-width: 350px;
+            min-width: 200px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            display: none;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .note-popup.show {
+            display: block;
+        }
+
+        .note-popup-content {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .note-popup-close {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #999;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .note-popup-close:hover {
+            color: #333;
+        }
+
+
 
         @keyframes slideInRight {
             from {
@@ -2373,7 +2433,6 @@
         </div>
     </div>
 
-
     <!-- Product Actions Popup -->
     <div class="print-popup-overlay" id="productActionsPopup">
         <div class="print-popup">
@@ -2385,6 +2444,7 @@
             <div class="lot-actions">
                 <button class="lot-action-btn" onclick="changeProductLot(currentProductId)">Change Lot</button>
                 <button class="lot-action-btn" onclick="editProduct(currentProductId)">Edit Product</button>
+                <button class="lot-action-btn" onclick="viewProductPackingHistory(currentProductId)">View Packing History</button>
             </div>
         </div>
     </div>
@@ -2482,6 +2542,51 @@
         </div>
     </div>
 
+    <!-- Product Packing History Popup -->
+    <div class="modal-overlay" id="productPackingHistoryPopup">
+        <div class="modal lot-history-modal">
+            <button class="close-modal" onclick="hideProductPackingHistoryPopup()">&times;</button>
+            
+            <div class="modal-header">
+                <h2 class="modal-title" id="productPackingHistoryTitle">Product Packing History</h2>
+            </div>
+            
+            <div class="lot-history-content">
+                <!-- Basic Info Section -->
+                <div class="history-section">
+                    <div class="history-section-header">
+                        <h3>Product Information</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div class="info-row">
+                            <span class="info-label">Variety:</span>
+                            <span class="info-value" id="productHistoryVarietyName">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Product SKU:</span>
+                            <span class="info-value" id="productHistorySkuDisplay">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Total Printed:</span>
+                            <span class="info-value" id="productHistoryTotalPrinted">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Packing History Section -->
+                <div class="history-section">
+                    <div class="history-section-header">
+                        <h3>Print History</h3>
+                    </div>
+                    <div class="history-section-content">
+                        <div id="productPackingHistoryContent">
+                            <div class="no-records">No print records found</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Lot Actions Popup -->
     <div class="print-popup-overlay" id="lotActionsPopup">
@@ -2983,6 +3088,7 @@
         let currentLotLowInv = false;
         let lotToDelete = null;
         let currentProductName = null;
+        let currentNotePopup = null;
 
         // Filter out retired lots
         availableLots = availableLots.filter(lot => !lot.is_retired);
@@ -3578,6 +3684,142 @@
         }
 
 
+
+        function viewProductPackingHistory(productId) {
+            hideProductActionsPopup();
+            
+            // Get product info from the row
+            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            if (!productRow) {
+                showMessage('Could not find product information', 'error');
+                return;
+            }
+            
+            // Set title
+            const varietyName = productRow.dataset.varietyName || 'Unknown';
+            const skuSuffix = productRow.dataset.skuSuffix || 'Unknown';
+            document.getElementById('productPackingHistoryTitle').textContent = `Print History`;
+            
+            // Show popup immediately
+            document.getElementById('productPackingHistoryPopup').classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Fetch product packing history data
+            fetch('/office/get-product-packing-history/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    product_id: productId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateProductPackingHistory(data.data);
+                } else {
+                    showMessage('Error loading packing history: ' + (data.error || 'Unknown error'), 'error');
+                    hideProductPackingHistoryPopup();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+                hideProductPackingHistoryPopup();
+            });
+        }
+
+        function hideProductPackingHistoryPopup() {
+            hideNotePopup(); // Close any open note popups
+            document.getElementById('productPackingHistoryPopup').classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+        function populateProductPackingHistory(data) {
+            // Basic product info
+            document.getElementById('productHistoryVarietyName').textContent = data.variety_name;
+            document.getElementById('productHistorySkuDisplay').textContent = data.product_sku;
+            
+            // Populate print history
+            populateProductPackingHistoryRecords(data.packing_history);
+        }
+
+        function populateProductPackingHistoryRecords(packingHistory) {
+            const container = document.getElementById('productPackingHistoryContent');
+            
+            if (!packingHistory || packingHistory.length === 0) {
+                container.innerHTML = '<div class="no-records">No print records found</div>';
+                return;
+            }
+            
+            // Group by for_year and sort
+            const groupedByYear = {};
+            
+            packingHistory.forEach(pack => {
+                const year = pack.for_year || 'Unknown';
+                if (!groupedByYear[year]) {
+                    groupedByYear[year] = [];
+                }
+                groupedByYear[year].push(pack);
+            });
+            
+            // Sort years (newest first) and sort records within each year by date (newest first)
+            const sortedYears = Object.keys(groupedByYear).sort((a, b) => {
+                if (a === 'Unknown') return 1;
+                if (b === 'Unknown') return -1;
+                return b.localeCompare(a);
+            });
+            
+            let html = '';
+            
+            sortedYears.forEach(year => {
+                // Sort records within year by date (newest first)
+                const sortedRecords = groupedByYear[year].sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                );
+                
+                // Add year header
+                const displayYear = year.length === 2 ? `20${year}` : year;
+                html += `
+                    <div class="packing-year-header">
+                        <h4>Printed for ${displayYear}:</h4>
+                    </div>
+                `;
+                
+                // Add records for this year
+                sortedRecords.forEach(pack => {
+                    html += `
+                        <div class="record-item" style="margin-left: 15px;">
+                            <div class="record-main-info" style="justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 40px;">
+                                    <span class="record-date" style="min-width: 80px;">${pack.date}</span>
+                                    <div class="record-detail">
+                                        <span class="record-detail-label">Qty:</span>
+                                        <span class="record-detail-value">${pack.qty}</span>
+                                    </div>
+                                </div>
+                                <div class="record-detail">
+                                    <span class="record-detail-label">Lot:</span>
+                                    <span class="record-detail-value">${pack.lot_code}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // Add spacing between year groups
+                if (year !== sortedYears[sortedYears.length - 1]) {
+                    html += '<div class="year-group-spacing"></div>';
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+
+
+
         function getLotStatus(lotCode) {
             console.log('getLotStatus called with lotCode:', lotCode);
             
@@ -4152,6 +4394,13 @@
                 }
             });
 
+            // Add this with your other popup event listeners
+            document.getElementById('productPackingHistoryPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideProductPackingHistoryPopup();
+                }
+            });
+
         }
         
 
@@ -4288,6 +4537,7 @@
             `).join('');
         }
 
+
         function populateGerminationRecords(germinationRecords) {
             const container = document.getElementById('germinationContent');
             
@@ -4296,25 +4546,95 @@
                 return;
             }
             
-            container.innerHTML = germinationRecords.map(germ => `
-                <div class="record-item">
-                    <div class="record-main-info">
-                        <span class="record-date">${germ.test_date}</span>
-                        <div class="record-detail">
-                            <span class="record-detail-label">Rate:</span>
-                            <span class="record-detail-value">${germ.germination_rate}%</span>
+            container.innerHTML = germinationRecords.map((germ, index) => {
+                const hasNote = germ.notes ? 'has-note' : '';
+                const clickHandler = germ.notes ? `onclick="showNotePopup(event, ${index}, 'germ')"` : '';
+                
+                return `
+                    <div class="record-item ${hasNote}" ${clickHandler} data-note-content="${germ.notes ? germ.notes.replace(/"/g, '&quot;') : ''}">
+                        <div class="record-main-info">
+                            <span class="record-date">${germ.test_date}</span>
+                            <div class="record-detail">
+                                <span class="record-detail-label">Rate:</span>
+                                <span class="record-detail-value">${germ.germination_rate}%</span>
+                            </div>
+                            <div class="record-detail">
+                                <span class="record-detail-label">Year:</span>
+                                <span class="record-detail-value">${germ.for_year}</span>
+                            </div>
                         </div>
-                        <div class="record-detail">
-                            <span class="record-detail-label">Year:</span>
-                            <span class="record-detail-value">${germ.for_year}</span>
-                        </div>
+                        <span class="record-status ${germ.status}">${germ.status}</span>
                     </div>
-                    <span class="record-status ${germ.status}">${germ.status}</span>
-                </div>
-                ${germ.notes ? `<div class="record-notes">${germ.notes}</div>` : ''}
-            `).join('');
+                `;
+            }).join('');
         }
 
+        function showNotePopup(event, index, type) {
+            event.stopPropagation();
+            
+            // Hide any existing popup
+            hideNotePopup();
+            
+            // Get the note content from the data attribute
+            const recordItem = event.target.closest('.record-item');
+            const noteContent = recordItem.dataset.noteContent;
+            
+            if (!noteContent) return;
+            
+            // Create popup element
+            const popup = document.createElement('div');
+            popup.className = 'note-popup show';
+            popup.innerHTML = `
+                <button class="note-popup-close" onclick="hideNotePopup()">&times;</button>
+                <div class="note-popup-content">${noteContent}</div>
+            `;
+            
+            // Position popup near the clicked row
+            const rect = event.target.getBoundingClientRect();
+            popup.style.left = `${rect.left - 150}px`; // Center popup relative to click
+            popup.style.top = `${rect.bottom + 10}px`;
+            
+            // Ensure popup stays within viewport
+            document.body.appendChild(popup);
+            const popupRect = popup.getBoundingClientRect();
+            
+            if (popupRect.right > window.innerWidth) {
+                popup.style.left = `${window.innerWidth - popupRect.width - 20}px`;
+            }
+            if (popupRect.left < 0) {
+                popup.style.left = '20px';
+            }
+            if (popupRect.bottom > window.innerHeight) {
+                popup.style.top = `${rect.top - popupRect.height - 10}px`;
+            }
+            
+            currentNotePopup = popup;
+            
+            // Close popup when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', handleOutsideClick);
+            }, 100);
+        }
+
+        function hideNotePopup() {
+            if (currentNotePopup) {
+                currentNotePopup.remove();
+                currentNotePopup = null;
+                document.removeEventListener('click', handleOutsideClick);
+            }
+        }
+
+        function handleOutsideClick(event) {
+            if (currentNotePopup && !currentNotePopup.contains(event.target)) {
+                hideNotePopup();
+            }
+        }
+
+        function hideLotHistoryPopup() {
+            hideNotePopup(); // Add this line
+            document.getElementById('lotHistoryPopup').classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
 
 
         function populatePackingHistoryRecords(packingHistory) {

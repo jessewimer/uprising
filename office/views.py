@@ -2045,82 +2045,42 @@ def get_lot_history(request):
 
 
 
-# def get_lot_history(request):
-    # """Get comprehensive history for a lot"""
-    # if request.method != 'POST':
-    #     return JsonResponse({'success': False, 'error': 'POST method required'})
+    # In your Django views
+@login_required
+@user_passes_test(is_employee)
+def get_product_packing_history(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        
+        try:
+            product = Product.objects.get(id=product_id)
+            
+            # Get all print records for this product
+            print_records = product.label_prints.all().order_by('-date')
+
+
+            packing_history = []
+            for record in print_records:
+                lot_code = record.lot.get_four_char_lot_code() if record.lot else 'UNK'
+                packing_history.append({
+                    'date': record.date.strftime('%Y-%m-%d'),
+                    'qty': record.qty,
+                    'lot_code': lot_code,
+                    'for_year': record.for_year or '--'
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'data': {
+                    'variety_name': product.variety.var_name,
+                    'product_sku': f"{product.variety.sku_prefix}-{product.sku_suffix}",
+                    # 'total_printed': product.get_total_printed(),
+                    'packing_history': packing_history
+                }
+            })
+            
+        except Product.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Product not found'})
     
-    # try:
-    #     data = json.loads(request.body)
-    #     lot_id = data.get('lot_id')
-        
-    #     if not lot_id:
-    #         return JsonResponse({'success': False, 'error': 'Lot ID required'})
-        
-    #     # Get the lot with all related data
-    #     lot = Lot.objects.select_related('variety', 'grower', 'retired_info').get(pk=lot_id)
-        
-    #     # Build response data
-    #     history_data = {
-    #         'variety_name': lot.variety.var_name,
-    #         'sku_display': f"{lot.variety.sku_prefix}-{lot.grower.code if lot.grower else 'UNK'}{lot.year}{lot.harvest or ''}",
-    #         'low_inventory': lot.low_inv,
-    #         'is_retired': hasattr(lot, 'retired_info'),
-    #         'retired_info': None,
-    #         'stock_seeds': [],
-    #         'inventory_records': [],
-    #         'germination_records': [],
-    #         'notes': []
-    #     }
-        
-    #     # Retired information
-    #     if hasattr(lot, 'retired_info'):
-    #         retired = lot.retired_info
-    #         history_data['retired_info'] = {
-    #             'date': retired.retired_date.strftime('%Y-%m-%d'),
-    #             'lbs_remaining': float(retired.lbs_remaining),
-    #             'notes': retired.notes or ''
-    #         }
-        
-    #     # Stock seed records
-    #     stock_seeds = lot.stock_seeds.all().order_by('-date')
-    #     for stock_seed in stock_seeds:
-    #         history_data['stock_seeds'].append({
-    #             'date': stock_seed.date.strftime('%Y-%m-%d'),
-    #             'qty': stock_seed.qty,
-    #             'notes': stock_seed.notes or ''
-    #         })
-        
-    #     # Inventory records
-    #     inventory_records = lot.inventory.all().order_by('-inv_date')
-    #     for inv in inventory_records:
-    #         history_data['inventory_records'].append({
-    #             'date': inv.inv_date.strftime('%Y-%m-%d'),
-    #             'weight': float(inv.weight)
-    #         })
-        
-    #     # Germination records
-    #     germination_records = lot.germinations.all().order_by('-test_date')
-    #     for germ in germination_records:
-    #         history_data['germination_records'].append({
-    #             'test_date': germ.test_date.strftime('%Y-%m-%d') if germ.test_date else '',
-    #             'germination_rate': germ.germination_rate,
-    #             'for_year': germ.for_year,
-    #             'status': germ.status,
-    #             'notes': germ.notes or ''
-    #         })
-        
-    #     # General notes
-    #     notes = lot.notes.all().order_by('-date')
-    #     for note in notes:
-    #         history_data['notes'].append({
-    #             'date': note.date.strftime('%Y-%m-%d %H:%M'),
-    #             'note': note.note
-    #         })
-        
-    #     return JsonResponse({'success': True, 'data': history_data})
-        
-    # except Lot.DoesNotExist:
-    #     return JsonResponse({'success': False, 'error': 'Lot not found'})
-    # except Exception as e:
-    #     return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})

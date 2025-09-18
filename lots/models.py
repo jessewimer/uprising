@@ -37,7 +37,7 @@ class Lot(models.Model):
         """
         Build lot code string like: 'CAR-DR-TR23' or 'CAR-DR-TR23A'
         """
-        base_code = f"{self.sku_prefix}-{self.grower_id}{self.year:02d}"
+        base_code = f"{self.variety.sku_prefix}-{self.grower_id}{self.year:02d}"
         if self.harvest:
             base_code += str(self.harvest)
         return base_code
@@ -69,7 +69,12 @@ class Lot(models.Model):
             "year": year,
             "harvest": harvest
         }
-
+    def get_four_char_lot_code(self):
+        """
+        Returns a 4-character lot code like 'DR23' or 'DR23A'
+        """
+        year_str = str(self.year)[-2:]  # last two digits of year
+        return f"{self.grower_id}{year_str}{self.harvest if self.harvest else ''}"
     # method to return most recent germination record that has a non null test date
     def get_most_recent_germination(self):
         return self.germinations.filter(test_date__isnull=False).order_by("-test_date").first()
