@@ -1621,40 +1621,6 @@
             margin-left: 15px;
         }
 
-        /* Loading/Disabled button states */
-        .print-action-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed !important;
-            pointer-events: none;
-        }
-
-        .print-action-btn.loading:disabled {
-            cursor: wait !important;
-            pointer-events: none;
-        }
-
-        /* Spinning cursor for the entire popup during loading */
-        .print-popup.loading {
-            cursor: wait !important;
-        }
-
-        .print-popup.loading * {
-            cursor: wait !important;
-        }
-
-        /* Loading spinner for print button */
-        .print-btn.loading::after {
-            content: "";
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            margin-left: 8px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
         @keyframes slideInRight {
             from {
                 opacity: 0;
@@ -1685,13 +1651,6 @@
                 opacity: 1;
                 transform: scale(1) translateY(0);
             }
-        }
-
-
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         /* Responsive design */
@@ -3631,20 +3590,6 @@
 
         function hidePrintPopup() {
             document.getElementById('printPopupOverlay').classList.remove('show');
-            
-            // Reset button states when popup closes
-            const printBtn = document.querySelector('.print-btn');
-            const cancelBtn = document.querySelector('.cancel-btn');
-            const popup = document.querySelector('.print-popup');
-            
-            if (printBtn && cancelBtn && popup) {
-                printBtn.disabled = false;
-                cancelBtn.disabled = false;
-                printBtn.classList.remove('loading');
-                popup.classList.remove('loading');
-                printBtn.textContent = 'Print';
-            }
-            
             currentProductId = null;
         }
 
@@ -3671,27 +3616,12 @@
                 return;
             }
 
-            // Disable buttons and show loading state immediately
-            const printBtn = document.querySelector('.print-btn');
-            const cancelBtn = document.querySelector('.cancel-btn');
-            const popup = document.querySelector('.print-popup');
-            
-            printBtn.disabled = true;
-            cancelBtn.disabled = true;
-            printBtn.classList.add('loading');
-            popup.classList.add('loading');
-            
-            // Change button text to indicate loading
-            const originalPrintText = printBtn.textContent;
-            printBtn.textContent = 'Printing...';
-
             try {
                 // Collect all data from the page
                 const printData = collectPrintData(currentProductId, quantity);
                 
                 if (!printData) {
                     showMessage('Could not collect print data', 'error');
-                    resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
                     return;
                 }
 
@@ -3700,7 +3630,6 @@
                 
                 if (endpoints.length === 0) {
                     showMessage('Invalid print option selected', 'error');
-                    resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
                     return;
                 }
 
@@ -3729,7 +3658,7 @@
                                 product_id: currentProductId,
                                 print_type: selectedPrintOption,
                                 quantity: quantity,
-                                packed_for_year: printData.for_year
+                                packed_for_year: printData.for_year // Include the selected year
                             })
                         });
                     } else {
@@ -3740,38 +3669,28 @@
                 .then(data => {
                     if (data.success) {
                         showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
-                        hidePrintPopup(); // This will reset the buttons when popup closes
+                        hidePrintPopup();
                         // Refresh page after 2 seconds to show updated print count
                         setTimeout(() => {
                             window.location.href = window.location.pathname;
                         }, 2000);
                     } else {
                         showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
-                        hidePrintPopup(); // This will reset the buttons when popup closes
+                        hidePrintPopup();
                     }
                 })
                 .catch(error => {
                     console.error('Print job error:', error);
                     console.log('This is the data that would be sent to Flask:', printData);
                     showMessage('Printing failed: ' + error.message, 'error');
-                    resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+                    hidePrintPopup();
                 });
 
             } catch (error) {
                 console.error('Data collection error:', error);
                 console.log('This is the data that would be sent to Flask: [Data collection failed]');
                 showMessage('Failed to collect print data', 'error');
-                resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
             }
-        }
-
-        // Helper function to reset button states
-        function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
-            printBtn.disabled = false;
-            cancelBtn.disabled = false;
-            printBtn.classList.remove('loading');
-            popup.classList.remove('loading');
-            printBtn.textContent = originalText;
         }
 
 
