@@ -22,7 +22,7 @@ sys.path.append(project_path)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
-from products.models import Product, Variety, Sales, MiscProduct, MiscSales
+from products.models import Product, Variety, Sales, MiscProduct, MiscSales, LabelPrint
 from django.db import transaction
 
 def print_product_table():
@@ -738,8 +738,12 @@ def import_2025_store_sales(csv_file, dry_run=True):
 
         print(f"\n🎯 Summary — Created: {created}, Skipped: {skipped}, Dry Run: {dry_run}")
 
+def clear_print_label_table():
+    count, _ = LabelPrint.objects.all().delete()
+    print(f"Deleted {count} records from LabelPrint table.")
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
 
+clear_print_label_table()
 # delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
 # delete_variety("TOM-XX")
@@ -762,8 +766,8 @@ def import_2025_store_sales(csv_file, dry_run=True):
 # import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
 # misc_sales_csv = os.path.join(os.path.dirname(__file__), "misc_product_sales.csv")
 # import_misc_sales(misc_sales_csv)
-store_sales_2025_csv = os.path.join(os.path.dirname(__file__), "2025_store_sales.csv")
-import_2025_store_sales(store_sales_2025_csv, dry_run=False)
+# store_sales_2025_csv = os.path.join(os.path.dirname(__file__), "2025_store_sales.csv")
+# import_2025_store_sales(store_sales_2025_csv, dry_run=False)
 
 
 # import_sales(import_sales_csv)
