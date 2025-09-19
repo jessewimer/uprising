@@ -84,9 +84,8 @@ def check_categories():
             print(product.variety)
 
 
-# Sets all product 'photo' attributes to the correct file (webp or jpg)
-# Depending on the actual file name stored in the product/photos (STATIC_ROOT)
-def update_all_product_photos():
+# Sets all variety 'photo' attributes to the correct file (webp or jpg)
+def update_all_variety_photos():
 
     varieties = Variety.objects.all()
 
@@ -789,7 +788,7 @@ def print_varieties_with_no_photo_path():
 
 # update_notes_with_csv()
 # check_categories()
-update_all_product_photos()
+update_all_variety_photos()
 # fix_slashes()
 # view_product_varieties()
 # delete_duplicate_products()
