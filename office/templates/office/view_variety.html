@@ -2546,11 +2546,7 @@
     <div class="modal-overlay" id="productPackingHistoryPopup">
         <div class="modal lot-history-modal">
             <button class="close-modal" onclick="hideProductPackingHistoryPopup()">&times;</button>
-            
-            <!-- <div class="modal-header">
-                <h2 class="modal-title" id="productPackingHistoryTitle">Product Packing History</h2>
-            </div> -->
-            
+                    
             <div class="lot-history-content">
                 <!-- Basic Info Section -->
                 <div class="history-section">
@@ -3680,7 +3676,6 @@
         }
 
 
-
         function viewProductPackingHistory(productId) {
             hideProductActionsPopup();
             
@@ -3694,7 +3689,6 @@
             // Set title
             const varietyName = productRow.dataset.varietyName || 'Unknown';
             const skuSuffix = productRow.dataset.skuSuffix || 'Unknown';
-            // document.getElementById('productPackingHistoryTitle').textContent = `Print History`;
             
             // Show popup immediately
             document.getElementById('productPackingHistoryPopup').classList.add('show');

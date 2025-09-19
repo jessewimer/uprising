@@ -105,7 +105,7 @@ def update_all_product_photos():
         else:
             # If neither WebP nor JPG image exists, set it to a default image
             print('default image')
-            product.photo = 'products/photos/default.jpg'
+            product.photo = ''
 
         product.save()
 
@@ -741,9 +741,15 @@ def import_2025_store_sales(csv_file, dry_run=True):
 def clear_print_label_table():
     count, _ = LabelPrint.objects.all().delete()
     print(f"Deleted {count} records from LabelPrint table.")
-# #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
 
-clear_print_label_table()
+def print_varieties_with_no_photo_path():
+    varieties = Variety.objects.filter(photo_path="")
+    for var in varieties:
+        print(var.sku_prefix, var.var_name)
+
+# #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
+print_varieties_with_no_photo_path()
+# clear_print_label_table()
 # delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
 # delete_variety("TOM-XX")
