@@ -30,3 +30,6 @@ backup.json
 # log files
 *.log
 logs/
+
+# static files
+/staticfiles/
