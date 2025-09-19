@@ -86,33 +86,31 @@ def check_categories():
 
 # Sets all variety 'photo' attributes to the correct file (webp or jpg)
 def update_all_variety_photos():
-
+    
     varieties = Variety.objects.all()
-
     for variety in varieties:
+        # if not variety.photo_path or variety.photo_path.strip() == "":
+            # Look for new photos
         sku_prefix = variety.sku_prefix
-        webp_path = os.path.join('products', 'photos', f'{sku_prefix}.webp')
-        jpg_path = os.path.join('products', 'photos', f'{sku_prefix}.jpg')
-
-        # Check if the WebP image exists and set the photo attribute accordingly
-        if product_has_image(webp_path):
-            print('webp image')
-            variety.photo_path = f'{webp_path}'
-        elif product_has_image(jpg_path):
-            print('jpg image')
-            variety.photo_path = f'{jpg_path}'
-        else:
-            # If neither WebP nor JPG image exists, set it to a default image
-            print('default image')
-            variety.photo_path = ""
-
-        variety.save()
-
-
-def product_has_image(image_path):
-    # Use os.path.join to construct the absolute image path within STATIC_ROOT
-    full_image_path = os.path.join(settings.STATIC_ROOT, image_path)
-    return os.path.exists(full_image_path)
+        webp_file = os.path.join(settings.BASE_DIR, 'products', 'static', 'products', 'photos', f'{sku_prefix}.webp')
+        jpg_file = os.path.join(settings.BASE_DIR, 'products', 'static', 'products', 'photos', f'{sku_prefix}.jpg')
+        
+        if os.path.exists(webp_file):
+            variety.photo_path = f'products/photos/{sku_prefix}.webp'
+            print(f"Set webp photo for {sku_prefix}")
+            variety.save()
+        elif os.path.exists(jpg_file):
+            variety.photo_path = f'products/photos/{sku_prefix}.jpg'
+            print(f"Set jpg photo for {sku_prefix}")
+            variety.save()
+        # else:
+            # Fix existing paths with backslashes
+        #     if '\\' in variety.photo_path:
+        #         variety.photo_path = variety.photo_path.replace('\\', '/')
+        #         print(f"Fixed path for {variety.sku_prefix}: {variety.photo_path}")
+        #         variety.save()
+        # # else:
+            # print(f"skipping {variety.sku_prefix}, already has photo_path")
 
 
 # # Function to change all backslashes to forward slashes in the photo attribute
