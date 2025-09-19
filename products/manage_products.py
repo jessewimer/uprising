@@ -88,26 +88,26 @@ def check_categories():
 # Depending on the actual file name stored in the product/photos (STATIC_ROOT)
 def update_all_product_photos():
 
-    products = Product.objects.all()
+    varieties = Variety.objects.all()
 
-    for product in products:
-        item_number = str(product.item_number)
-        webp_path = os.path.join('products', 'photos', f'{item_number}.webp')
-        jpg_path = os.path.join('products', 'photos', f'{item_number}.jpg')
+    for variety in varieties:
+        sku_prefix = variety.sku_prefix
+        webp_path = os.path.join('products', 'photos', f'{sku_prefix}.webp')
+        jpg_path = os.path.join('products', 'photos', f'{sku_prefix}.jpg')
 
         # Check if the WebP image exists and set the photo attribute accordingly
         if product_has_image(webp_path):
             print('webp image')
-            product.photo = f'{webp_path}'
+            variety.photo_path = f'{webp_path}'
         elif product_has_image(jpg_path):
             print('jpg image')
-            product.photo = f'{jpg_path}'
+            variety.photo_path = f'{jpg_path}'
         else:
             # If neither WebP nor JPG image exists, set it to a default image
             print('default image')
-            product.photo = ''
+            variety.photo_path = ""
 
-        product.save()
+        variety.save()
 
 
 def product_has_image(image_path):
@@ -748,7 +748,7 @@ def print_varieties_with_no_photo_path():
         print(var.sku_prefix, var.var_name)
 
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
-print_varieties_with_no_photo_path()
+# print_varieties_with_no_photo_path()
 # clear_print_label_table()
 # delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
@@ -789,7 +789,7 @@ print_varieties_with_no_photo_path()
 
 # update_notes_with_csv()
 # check_categories()
-# update_all_product_photos()
+update_all_product_photos()
 # fix_slashes()
 # view_product_varieties()
 # delete_duplicate_products()
