@@ -283,11 +283,6 @@ def import_varieties_from_csv(csv_file_path):
             print(f"{action} variety {sku_prefix} (photo: {photo_path or 'none'})")
 
 
-
-# import csv
-# import unicodedata
-# from django.db import transaction
-
 def update_varieties_from_csv(csv_path):
     import csv
     import unicodedata
@@ -746,6 +741,9 @@ def print_varieties_with_no_photo_path():
 
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
 # print_varieties_with_no_photo_path()
+update_all_variety_photos()
+
+
 # clear_print_label_table()
 # delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
 # view_lineitems()
@@ -786,7 +784,7 @@ def print_varieties_with_no_photo_path():
 
 # update_notes_with_csv()
 # check_categories()
-update_all_variety_photos()
+
 # fix_slashes()
 # view_product_varieties()
 # delete_duplicate_products()
