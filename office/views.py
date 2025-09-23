@@ -2064,6 +2064,7 @@ def get_product_packing_history(request):
             for record in print_records:
                 lot_code = record.lot.get_four_char_lot_code() if record.lot else 'UNK'
                 packing_history.append({
+                    'id': record.id,
                     'date': record.date.strftime('%Y-%m-%d'),
                     'qty': record.qty,
                     'lot_code': lot_code,
@@ -2084,3 +2085,114 @@ def get_product_packing_history(request):
             return JsonResponse({'success': False, 'error': 'Product not found'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def edit_packing_record(request):
+    """Edit a packing record by updating its quantity"""
+    try:
+        data = json.loads(request.body)
+        record_id = data.get('record_id')
+        new_qty = data.get('new_qty')
+        
+        if not record_id or new_qty is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing record_id or new_qty'
+            })
+        
+        # Validate quantity
+        try:
+            new_qty = int(new_qty)
+            if new_qty <= 0:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Quantity must be greater than 0'
+                })
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid quantity value'
+            })
+        
+        # Get the record
+        try:
+            record = LabelPrint.objects.get(id=record_id)
+        except LabelPrint.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Packing record not found'
+            })
+        
+        # Update the quantity
+        old_qty = record.qty
+        record.qty = new_qty
+        record.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Quantity updated from {old_qty} to {new_qty}'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'An error occurred: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_packing_record(request):
+    """Delete a packing record"""
+    try:
+        data = json.loads(request.body)
+        record_id = data.get('record_id')
+        
+        if not record_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing record_id'
+            })
+        
+        # Get the record
+        try:
+            record = LabelPrint.objects.get(id=record_id)
+        except LabelPrint.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Packing record not found'
+            })
+        
+        # Store info for confirmation message
+        record_info = {
+            'date': record.date,
+            'qty': record.qty,
+            'product': str(record.product),
+            'lot': str(record.lot) if record.lot else 'No lot'
+        }
+        
+        # Delete the record
+        record.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Deleted packing record: {record_info["date"]} - {record_info["qty"]} units'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'An error occurred: {str(e)}'
+        })

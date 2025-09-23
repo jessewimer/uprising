@@ -3047,6 +3047,51 @@
         </div>
     </div>
 
+    <!-- Edit Packing Record Popup -->
+    <div class="print-popup-overlay" id="editPackingRecordPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title" id="editPackingRecordTitle">Edit Packing Record</h3>
+                <button class="print-popup-close" onclick="hideEditPackingRecordPopup()">×</button>
+            </div>
+            
+            <form id="editPackingRecordForm" onsubmit="submitEditPackingRecord(event)">
+                <div class="form-group">
+                    <label>Current Quantity:</label>
+                    <input type="number" id="currentPackingQty" readonly style="background: #f8f9fa; color: #666;">
+                </div>
+                <div class="form-group">
+                    <label>Deduct Amount:</label>
+                    <input type="number" id="deductPackingQty" min="1" required placeholder="Amount to deduct">
+                </div>
+                
+                <div class="print-actions">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hideEditPackingRecordPopup()">Cancel</button>
+                    <button type="submit" class="print-action-btn print-btn">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Packing Record Popup -->
+    <div class="print-popup-overlay" id="deletePackingRecordPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Delete Packing Record</h3>
+                <button class="print-popup-close" onclick="hideDeletePackingRecordPopup()">×</button>
+            </div>
+            
+            <p style="text-align: center; margin-bottom: 25px; color: #dc3545;">
+                Are you sure you want to delete this packing record?<br>
+                <strong>This action cannot be undone.</strong>
+            </p>
+            
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hideDeletePackingRecordPopup()">Cancel</button>
+                <button class="print-action-btn delete-confirm-btn" onclick="confirmDeletePackingRecord()">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
 
     <!-- For Year Mismatch Warning Popup -->
     <div class="print-popup-overlay" id="forYearMismatchWarning">
@@ -3081,7 +3126,7 @@
         let lotToDelete = null;
         let currentProductName = null;
         let currentNotePopup = null;
-
+        let currentPackingRecordId = null;
         // Filter out retired lots
         availableLots = availableLots.filter(lot => !lot.is_retired);
         let currentProductId = null;
@@ -3736,6 +3781,77 @@
             populateProductPackingHistoryRecords(data.packing_history);
         }
 
+        // function populateProductPackingHistoryRecords(packingHistory) {
+        //     const container = document.getElementById('productPackingHistoryContent');
+            
+        //     if (!packingHistory || packingHistory.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No print records found</div>';
+        //         return;
+        //     }
+            
+        //     // Group by for_year and sort
+        //     const groupedByYear = {};
+            
+        //     packingHistory.forEach(pack => {
+        //         const year = pack.for_year || 'Unknown';
+        //         if (!groupedByYear[year]) {
+        //             groupedByYear[year] = [];
+        //         }
+        //         groupedByYear[year].push(pack);
+        //     });
+            
+        //     // Sort years (newest first) and sort records within each year by date (newest first)
+        //     const sortedYears = Object.keys(groupedByYear).sort((a, b) => {
+        //         if (a === 'Unknown') return 1;
+        //         if (b === 'Unknown') return -1;
+        //         return b.localeCompare(a);
+        //     });
+            
+        //     let html = '';
+            
+        //     sortedYears.forEach(year => {
+        //         // Sort records within year by date (newest first)
+        //         const sortedRecords = groupedByYear[year].sort((a, b) => 
+        //             new Date(b.date) - new Date(a.date)
+        //         );
+                
+        //         // Add year header
+        //         const displayYear = year.length === 2 ? `20${year}` : year;
+        //         html += `
+        //             <div class="packing-year-header">
+        //                 <h4>Printed for ${displayYear}:</h4>
+        //             </div>
+        //         `;
+                
+        //         // Add records for this year
+        //         sortedRecords.forEach(pack => {
+        //             html += `
+        //                 <div class="record-item" style="margin-left: 15px;">
+        //                     <div class="record-main-info" style="justify-content: space-between;">
+        //                         <div style="display: flex; align-items: center; gap: 40px;">
+        //                             <span class="record-date" style="min-width: 80px;">${pack.date}</span>
+        //                             <div class="record-detail">
+        //                                 <span class="record-detail-label">Qty:</span>
+        //                                 <span class="record-detail-value">${pack.qty}</span>
+        //                             </div>
+        //                         </div>
+        //                         <div class="record-detail">
+        //                             <span class="record-detail-label">Lot:</span>
+        //                             <span class="record-detail-value">${pack.lot_code}</span>
+        //                         </div>
+        //                     </div>
+        //                 </div>
+        //             `;
+        //         });
+                
+        //         // Add spacing between year groups
+        //         if (year !== sortedYears[sortedYears.length - 1]) {
+        //             html += '<div class="year-group-spacing"></div>';
+        //         }
+        //     });
+            
+        //     container.innerHTML = html;
+        // }
         function populateProductPackingHistoryRecords(packingHistory) {
             const container = document.getElementById('productPackingHistoryContent');
             
@@ -3782,17 +3898,33 @@
                 sortedRecords.forEach(pack => {
                     html += `
                         <div class="record-item" style="margin-left: 15px;">
-                            <div class="record-main-info" style="justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 40px;">
-                                    <span class="record-date" style="min-width: 80px;">${pack.date}</span>
-                                    <div class="record-detail">
+                            <div class="record-main-info" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0;">
+                                    <span class="record-date" style="min-width: 80px; flex-shrink: 0;">${pack.date}</span>
+                                    <div class="record-detail" style="flex-shrink: 0;">
                                         <span class="record-detail-label">Qty:</span>
                                         <span class="record-detail-value">${pack.qty}</span>
                                     </div>
+                                    <div class="record-detail" style="flex-shrink: 0;">
+                                        <span class="record-detail-label">Lot:</span>
+                                        <span class="record-detail-value">${pack.lot_code}</span>
+                                    </div>
                                 </div>
-                                <div class="record-detail">
-                                    <span class="record-detail-label">Lot:</span>
-                                    <span class="record-detail-value">${pack.lot_code}</span>
+                                <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: 20px;">
+                                    <span class="edit-icon" onclick="showEditPackingRecordPopup(${pack.id}, ${pack.qty}, '${pack.date}', '${pack.lot_code}')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                    </span>
+                                    <span class="edit-icon" style="color: #dc3545;" onclick="showDeletePackingRecordPopup(${pack.id}, '${pack.date}', '${pack.lot_code}', ${pack.qty})">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3,6 5,6 21,6"></polyline>
+                                            <path d="M19,6V20a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+                                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                        </svg>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -3807,6 +3939,126 @@
             
             container.innerHTML = html;
         }
+
+
+
+
+        // Edit Packing Record Functions
+        function showEditPackingRecordPopup(recordId, currentQty, date, lotCode) {
+            currentPackingRecordId = recordId;
+            
+            document.getElementById('editPackingRecordTitle').textContent = `Edit Record: ${date} (${lotCode})`;
+            document.getElementById('currentPackingQty').value = currentQty;
+            document.getElementById('deductPackingQty').value = '';
+            document.getElementById('deductPackingQty').max = currentQty - 1; // Can't deduct more than current - 1
+            
+            document.getElementById('editPackingRecordPopup').classList.add('show');
+        }
+
+        function hideEditPackingRecordPopup() {
+            document.getElementById('editPackingRecordPopup').classList.remove('show');
+            document.getElementById('editPackingRecordForm').reset();
+            currentPackingRecordId = null;
+        }
+
+        function submitEditPackingRecord(event) {
+            event.preventDefault();
+            
+            const currentQty = parseInt(document.getElementById('currentPackingQty').value);
+            const deductAmount = parseInt(document.getElementById('deductPackingQty').value);
+            const newQty = currentQty - deductAmount;
+            
+            if (newQty <= 0) {
+                showMessage('Cannot reduce quantity to zero or below. Use delete instead.', 'error');
+                return;
+            }
+            
+            fetch('/office/edit-packing-record/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    record_id: currentPackingRecordId,
+                    new_qty: newQty
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Packing record updated successfully', 'success');
+                    // Close both popups to force user to reopen and see changes
+                    hideEditPackingRecordPopup();
+                    hideProductPackingHistoryPopup();
+                } else {
+                    showMessage('Error updating record: ' + (data.error || 'Unknown error'), 'error');
+                    hideEditPackingRecordPopup();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+                hideEditPackingRecordPopup();
+            });
+        }
+
+        // Delete Packing Record Functions
+        function showDeletePackingRecordPopup(recordId, date, lotCode, qty) {
+            currentPackingRecordId = recordId;
+            
+            // Update the confirmation message with specific details
+            const confirmationText = document.querySelector('#deletePackingRecordPopup p');
+            confirmationText.innerHTML = `
+                Are you sure you want to delete this packing record?<br>
+                <strong>Date:</strong> ${date} | <strong>Lot:</strong> ${lotCode} | <strong>Qty:</strong> ${qty}<br>
+                <strong>This action cannot be undone.</strong>
+            `;
+            
+            document.getElementById('deletePackingRecordPopup').classList.add('show');
+        }
+
+        function hideDeletePackingRecordPopup() {
+            document.getElementById('deletePackingRecordPopup').classList.remove('show');
+            currentPackingRecordId = null;
+        }
+
+        function confirmDeletePackingRecord() {
+            if (!currentPackingRecordId) {
+                showMessage('No record selected', 'error');
+                return;
+            }
+            
+            fetch('/office/delete-packing-record/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    record_id: currentPackingRecordId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Packing record deleted successfully', 'success');
+                    // Close both popups to force user to reopen and see changes
+                    hideDeletePackingRecordPopup();
+                    hideProductPackingHistoryPopup();
+                } else {
+                    showMessage('Error deleting record: ' + (data.error || 'Unknown error'), 'error');
+                    hideDeletePackingRecordPopup();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+                hideDeletePackingRecordPopup();
+            });
+        }
+
+
 
 
 
@@ -4388,6 +4640,19 @@
             document.getElementById('productPackingHistoryPopup').addEventListener('click', function(e) {
                 if (e.target === this) {
                     hideProductPackingHistoryPopup();
+                }
+            });
+
+            document.getElementById('editPackingRecordPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideEditPackingRecordPopup();
+                }
+            });
+
+            // Delete packing record popup click outside to close
+            document.getElementById('deletePackingRecordPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideDeletePackingRecordPopup();
                 }
             });
 
