@@ -590,6 +590,157 @@ def get_envelope_count_data():
         'year': latest_year
     }
 
+
+def get_envelope_data_for_printing(request):
+    """
+    Get envelope data for the last 3 years for printing
+    """
+    from django.http import JsonResponse
+    from django.db.models import Max
+    from datetime import datetime
+    
+    try:
+        # Get the most recent sales year
+        latest_year = Sales.objects.aggregate(max_year=Max('year'))['max_year']
+        
+        if not latest_year:
+            return JsonResponse({'error': 'No sales data found'}, status=404)
+        
+        # Get data for last 3 years
+        years_to_include = [latest_year - i for i in range(3)]
+        
+        envelope_data_by_year = {}
+        
+        for year in years_to_include:
+            # print(f"Getting envelope data for year: {year}")
+            year_data = get_envelope_count_data_for_year(year)
+            
+            # Only include years that have data
+            if year_data['total'] > 0:
+                envelope_data_by_year[str(year)] = year_data
+                # print(f"Added data for year {year}: {year_data['total']} total envelopes")
+            else:
+                print(f"No data found for year {year}")
+        
+        # Calculate grand totals across all years
+        grand_total_envelopes = sum(data['total'] for data in envelope_data_by_year.values())
+        
+        # Get all unique envelope types across all years
+        all_envelope_types = set()
+        for data in envelope_data_by_year.values():
+            all_envelope_types.update(data['envelope_counts'].keys())
+        
+        # print(f"Returning data for {len(envelope_data_by_year)} years")
+        # print(f"Grand total envelopes: {grand_total_envelopes}")
+        # print(f"Unique envelope types: {sorted(all_envelope_types)}")
+        
+        return JsonResponse({
+            'envelope_data_by_year': envelope_data_by_year,
+            'years': [year for year in years_to_include if str(year) in envelope_data_by_year],
+            'grand_total': grand_total_envelopes,
+            'envelope_types': sorted(all_envelope_types),
+            'generated_at': datetime.now().isoformat(),
+            'report_title': f'Envelope Usage Report - Last 3 Years ({min(years_to_include)} - {max(years_to_include)})'
+        })
+        
+    except Exception as e:
+        print(f"Error in get_envelope_data_for_printing: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_envelope_count_data_for_year(year):
+    """
+    Calculate envelope usage for a specific sales year
+    """
+    from django.db.models import Sum
+    
+    if not year:
+        return {
+            'envelope_counts': {},
+            'total': 0,
+            'year': None
+        }
+   
+    # Get aggregated sales data for the specific year, grouped by product
+    # This combines wholesale and retail quantities for each product
+    product_totals = (
+        Sales.objects
+        .filter(year=year)
+        .values('product', 'product__env_type')
+        .annotate(total_quantity=Sum('quantity'))
+    )
+    
+    # print(f"DEBUG: Found {len(product_totals)} unique products for {year}")
+   
+    # Group by envelope type and calculate totals
+    envelope_counts = {}
+    total_envelopes = 0
+    products_with_env_type = 0
+    products_without_env_type = 0
+   
+    for item in product_totals:
+        env_type = item['product__env_type']
+        quantity = item['total_quantity']
+        product_id = item['product']
+        
+        # print(f"DEBUG: Product {product_id} - env_type: '{env_type}' - quantity: {quantity}")
+       
+        # Skip if product doesn't have env_type or it's empty
+        if not env_type or env_type.strip() == '':
+            products_without_env_type += 1
+            print(f"DEBUG: Skipping product {product_id} - no env_type")
+            continue
+           
+        products_with_env_type += 1
+       
+        if env_type not in envelope_counts:
+            envelope_counts[env_type] = 0
+       
+        envelope_counts[env_type] += quantity
+        total_envelopes += quantity
+    
+    # print(f"DEBUG: Products with env_type: {products_with_env_type}")
+    # print(f"DEBUG: Products without env_type: {products_without_env_type}")
+    
+    # --- Misc Sales Mapping ---
+    MISC_ENVELOPE_MAP = {
+        "TOM-CH-pkts": ("Tomato", 7),
+        "PEA-SP-pkts": ("Pea", 3),
+        "BEA-MF-pkts": ("Bean", 4),
+    }
+    
+    misc_sales = MiscSales.objects.filter(year=year).select_related("product")
+    # print(f"DEBUG: Found {misc_sales.count()} misc sales records for {year}")
+    
+    for misc_sale in misc_sales:
+        sku = misc_sale.product.sku
+        quantity = misc_sale.quantity
+        # print(f"DEBUG: Processing misc sale - SKU: {sku}, Quantity: {quantity}")
+        
+        if sku in MISC_ENVELOPE_MAP:
+            env_type, multiplier = MISC_ENVELOPE_MAP[sku]
+            env_count = quantity * multiplier
+            # print(f"DEBUG: Mapping {sku} -> {env_type} (x{multiplier}) = {env_count} envelopes")
+            
+            if env_type not in envelope_counts:
+                envelope_counts[env_type] = 0
+            envelope_counts[env_type] += env_count
+            total_envelopes += env_count
+        else:
+            print(f"⚠️ Unmapped misc SKU: {sku}")
+   
+    # Sort envelope counts by quantity (descending)
+    envelope_counts = dict(sorted(envelope_counts.items(), key=lambda x: x[1], reverse=True))
+    
+    # print(f"DEBUG: Final envelope counts for {year}: {envelope_counts}")
+    # print(f"DEBUG: Total envelopes for {year}: {total_envelopes}")
+   
+    return {
+        'envelope_counts': envelope_counts,
+        'total': total_envelopes,
+        'year': year
+    }
+
+
 def get_top_selling_products(limit=4):
     """
     Get top selling products by total sales quantity for the most recent sales year

@@ -21,6 +21,7 @@ urlpatterns = [
     path('edit-products/', product_views.edit_products, name='edit_products'),
     path('view-variety/', view_variety, name='view_variety'),
     path('analytics/', analytics, name='analytics'),
+    path('envelope-data-for-printing/', get_envelope_data_for_printing, name='envelope_data_for_printing'),
 
     path('<int:store_num>/update/', update_store, name='update_store'),
     path('get-store-orders/<int:store_id>/', get_store_orders, name='get_store_orders'),

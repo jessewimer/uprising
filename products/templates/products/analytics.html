@@ -1035,6 +1035,148 @@
             color: #28a745;
         }
 
+        .print-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .print-button:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .print-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .print-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            pointer-events: none;
+        }
+
+        .notification {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            min-width: 350px;
+            max-width: 400px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            transform: translateX(420px);
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: auto;
+            position: relative;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .notification.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .notification-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            color: #dc3545;
+        }
+
+        .notification.success .notification-icon {
+            color: #28a745;
+        }
+
+        .notification.warning .notification-icon {
+            color: #ffc107;
+        }
+
+        .notification-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .notification-message {
+            color: #666;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            padding: 0;
+            transition: color 0.3s ease;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        .notification-close:hover {
+            color: #333;
+        }
+
+        .notification-close svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Auto-hide animation */
+        .notification.hiding {
+            animation: slideOutAndFade 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -1044,6 +1186,13 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @keyframes slideOutAndFade {
+            to {
+                transform: translateX(420px);
+                opacity: 0;
             }
         }
 
@@ -1259,12 +1408,66 @@
             .pie-chart-container {
                 height: 300px;
             }
+
+            .notification-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+            }
+            
+            .notification {
+                min-width: auto;
+                max-width: none;
+                transform: translateY(-100px);
+            }
+            
+            .notification.show {
+                transform: translateY(0);
+            }
+            
+            .notification.hiding {
+                animation: slideUpAndFade 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            }
+            
+            @keyframes slideUpAndFade {
+                to {
+                    transform: translateY(-100px);
+                    opacity: 0;
+                }
+            }
+
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 
 <body>
+
+    <!-- Notification Container -->
+    <div class="notification-container" id="notification-container">
+        <div class="notification error" id="error-notification">
+            <div class="notification-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Print Service Unavailable</div>
+                <div class="notification-message" id="notification-message">
+                    The printing service is currently not running. Please start the Flask print service and try again.
+                </div>
+            </div>
+            <button class="notification-close" id="notification-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
     {% csrf_token %}
     <div class="container">
         <!-- Header Section -->
@@ -1483,10 +1686,17 @@
     <div class="modal-overlay" id="envelope-modal">
         <div class="modal">
             <div class="modal-header">
+                <button class="print-button" id="envelope-print-button" title="Print envelope data">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                        <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                        <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                    </svg>
+                </button>
                 <h2 class="modal-title" id="modal-title-display">Envelope Usage Details {{ last_sales_year }}</h2>
                 <button class="modal-close" id="close-modal">&times;</button>
             </div>
-            
+                
             {% if envelope_total > 0 %}
                 <table class="envelope-table">
                     <thead>
@@ -1637,9 +1847,59 @@
         let salesOverTimeChart = null;
         let salesByStoreChart = null;
         
+        // Notification System
+        function showNotification(title, message, type = 'error', duration = 8000) {
+            const notification = document.getElementById('error-notification');
+            const titleElement = notification.querySelector('.notification-title');
+            const messageElement = document.getElementById('notification-message');
+            
+            // Update content
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+            
+            // Update type
+            notification.className = `notification ${type}`;
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Auto-hide after duration
+            const autoHideTimer = setTimeout(() => {
+                hideNotification();
+            }, duration);
+            
+            // Store timer reference for potential cancellation
+            notification.dataset.timer = autoHideTimer;
+            
+            console.log(`${type.toUpperCase()} notification shown: ${title} - ${message}`);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById('error-notification');
+            
+            // Cancel auto-hide timer if it exists
+            if (notification.dataset.timer) {
+                clearTimeout(parseInt(notification.dataset.timer));
+                delete notification.dataset.timer;
+            }
+            
+            // Add hiding animation
+            notification.classList.add('hiding');
+            
+            // Remove from DOM after animation
+            setTimeout(() => {
+                notification.classList.remove('show', 'hiding');
+            }, 400);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing all functionality...');
             
+            const closeButton = document.getElementById('notification-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', hideNotification);
+            }
+
             // Format the envelope total with commas
             const envelopeTotalDisplay = document.getElementById('envelope-total-display');
             if (envelopeTotalDisplay && envelopeTotal > 0) {
@@ -2501,6 +2761,95 @@
                 closeModal.addEventListener('click', () => hideModal(modal));
             }
 
+
+            const printButton = document.getElementById('envelope-print-button');
+            if (printButton) {
+                printButton.addEventListener('click', async function() {
+                    console.log('Print button clicked');
+                    
+                    // Disable button during processing
+                    printButton.disabled = true;
+                    printButton.style.opacity = '0.5';
+                    
+                    try {
+                        // Step 1: Health check to Flask
+                        console.log('Checking Flask health...');
+                        const healthResponse = await fetch('http://127.0.0.1:5000/health', {
+                            method: 'GET'
+                        });
+                        
+                        if (!healthResponse.ok) {
+                            throw new Error('Flask health check failed');
+                        }
+                        
+                        console.log('Flask is healthy, proceeding with print request...');
+                        
+                        // Step 2: Get envelope data for printing (3 years)
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                        
+                        const printDataResponse = await fetch('/office/envelope-data-for-printing/', {
+                            method: 'GET',
+                            headers: {
+                                'X-CSRFToken': csrfToken,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (!printDataResponse.ok) {
+                            throw new Error('Failed to fetch envelope print data');
+                        }
+                        
+                        const printData = await printDataResponse.json();
+                        console.log('Received print data:', printData);
+                        
+                        // Step 3: Send to Flask for printing
+                        const flaskResponse = await fetch('http://127.0.0.1:5000/print-envelope-table', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(printData)
+                        });
+                        
+                        if (!flaskResponse.ok) {
+                            throw new Error('Flask printing failed');
+                        }
+                        
+                        const result = await flaskResponse.json();
+                        console.log('Print job submitted:', result);
+                        
+                        // Show success message
+                        showNotification('Print Successful', 'Your envelope report has been sent to the printer.', 'success', 5000);
+                        
+                    } catch (error) {
+                        console.error('Print error:', error);
+                        
+                        let errorTitle = 'Print Failed';
+                        let errorMessage = 'An unexpected error occurred while trying to print.';
+                        
+                        if (error.message.includes('Flask health check failed') || 
+                            error.message.includes('Failed to fetch') ||
+                            error.name === 'TypeError') {
+                            errorTitle = 'Print Service Unavailable';
+                            errorMessage = 'The printing service is not currently running. Please start the Flask print service and try again.';
+                        } else if (error.message.includes('envelope print data')) {
+                            errorTitle = 'Data Error';
+                            errorMessage = 'Could not retrieve envelope data from the server. Please try again.';
+                        } else if (error.message.includes('Flask printing failed')) {
+                            errorTitle = 'Print Service Error';
+                            errorMessage = 'The print service encountered an error while processing your request.';
+                        }
+                        
+                        // Show notification instead of alert
+                        showNotification(errorTitle, errorMessage, 'error', 10000);
+                        
+                    } finally {
+                        // Re-enable button
+                        printButton.disabled = false;
+                        printButton.style.opacity = '1';
+                    }
+                });
+            }
             // Close when clicking overlay
             if (modal) {
                 modal.addEventListener('click', function(e) {
