@@ -463,6 +463,36 @@
             text-decoration: none;
         }
 
+        .address-labels-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #26de81, #20bf6b);
+            color: white;
+            border: 2px solid transparent;
+            margin-right: 15px;
+        }
+
+        .address-labels-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(38, 222, 129, 0.3);
+        }
+
+        .address-labels-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -529,6 +559,14 @@
                 padding: 15px 20px;
                 margin-top: 25px;
             }
+
+            .address-labels-button,
+            .admin-button,
+            .logout-button {
+                margin: 5px;
+                width: auto;
+                display: inline-flex;
+            }
         }
 
         @media (max-width: 480px) {
@@ -547,6 +585,18 @@
             .action-icon {
                 font-size: 2.2rem;
                 margin-bottom: 15px;
+            }
+
+            .footer {
+                text-align: center;
+            }
+            
+            .address-labels-button,
+            .admin-button,
+            .logout-button {
+                display: block;
+                width: 100%;
+                margin: 8px 0;
             }
         }
 
@@ -692,6 +742,9 @@
 
         <!-- Footer with Logout and Admin -->
         <div class="footer">
+            <button class="address-labels-button" onclick="handleAddressLabels()">
+                Address Labels
+            </button>
             <button class="admin-button" onclick="checkAdminAccess()">
                 Admin
             </button>
@@ -709,16 +762,7 @@
         <div class="inventory-menu-content">
             <button class="inventory-menu-close" onclick="closeInventoryMenu()">&times;</button>
             <h2 class="inventory-menu-title">Inventory & Germination</h2>
-            <!-- <div class="inventory-options">
-                <a href="{% url 'germ_samples' %}" class="inventory-option">
-                    <div class="inventory-option-icon">🧫</div>
-                    <div class="inventory-option-text">Send Germ Samples</div>
-                </a>
-                <a href="{% url 'germination_inventory' %}" class="inventory-option">
-                    <div class="inventory-option-icon">📋</div>
-                    <div class="inventory-option-text">View Germination/Inventory Data</div>
-                </a>
-            </div> -->
+
             <div class="inventory-options">
                 <a href="{% url 'germ_samples' %}" class="inventory-option">
                     <div class="inventory-option-icon">🧫</div>
@@ -851,6 +895,76 @@
                 showToast('error', 'Error', 'Unable to verify admin access. Please try again.');
             });
         }
+
+
+
+        // Address Labels functionality
+        async function handleAddressLabels() {
+            const button = document.querySelector('.address-labels-button');
+            
+            // Disable button during processing
+            button.disabled = true;
+            button.textContent = 'Checking...';
+            
+            try {
+                console.log('Checking Flask health for address labels...');
+                
+                // Health check to Flask
+                const healthResponse = await fetch('http://127.0.0.1:5000/health', {
+                    method: 'GET'
+                });
+                
+                if (!healthResponse.ok) {
+                    throw new Error('Flask health check failed');
+                }
+                
+                console.log('Flask is healthy, sending print request...');
+                
+                // Send print request to Flask
+                const printResponse = await fetch('http://127.0.0.1:5000/print-address-labels', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!printResponse.ok) {
+                    throw new Error('Address labels print request failed');
+                }
+                
+                const result = await printResponse.json();
+                
+                if (result.success) {
+                    showToast('success', 'Print Successful', result.message || 'Address labels sent to printer.');
+                } else {
+                    showToast('error', 'Print Failed', result.error || 'Failed to print address labels.');
+                }
+                
+            } catch (error) {
+                console.error('Address labels error:', error);
+                
+                let errorTitle = 'Print Service Error';
+                let errorMessage = 'An unexpected error occurred.';
+                
+                if (error.message.includes('Flask health check failed') || 
+                    error.message.includes('Failed to fetch') ||
+                    error.name === 'TypeError') {
+                    errorTitle = 'Print Service Unavailable';
+                    errorMessage = 'The printing service is not currently running. Please start the Flask print service and try again.';
+                } else if (error.message.includes('print request failed')) {
+                    errorTitle = 'Print Request Failed';
+                    errorMessage = 'The print service encountered an error while processing your request.';
+                }
+                
+                showToast('error', errorTitle, errorMessage, 8000);
+                
+            } finally {
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = 'Address Labels';
+            }
+        }
+
 
         // Inventory menu handlers
         function showInventoryMenu() {
