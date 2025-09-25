@@ -741,7 +741,7 @@ def print_varieties_with_no_photo_path():
 
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
 # print_varieties_with_no_photo_path()
-update_all_variety_photos()
+# update_all_variety_photos()
 
 
 # clear_print_label_table()

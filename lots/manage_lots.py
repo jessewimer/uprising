@@ -560,9 +560,16 @@ def clear_september_2025_germ_sample_prints():
     count = september_2025_prints.count()
     september_2025_prints.delete()
     print(f"✅ Cleared {count} germ sample prints from September 2025.")
-    
+
+
+def view_stock_seed():
+    """View all stock seed entries"""
+    stock_seeds = StockSeed.objects.all()
+    for ss in stock_seeds:
+        print(f"Lot: {ss.lot.build_lot_code()}, Quantity: {ss.qty}, Date: {ss.date}, Notes: {ss.notes}")
+
 if __name__ == "__main__":
-    pass
+    view_stock_seed()
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
 #     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
