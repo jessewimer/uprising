@@ -2380,8 +2380,11 @@
                     <label>Grower:</label>
                     <select id="lotGrowerSelect" required>
                         <option value="">Select grower</option>
-                        {% for grower in growers %}
+                        <!-- {% for grower in growers %}
                             <option value="{{ grower.pk }}">{{ grower.code }}</option>
+                        {% endfor %} -->
+                        {% for grower in growers %}
+                            <option value="{{ grower.pk }}" data-grower-code="{{ grower.code }}">{{ grower.code }} - {{ grower.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -4943,13 +4946,64 @@
             document.getElementById('addLotForm').reset();
         }
 
+        // function submitAddLot(event) {
+        //     event.preventDefault();
+            
+        //     const growerId = document.getElementById('lotGrowerSelect').value;
+        //     const year = document.getElementById('lotYearInput').value;
+        //     const harvest = document.getElementById('lotHarvestInput').value;
+            
+        //     fetch('/office/add-lot/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             variety_sku: '{{ variety.sku_prefix }}',
+        //             grower_id: growerId,
+        //             year: year,
+        //             harvest: harvest
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             window.location.href = window.location.pathname;
+        //             localStorage.removeItem('germination_inventory_data'); 
+        //         } else {
+        //             alert('Error adding lot: ' + (data.error || 'Unknown error'));
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         alert('Network error occurred');
+        //     });
+            
+        //     hideAddLotPopup();
+        // }
+
         function submitAddLot(event) {
             event.preventDefault();
             
-            const growerId = document.getElementById('lotGrowerSelect').value;
+            const growerSelect = document.getElementById('lotGrowerSelect');
+            const growerId = growerSelect.value;
+            const growerCode = growerSelect.options[growerSelect.selectedIndex].getAttribute('data-grower-code'); // Get from data attribute
             const year = document.getElementById('lotYearInput').value;
             const harvest = document.getElementById('lotHarvestInput').value;
             
+            // Construct the new lot code using just the grower code
+            const newLotCode = `${growerCode}${year}${harvest}`;
+            
+            // Check if this lot already exists in the table
+            const existingLots = getExistingLotsFromTable();
+            
+            if (existingLots.includes(newLotCode)) {
+                showMessage(`Lot "${newLotCode}" already exists for this variety`, 'error');
+                return; // Stop submission
+            }
+            
+            // If we get here, the lot doesn't exist, so proceed with submission
             fetch('/office/add-lot/', {
                 method: 'POST',
                 headers: {
@@ -4958,7 +5012,7 @@
                 },
                 body: JSON.stringify({
                     variety_sku: '{{ variety.sku_prefix }}',
-                    grower_id: growerId,
+                    grower_id: growerId, // Still uses the grower.pk for database association
                     year: year,
                     harvest: harvest
                 })
@@ -4969,15 +5023,83 @@
                     window.location.href = window.location.pathname;
                     localStorage.removeItem('germination_inventory_data'); 
                 } else {
-                    alert('Error adding lot: ' + (data.error || 'Unknown error'));
+                    showMessage('Error adding lot: ' + (data.error || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Network error occurred');
+                showMessage('Network error occurred', 'error');
             });
             
             hideAddLotPopup();
+        }
+        // function submitAddLot(event) {
+        //     event.preventDefault();
+            
+        //     const growerSelect = document.getElementById('lotGrowerSelect');
+        //     const growerId = growerSelect.value;
+        //     const growerCode = growerSelect.options[growerSelect.selectedIndex].text; // Get the grower code (e.g., "UO")
+        //     const year = document.getElementById('lotYearInput').value;
+        //     const harvest = document.getElementById('lotHarvestInput').value;
+            
+        //     // Construct the new lot code
+        //     const newLotCode = `${growerCode}${year}${harvest}`;
+            
+        //     // Check if this lot already exists in the table
+        //     const existingLots = getExistingLotsFromTable();
+            
+        //     if (existingLots.includes(newLotCode)) {
+        //         showMessage(`Lot "${newLotCode}" already exists for this variety`, 'error');
+        //         return; // Stop submission
+        //     }
+            
+        //     // If we get here, the lot doesn't exist, so proceed with submission
+        //     fetch('/office/add-lot/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             variety_sku: '{{ variety.sku_prefix }}',
+        //             grower_id: growerId,
+        //             year: year,
+        //             harvest: harvest
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             window.location.href = window.location.pathname;
+        //             localStorage.removeItem('germination_inventory_data'); 
+        //         } else {
+        //             showMessage('Error adding lot: ' + (data.error || 'Unknown error'), 'error');
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         showMessage('Network error occurred', 'error');
+        //     });
+            
+        //     hideAddLotPopup();
+        // }
+
+        function getExistingLotsFromTable() {
+            const existingLots = [];
+            const lotRows = document.querySelectorAll('.lots-table tbody tr');
+            
+            lotRows.forEach(row => {
+                // Get the lot code from the first column, excluding the edit icon
+                const lotCell = row.cells[0];
+                const lotText = lotCell.textContent.trim().replace(/\s+/g, '');
+                
+                // Skip empty or placeholder rows
+                if (lotText && lotText !== '--') {
+                    existingLots.push(lotText);
+                }
+            });
+            
+            return existingLots;
         }
 
         // Edit product lot functions
