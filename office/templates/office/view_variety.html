@@ -5292,6 +5292,28 @@
             const qty = document.getElementById('stockSeedQtyInput').value;
             const notes = document.getElementById('stockSeedNotesInput').value;
             
+            // First check if Flask app is running
+            console.log('Checking Flask connection for stock seed recording...');
+            checkFlaskConnection()
+                .then(isFlaskRunning => {
+                    console.log('Flask running status for stock seed:', isFlaskRunning);
+                    if (!isFlaskRunning) {
+                        showMessage('Local Flask printing app not running - cannot print stock seed label', 'error');
+                        return;
+                    }
+                    
+                    // Flask is running, proceed with Django backend submission
+                    console.log('Flask healthy, proceeding with stock seed recording...');
+                    proceedWithStockSeedSubmission(qty, notes);
+                })
+                .catch(error => {
+                    console.error('Error checking Flask connection for stock seed:', error);
+                    showMessage('Local Flask printing app not running - cannot print stock seed label', 'error');
+                });
+        }
+
+        function proceedWithStockSeedSubmission(qty, notes) {
+            // Submit to Django backend first
             fetch('/office/record-stock-seed/', {
                 method: 'POST',
                 headers: {
@@ -5307,10 +5329,42 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showMessage('Stock seed recorded successfully', 'success');
-                    setTimeout(() => {
-                        window.location.href = window.location.pathname;
-                    }, 2000); // 2 second delay
+                    // Django submission successful, now send to Flask for printing
+                    console.log('Stock seed recorded in Django, sending to Flask for printing...');
+                    
+                    const stockSeedPrintData = collectStockSeedPrintData(qty);
+                    
+                    if (!stockSeedPrintData) {
+                        showMessage('Stock seed recorded but could not collect print data', 'error');
+                        hideStockSeedPopup();
+                        return;
+                    }
+                    
+                    // Send to Flask for printing
+                    fetch('http://localhost:5000/print-stock-seed-label', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(stockSeedPrintData)
+                    })
+                    .then(flaskResponse => {
+                        if (flaskResponse.ok) {
+                            showMessage('Stock seed recorded and label sent to printer successfully', 'success');
+                        } else {
+                            showMessage('Stock seed recorded but printing failed', 'error');
+                        }
+                        
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname;
+                        }, 2000);
+                    })
+                    .catch(flaskError => {
+                        console.error('Flask printing error:', flaskError);
+                        showMessage('Stock seed recorded but printing failed', 'error');
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname;
+                        }, 2000);
+                    });
+                    
                 } else {
                     showMessage('Error recording stock seed: ' + (data.error || 'Unknown error'), 'error');
                 }
@@ -5322,6 +5376,72 @@
             
             hideStockSeedPopup();
         }
+
+        function collectStockSeedPrintData(quantity) {
+            try {
+                // Get variety information
+                const varietyName = document.getElementById('varietyName').textContent.trim();
+                const vegType = document.getElementById('varietyType').textContent.trim();
+                
+                // Find the lot data using currentLotId
+                const lotData = allLotsData.find(lot => lot.id == currentLotId);
+                
+                if (!lotData) {
+                    console.error('Could not find lot data for ID:', currentLotId);
+                    return null;
+                }
+                
+                // Construct lot number from grower + year
+                const lotNumber = `${lotData.grower}${lotData.year}`;
+                
+                return {
+                    variety: varietyName,
+                    veg_type: vegType,
+                    lot_number: lotNumber,
+                    quantity: quantity
+                };
+                
+            } catch (error) {
+                console.error('Error collecting stock seed print data:', error);
+                return null;
+            }
+        }
+        // function submitStockSeed(event) {
+        //     event.preventDefault();
+            
+        //     const qty = document.getElementById('stockSeedQtyInput').value;
+        //     const notes = document.getElementById('stockSeedNotesInput').value;
+            
+        //     fetch('/office/record-stock-seed/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             lot_id: currentLotId,
+        //             qty: qty,
+        //             notes: notes
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             showMessage('Stock seed recorded successfully', 'success');
+        //             setTimeout(() => {
+        //                 window.location.href = window.location.pathname;
+        //             }, 2000); // 2 second delay
+        //         } else {
+        //             showMessage('Error recording stock seed: ' + (data.error || 'Unknown error'), 'error');
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error:', error);
+        //         showMessage('Network error occurred', 'error');
+        //     });
+            
+        //     hideStockSeedPopup();
+        // }
 
         function recordInventory(lotId) {
             hideLotActionsPopup();
