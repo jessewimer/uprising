@@ -2696,6 +2696,25 @@
         </div>
     </div>
 
+    <!-- Reprint Stock Seed Label Popup -->
+    <div class="print-popup-overlay" id="reprintStockSeedPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Stock Seed Already Recorded</h3>
+                <button class="print-popup-close" onclick="hideReprintStockSeedPopup()">×</button>
+            </div>
+            
+            <p style="text-align: center; margin-bottom: 25px; color: #333;">
+                Stock seed has already been recorded for this lot.<br>
+                <strong>Would you like to reprint the stock seed label?</strong>
+            </p>
+            
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hideReprintStockSeedPopup()">Cancel</button>
+                <button class="print-action-btn print-btn" onclick="reprintStockSeedLabel()">Reprint Label</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Record Germination Popup -->
     <div class="print-popup-overlay" id="germinationPopup">
@@ -3282,82 +3301,7 @@
             });
         }
 
-        // function proceedWithPrintPopupChecks(productId, productName) {
-        //     console.log('proceedWithPrintPopupChecks called for:', productId);
-            
-        //     try {
-        //         // Use the corrected row selection method
-        //         const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
-                
-        //         if (!productRow) {
-        //             console.error('Could not find product row for ID:', productId);
-        //             showMessage('Could not find product information', 'error');
-        //             return;
-        //         }
-                
-        //         console.log('Found product row:', productRow);
-                
-        //         const lotCell = productRow.cells[1]; // Lot column is at index 1
-        //         const lotText = lotCell.textContent.trim().replace(/\s+/g, '');
-                
-        //         console.log('Lot text from cell:', lotText);
-                
-        //         // Check if no lot is assigned
-        //         if (lotText === '--' || lotText === '') {
-        //             console.log('No lot assigned, showing warning');
-        //             document.getElementById('noLotWarning').classList.add('show');
-        //             return;
-        //         }
 
-        //         // Search through ALL lots (not just available ones)
-        //         const matchingLot = allLotsData.find(lot => {
-        //             const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
-        //             return lotDisplay === lotText;
-        //         });
-                
-        //         console.log('Matching lot found:', matchingLot);
-                
-        //         if (matchingLot) {
-        //             console.log('Checking if lot is retired:', matchingLot.is_retired);
-        //             // Check if retired (blocks printing)
-        //             if (matchingLot.is_retired) {
-        //                 console.log('Lot is retired, showing warning');
-        //                 document.getElementById('retiredLotWarning').classList.add('show');
-        //                 return;
-        //             }
-                    
-        //             console.log('Checking if lot has low inventory:', matchingLot.low_inv);
-        //             // Check if low inventory (asks for confirmation)  
-        //             if (matchingLot.low_inv === true || matchingLot.low_inv === 'true') {
-        //                 console.log('Low inventory, showing confirmation');
-        //                 currentProductId = productId;
-        //                 currentProductName = productName;
-        //                 document.getElementById('lowInventoryWarning').classList.add('show');
-        //                 return;
-        //             }
-        //         }
-                
-        //         console.log('About to check lot status...');
-        //         // Check if lot status is pending
-        //         const lotStatus = getLotStatus(lotText);
-        //         console.log('Lot status result:', lotStatus);
-                
-        //         if (lotStatus && lotStatus.toLowerCase() === 'pending') {
-        //             console.log('Lot status is pending, showing warning');
-        //             document.getElementById('pendingStatusWarning').classList.add('show');
-        //             return;
-        //         }
-                
-        //         // Continue with normal print popup if no issues
-        //         console.log('All checks passed, calling proceedWithPrintPopup...');
-        //         proceedWithPrintPopup(productId, productName);
-        //         console.log('proceedWithPrintPopup completed');
-                
-        //     } catch (error) {
-        //         console.error('Error in proceedWithPrintPopupChecks:', error);
-        //         showMessage('Error processing print request', 'error');
-        //     }
-        // }
        function proceedWithPrintPopupChecks(productId, productName) {
             console.log('proceedWithPrintPopupChecks called for:', productId);
             
@@ -4656,6 +4600,12 @@
                 }
             });
 
+            document.getElementById('reprintStockSeedPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideReprintStockSeedPopup();
+                }
+            });
+
         }
         
 
@@ -5263,10 +5213,54 @@
             hideRetireLotPopup();
         }
 
+        // function recordStockSeed(lotId) {
+        //     hideLotActionsPopup();
+        //     currentLotId = lotId;
+            
+        //     // Find the lot data to display variety and lot info
+        //     const lot = allLotsData.find(l => l.id == lotId);
+        //     let title = "Record Stock Seed";
+            
+        //     if (lot) {
+        //         const varietyName = document.getElementById('varietyName').textContent.trim();
+        //         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        //         title = `Record Stock Seed<br>${varietyName} ${lotDisplay}`;
+        //     }
+            
+        //     document.getElementById('stockSeedTitle').innerHTML = title; // Changed from textContent to innerHTML
+        //     document.getElementById('stockSeedPopup').classList.add('show');
+        // }
+
+
+
         function recordStockSeed(lotId) {
             hideLotActionsPopup();
             currentLotId = lotId;
             
+            // Find the lot row in the table and check the Stock column
+            const lotRows = document.querySelectorAll('.lots-table tbody tr');
+            let hasStockSeed = false;
+            
+            for (const row of lotRows) {
+                const editIcon = row.querySelector('.edit-icon');
+                if (editIcon && editIcon.dataset.lotId === lotId.toString()) {
+                    // Stock is in the 6th column (index 5)
+                    const stockText = row.cells[5].textContent.trim();
+                    hasStockSeed = stockText === 'Yes';
+                    break;
+                }
+            }
+            
+            if (hasStockSeed) {
+                showReprintStockSeedPopup(lotId);
+            } else {
+                showRecordStockSeedPopup(lotId);
+            }
+        }
+
+
+
+        function showRecordStockSeedPopup(lotId) {
             // Find the lot data to display variety and lot info
             const lot = allLotsData.find(l => l.id == lotId);
             let title = "Record Stock Seed";
@@ -5277,9 +5271,105 @@
                 title = `Record Stock Seed<br>${varietyName} ${lotDisplay}`;
             }
             
-            document.getElementById('stockSeedTitle').innerHTML = title; // Changed from textContent to innerHTML
+            document.getElementById('stockSeedTitle').innerHTML = title;
             document.getElementById('stockSeedPopup').classList.add('show');
         }
+
+        function showReprintStockSeedPopup(lotId) {
+            document.getElementById('reprintStockSeedPopup').classList.add('show');
+        }
+
+        function hideReprintStockSeedPopup() {
+            document.getElementById('reprintStockSeedPopup').classList.remove('show');
+            currentLotId = null;
+        }
+
+        function reprintStockSeedLabel() {
+            const lotId = currentLotId; // Capture the value immediately
+            console.log('Reprinting for lot ID:', lotId);
+            
+            if (!lotId) {
+                showMessage('No lot selected', 'error');
+                return;
+            }
+            
+            // Hide popup immediately since we have the ID captured
+            hideReprintStockSeedPopup();
+            
+            // First check if Flask app is running
+            checkFlaskConnection()
+                .then(isFlaskRunning => {
+                    if (!isFlaskRunning) {
+                        showMessage('Local Flask printing app not running', 'error');
+                        return;
+                    }
+                    
+                    console.log('About to send request to Django with lot_id:', lotId);
+                    
+                    // Fetch existing stock seed data from Django
+                    fetch('/office/get-stock-seed-data/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            lot_id: lotId // Use the captured value
+                        })
+                    })
+                    .then(response => {
+                        console.log('Django response received:', response);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Django response data:', data);
+                        if (data.success) {
+                            // Send to Flask for printing
+                            const printData = {
+                                variety: data.variety_name,
+                                veg_type: data.veg_type,
+                                lot_number: data.lot_number,
+                                quantity: data.quantity
+                            };
+                            
+                            fetch('http://localhost:5000/print-stock-seed-label', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(printData)
+                            })
+                            .then(flaskResponse => {
+                                if (flaskResponse.ok) {
+                                    showMessage('Stock seed label sent to printer successfully', 'success');
+                                } else {
+                                    showMessage('Printing failed', 'error');
+                                }
+                            })
+                            .catch(flaskError => {
+                                console.error('Flask printing error:', flaskError);
+                                showMessage('Printing failed', 'error');
+                            });
+                        } else {
+                            showMessage('Error fetching stock seed data: ' + (data.error || 'Unknown error'), 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showMessage('Network error occurred', 'error');
+                    });
+                })
+                .catch(error => {
+                    console.error('Error checking Flask connection:', error);
+                    showMessage('Local Flask printing app not running', 'error');
+                });
+        }
+
+
+
+
+
+
+
+
 
         function hideStockSeedPopup() {
             document.getElementById('stockSeedPopup').classList.remove('show');
@@ -5406,42 +5496,7 @@
                 return null;
             }
         }
-        // function submitStockSeed(event) {
-        //     event.preventDefault();
-            
-        //     const qty = document.getElementById('stockSeedQtyInput').value;
-        //     const notes = document.getElementById('stockSeedNotesInput').value;
-            
-        //     fetch('/office/record-stock-seed/', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //             'X-CSRFToken': getCookie('csrftoken')
-        //         },
-        //         body: JSON.stringify({
-        //             lot_id: currentLotId,
-        //             qty: qty,
-        //             notes: notes
-        //         })
-        //     })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.success) {
-        //             showMessage('Stock seed recorded successfully', 'success');
-        //             setTimeout(() => {
-        //                 window.location.href = window.location.pathname;
-        //             }, 2000); // 2 second delay
-        //         } else {
-        //             showMessage('Error recording stock seed: ' + (data.error || 'Unknown error'), 'error');
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error('Error:', error);
-        //         showMessage('Network error occurred', 'error');
-        //     });
-            
-        //     hideStockSeedPopup();
-        // }
+       
 
         function recordInventory(lotId) {
             hideLotActionsPopup();

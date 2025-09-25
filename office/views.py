@@ -2347,3 +2347,115 @@ def delete_packing_record(request):
             'success': False,
             'error': f'An error occurred: {str(e)}'
         })
+    
+
+# @login_required
+# @user_passes_test(is_employee)
+# def check_stock_seed_exists(request):
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         lot_id = data.get('lot_id')
+        
+#         try:
+#             # Check if any StockSeed records exist for this lot
+#             exists = StockSeed.objects.filter(lot_id=lot_id).exists()
+            
+#             return JsonResponse({
+#                 'success': True,
+#                 'exists': exists
+#             })
+#         except Exception as e:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': str(e)
+#             })
+
+@login_required
+@user_passes_test(is_employee)
+def get_stock_seed_data(request):
+    
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        print(f"Raw request body: {request.body}") 
+        lot_id = data.get('lot_id')
+        print(f"Parsed JSON data: {data}")
+        try:
+            # Debug: Print what we're looking for
+            print(f"Searching for lot_id: {lot_id} (type: {type(lot_id)})")
+            
+            # Try to get the lot first
+            try:
+                lot = Lot.objects.get(id=lot_id)
+                print(f"Found lot: {lot}")
+            except Lot.DoesNotExist:
+                print(f"Lot with id {lot_id} does not exist")
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Lot with id {lot_id} does not exist'
+                })
+            
+            # Check stock seeds for this lot
+            stock_seeds = StockSeed.objects.filter(lot=lot)
+            print(f"Found {stock_seeds.count()} stock seed records for this lot")
+            
+            for ss in stock_seeds:
+                print(f"StockSeed: qty={ss.qty}, date={ss.date}")
+            
+            stock_seed = stock_seeds.order_by('-date').first()
+            
+            if not stock_seed:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'No stock seed found for lot {lot}. Found {stock_seeds.count()} records total.'
+                })
+            
+            # Construct lot number
+            lot_number = f"{lot.grower.code}{lot.year}"
+            
+            return JsonResponse({
+                'success': True,
+                'variety_name': lot.variety.var_name,
+                'veg_type': lot.variety.veg_type or '',
+                'lot_number': lot_number,
+                'quantity': stock_seed.qty
+            })
+        except Exception as e:
+            print(f"Exception in get_stock_seed_data: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+# def get_stock_seed_data(request):
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         lot_id = data.get('lot_id')
+        
+#         try:
+#             # Get the most recent stock seed record for this lot
+#             stock_seed = StockSeed.objects.filter(lot_id=lot_id).order_by('-date').first()
+            
+#             if not stock_seed:
+#                 return JsonResponse({
+#                     'success': False,
+#                     'error': 'No stock seed found'
+#                 })
+            
+#             lot = stock_seed.lot
+#             variety = lot.variety
+            
+#             # Construct lot number
+#             lot_number = f"{lot.grower.code}{lot.year}"
+            
+#             return JsonResponse({
+#                 'success': True,
+#                 'variety_name': variety.var_name,
+#                 'veg_type': variety.veg_type or '',
+#                 'lot_number': lot_number,
+#                 'quantity': stock_seed.qty
+#             })
+#         except Exception as e:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': str(e)
+#             })

@@ -71,4 +71,7 @@ urlpatterns = [
     path('change-lot-status/', change_lot_status, name='change_lot_status'),
     path('edit-front-labels/', edit_front_labels, name='edit_front_labels'),
     path('edit-back-labels/', edit_back_labels, name='edit_back_labels'),
+
+    # path('check-stock-seed-exists/', check_stock_seed_exists, name='check_stock_seed_exists'),
+    path('get-stock-seed-data/', get_stock_seed_data, name='get_stock_seed_data'),
 ]
