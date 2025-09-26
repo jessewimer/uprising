@@ -616,9 +616,33 @@ def manage_stock_seed():
         else:
             print("Invalid option. Please choose 1, 2, or 3.")
 
+def add_grower():
+    """Add a new grower interactively"""
+    print("\n=== Add New Grower ===")
+    code = input("Enter grower code (2 letters): ").strip().upper()
+    if len(code) != 2 or not code.isalpha():
+        print("Invalid code. Must be exactly 2 letters.")
+        return
+
+    name = input("Enter grower name: ").strip()
+    if not name:
+        print("Grower name cannot be empty.")
+        return
+
+    contact_name = input("Enter contact name (optional): ").strip() or None
+
+    if Grower.objects.filter(code=code).exists():
+        print(f"Grower with code '{code}' already exists.")
+        return
+
+    grower = Grower(code=code, name=name, contact_name=contact_name)
+    grower.save()
+    print(f"✅ Grower '{name}' with code '{code}' added successfully.")
+
 
 if __name__ == "__main__":
-    manage_stock_seed()
+    add_grower()
+    # manage_stock_seed()
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
 #     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
