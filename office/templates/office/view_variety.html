@@ -1467,6 +1467,7 @@
             border-radius: 8px;
             border: 1px solid rgba(102, 126, 234, 0.1);
             margin-bottom: 8px;
+            border-left: 3px solid transparent; 
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1484,18 +1485,32 @@
             flex: 1;
         }
 
-        .record-date {
+        /* .record-date {
             font-weight: 600;
             color: #667eea;
             font-size: 0.9rem;
             min-width: 80px;
+        } */
+         .record-date {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9rem;
+            min-width: 90px;  /* Increased to accommodate full date */
+            flex-shrink: 0;
         }
+
+        /* .record-detail {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 100px;
+        } */
 
         .record-detail {
             display: flex;
             align-items: center;
             gap: 6px;
-            min-width: 100px;
+            width: 85px; /* Fixed width for consistency */
         }
 
         .record-detail-label {
@@ -1507,6 +1522,7 @@
         .record-detail-value {
             font-weight: 600;
             color: #333;
+            white-space: nowrap;
         }
 
         .record-status {
@@ -1661,6 +1677,8 @@
         .record-item.has-note {
             cursor: pointer;
             transition: background-color 0.2s ease;
+            background: rgba(102, 126, 234, 0.03);
+            border-left-color: #667eea;
         }
 
         .record-item.has-note:hover {
@@ -4738,6 +4756,7 @@
             `).join('');
         }
 
+
         function populateInventoryRecords(inventoryRecords) {
             const container = document.getElementById('inventoryContent');
             
@@ -4746,18 +4765,43 @@
                 return;
             }
             
-            container.innerHTML = inventoryRecords.map(inv => `
-                <div class="record-item">
-                    <div class="record-main-info">
-                        <span class="record-date">${inv.date}</span>
-                        <div class="record-detail">
-                            <span class="record-detail-label">Weight:</span>
-                            <span class="record-detail-value">${inv.weight} lbs</span>
+            container.innerHTML = inventoryRecords.map((inv, index) => {
+                const hasNote = inv.notes ? 'has-note' : '';
+                const clickHandler = inv.notes ? `onclick="showNotePopup(event, ${index}, 'inv')"` : '';
+                
+                return `
+                    <div class="record-item ${hasNote}" ${clickHandler} data-note-content="${inv.notes ? inv.notes.replace(/"/g, '&quot;') : ''}">
+                        <div class="record-main-info">
+                            <span class="record-date">${inv.date}</span>
+                            <div class="record-detail">
+                                <span class="record-detail-label">Weight:</span>
+                                <span class="record-detail-value">${inv.weight} lbs</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
+        // function populateInventoryRecords(inventoryRecords) {
+        //     const container = document.getElementById('inventoryContent');
+            
+        //     if (inventoryRecords.length === 0) {
+        //         container.innerHTML = '<div class="no-records">No inventory records found</div>';
+        //         return;
+        //     }
+            
+        //     container.innerHTML = inventoryRecords.map(inv => `
+        //         <div class="record-item">
+        //             <div class="record-main-info">
+        //                 <span class="record-date">${inv.date}</span>
+        //                 <div class="record-detail">
+        //                     <span class="record-detail-label">Weight:</span>
+        //                     <span class="record-detail-value">${inv.weight} lbs</span>
+        //                 </div>
+        //             </div>
+        //         </div>
+        //     `).join('');
+        // }
 
 
         function populateGerminationRecords(germinationRecords) {

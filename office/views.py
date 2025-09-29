@@ -2091,7 +2091,8 @@ def get_lot_history(request):
         for inv in inventory_records:
             history_data['inventory_records'].append({
                 'date': inv.inv_date.strftime('%Y-%m-%d'),
-                'weight': float(inv.weight)
+                'weight': float(inv.weight),
+                'notes': inv.notes
             })
         
         # Germination records
