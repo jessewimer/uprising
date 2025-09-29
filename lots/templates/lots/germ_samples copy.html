@@ -259,37 +259,6 @@
             animation: highlightScan 2s ease-out;
         }
 
-        /* Status Badges */
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: center;
-            min-width: 90px;
-        }
-
-        .status-scanned {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.2);
-        }
-
-        .status-sent {
-            background: rgba(255, 152, 0, 0.1);
-            color: #ff9800;
-            border: 1px solid rgba(255, 152, 0, 0.3);
-        }
-
-        .status-completed {
-            background: rgba(38, 222, 129, 0.1);
-            color: #26de81;
-            border: 1px solid rgba(38, 222, 129, 0.3);
-        }
-
         /* Empty State */
         .empty-state {
             text-align: center;
@@ -667,7 +636,7 @@
                             <th>Lot</th>
                             <th>Variety</th>
                             <th>Crop</th>
-                            <th>Status</th>
+                            <th>Scan Time</th>
                         </tr>
                     </thead>
                     <tbody id="samplesTableBody">
@@ -763,27 +732,6 @@
             updateUI();
             setupKeyboardListener();
         });
-
-        // Function to determine sample status
-        function getSampleStatus(sample, batchStatus) {
-            // If batch is still pending, all samples are "scanned"
-            if (batchStatus === 'pending') {
-                return 'scanned';
-            }
-            
-            // If batch is sent, check germination_rate
-            if (batchStatus === 'sent') {
-                // If germination_rate exists and > 0, it's completed
-                if (sample.germination_rate && sample.germination_rate > 0) {
-                    return 'completed';
-                } else {
-                    // Otherwise, it's been sent but not tested yet
-                    return 'germ sent';
-                }
-            }
-            
-            return 'scanned'; // fallback
-        }
 
         // Toast notification system
         function showToast(type, title, message, duration = 5000) {
@@ -1097,8 +1045,7 @@
                 variety_name: lotData.variety_name,
                 crop_name: lotData.crop_name,
                 lot_id: lotData.lot_id,
-                scan_time: new Date().toLocaleTimeString(),
-                status: 'scanned' // Initial status when scanned
+                scan_time: new Date().toLocaleTimeString()
             };
 
             samples.push(newSample);
@@ -1171,11 +1118,6 @@
                             showToast('success', 'Batch Submitted', 
                                 `Batch ${currentBatch.batch_number} with ${samples.length} samples submitted for 20${inputData.year} testing!${trackingMsg}`);
                             
-                            // Update sample statuses to "germ sent"
-                            samples.forEach(sample => {
-                                sample.status = 'germ sent';
-                            });
-                            
                             // Update the batch in the master allBatches array
                             const batchIndex = allBatches.findIndex(b => b.id === currentBatch.id);
                             if (batchIndex !== -1) {
@@ -1190,8 +1132,7 @@
                                     sku_prefix: s.sku_prefix,
                                     lot_code: s.lot_code,
                                     variety_name: s.variety_name,
-                                    crop_name: s.crop_name,
-                                    germination_rate: s.germination_rate || 0 // Default to 0 if not set
+                                    crop_name: s.crop_name
                                 }));
                             }
                             
@@ -1201,8 +1142,7 @@
                                 sku_prefix: s.sku_prefix,
                                 lot_code: s.lot_code,
                                 variety_name: s.variety_name,
-                                crop_name: s.crop_name,
-                                germination_rate: s.germination_rate || 0
+                                crop_name: s.crop_name
                             }));
                             
                             // Mark as sent with tracking number
@@ -1214,9 +1154,13 @@
                             // Refresh the dropdown with updated data
                             populateBatchDropdown();
                             
-                            // Update the table to show new status
-                            updateSamplesTable();
+                            // Clear current selection
+                            currentBatch = null;
+                            samples = [];
+                            document.getElementById('batchSelect').value = '';
+                            
                             updateUI();
+                            updateSamplesTable();
                         } else {
                             console.error('Server returned error:', data.error);
                             showToast('error', 'Submission Failed', `Error submitting batch: ${data.error}`);
@@ -1248,9 +1192,7 @@
                         lot_code: g.lot_code,
                         variety_name: g.variety_name,
                         crop_name: g.crop_name,
-                        scan_time: g.scan_time || 'Previously scanned',
-                        germination_rate: g.germination_rate || 0, // Default to 0 if not set
-                        status: getSampleStatus(g, currentBatch.status) // Determine status based on batch and sample data
+                        scan_time: g.scan_time || 'Previously scanned'
                     }));
                 }
             } else {
@@ -1297,29 +1239,15 @@
                 emptyState.style.display = 'block';
             } else {
                 emptyState.style.display = 'none';
-                tbody.innerHTML = samples.map((sample, index) => {
-                    // Determine the status class for styling
-                    let statusClass = 'status-scanned';
-                    if (sample.status === 'completed') {
-                        statusClass = 'status-completed';
-                    } else if (sample.status === 'germ sent') {
-                        statusClass = 'status-sent';
-                    }
-                    
-                    return `
-                        <tr class="${index === samples.length - 1 ? 'new-scan' : ''}">
-                            <td><strong>${sample.sku_prefix}</strong></td>
-                            <td>${sample.lot_code}</td>
-                            <td>${sample.variety_name}</td>
-                            <td>${sample.crop_name}</td>
-                            <td>
-                                <span class="status-badge ${statusClass}">
-                                    ${sample.status}
-                                </span>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                tbody.innerHTML = samples.map((sample, index) => `
+                    <tr class="${index === samples.length - 1 ? 'new-scan' : ''}">
+                        <td><strong>${sample.sku_prefix}</strong></td>
+                        <td>${sample.lot_code}</td>
+                        <td>${sample.variety_name}</td>
+                        <td>${sample.crop_name}</td>
+                        <td>${sample.scan_time}</td>
+                    </tr>
+                `).join('');
             }
         }
 

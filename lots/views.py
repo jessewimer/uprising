@@ -32,6 +32,16 @@ def send_germ_samples(request):
             'date': batch.date.strftime('%Y-%m-%d') if batch.date else None,
             'tracking_number': batch.tracking_number or '',
             'status': status,
+            # 'germinations': [
+            #     {
+            #         'id': g.id,
+            #         'barcode': f"{g.lot.variety.sku_prefix}-{g.lot.grower.code if g.lot.grower else 'UNK'}{g.lot.year}",
+            #         'sku_prefix': g.lot.variety.sku_prefix,
+            #         'lot_code': f"{g.lot.grower.code if g.lot.grower else 'UNK'}{g.lot.year}",
+            #         'variety_name': g.lot.variety.var_name,
+            #         'crop_name': g.lot.variety.veg_type if g.lot.variety.veg_type else 'Unknown',
+            #         'scan_time': 'Previously scanned'  # Since we don't track individual scan times
+            #     } for g in germinations
             'germinations': [
                 {
                     'id': g.id,
@@ -40,9 +50,11 @@ def send_germ_samples(request):
                     'lot_code': f"{g.lot.grower.code if g.lot.grower else 'UNK'}{g.lot.year}",
                     'variety_name': g.lot.variety.var_name,
                     'crop_name': g.lot.variety.veg_type if g.lot.variety.veg_type else 'Unknown',
+                    'germination_rate': g.germination_rate,  # ADD THIS LINE
                     'scan_time': 'Previously scanned'  # Since we don't track individual scan times
                 } for g in germinations
             ]
+            
         }
         batches.append(batch_data)
    

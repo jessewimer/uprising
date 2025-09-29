@@ -69,6 +69,7 @@ class Lot(models.Model):
             "year": year,
             "harvest": harvest
         }
+    
     def get_four_char_lot_code(self):
         """
         Returns a 4-character lot code like 'DR23' or 'DR23A'
