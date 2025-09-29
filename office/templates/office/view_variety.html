@@ -2076,8 +2076,86 @@
                     {% endif %}
                 </div>
 
-                <!-- Lots Table -->
+                 <!-- Lots Table -->
                 <div class="table-section">
+                    <div class="table-wrapper">
+                        <table class="data-table lots-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Lot
+                                        <span class="add-icon" onclick="showAddLotPopup()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                                            </svg>
+                                        </span>
+                                    </th>
+                                    <th>Germ</th>
+                                    <th>Inventory</th>
+                                    <th>Status</th>
+                                    <th>Low Inventory</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            {% if lots %}
+                            <tbody>
+                                {% for lot in lots %}
+                                <tr>
+                                    <td>
+                                        <span class="edit-icon" data-lot-id="{{ lot.pk }}" data-low-inv="{{ lot.low_inv|yesno:'true,false' }}" onclick="showLotActionsPopup(this)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </span>
+                                        {% if lot.grower and lot.year %}
+                                            {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ lot.get_most_recent_germ_percent_with_year|default:"--" }}
+                                        {% if lot.get_germ_record_with_no_test_date %}*{% endif %}
+                                    </td>
+                                    <td>{{ lot.get_most_recent_inventory|default:"--" }}</td>
+                                    <td>{{ lot.get_lot_status|default:"--" }}</td>
+                                    <td>
+                                        {% if lot.low_inv %}
+                                            Yes
+                                        {% else %}
+                                            No
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lot.check_stock_seed %}
+                                            Yes
+                                        {% else %}
+                                            No
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% endif %}
+                        </table>
+                    </div>
+                    
+                    {% if not lots %}
+                    <div class="empty-state">
+                        No lots found for this variety
+                    </div>
+                    {% endif %}
+                    
+                    {% if has_pending_germ %}
+                        <div style="margin-top: 15px; margin-bottom: -15px; padding: 12px 20px; font-size: 0.9rem; color: #666; font-style: italic;">
+                            * A new germination sample has been sent to the lab for testing
+                        </div>
+                    {% endif %}
+                </div>
+                <!-- <div class="table-section">
                     {% if lots %}
                     <div class="table-wrapper">
                         <table class="data-table lots-table">
@@ -2152,7 +2230,7 @@
                         No lots found for this variety
                     </div>
                     {% endif %}
-                </div>
+                </div> -->
             </div>
 
             <!-- Right Side: Label Info Section -->
