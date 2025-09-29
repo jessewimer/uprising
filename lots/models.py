@@ -151,6 +151,7 @@ class Inventory(models.Model):
     weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     smarties_ct = models.PositiveIntegerField(default=0)
     inv_date = models.DateField(default=timezone.now)
+    notes = models.TextField(blank=True, null=True)
 
     class Meta:
         unique_together = ("lot", "inv_date")
@@ -229,3 +230,4 @@ class Growout(models.Model):
 
     def __str__(self):
         return f"Growout for {self.lot}"
+    

@@ -2155,82 +2155,6 @@
                         </div>
                     {% endif %}
                 </div>
-                <!-- <div class="table-section">
-                    {% if lots %}
-                    <div class="table-wrapper">
-                        <table class="data-table lots-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        Lot
-                                        <span class="add-icon" onclick="showAddLotPopup()">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <circle cx="12" cy="12" r="10"></circle>
-                                                <line x1="12" y1="8" x2="12" y2="16"></line>
-                                                <line x1="8" y1="12" x2="16" y2="12"></line>
-                                            </svg>
-                                        </span>
-                                    </th>
-                                    <th>Germ</th>
-                                    <th>Inventory</th>
-                                    <th>Status</th>
-                                    <th>Low Inventory</th>
-                                    <th>Stock</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for lot in lots %}
-                                <tr>
-                                    <td>
-                                        <span class="edit-icon" data-lot-id="{{ lot.pk }}" data-low-inv="{{ lot.low_inv|yesno:'true,false' }}" onclick="showLotActionsPopup(this)">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                        </span>
-                                        {% if lot.grower and lot.year %}
-                                            {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
-                                        {% else %}
-                                            --
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ lot.get_most_recent_germ_percent_with_year|default:"--" }}
-                                        {% if lot.get_germ_record_with_no_test_date %}*{% endif %}
-                                    </td>
-                                    <td>{{ lot.get_most_recent_inventory|default:"--" }}</td>
-                                    <td>{{ lot.get_lot_status|default:"--" }}</td>
-                                    <td>
-                                        {% if lot.low_inv %}
-                                            Yes
-                                        {% else %}
-                                            No
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if lot.check_stock_seed %}
-                                            Yes
-                                        {% else %}
-                                            No
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {% if has_pending_germ %}
-                        <div style="margin-top: 15px; margin-bottom: -15px; padding: 12px 20px; font-size: 0.9rem; color: #666; font-style: italic;">
-                            * A new germination sample has been sent to the lab for testing
-                        </div>
-                    {% endif %}
-
-                    {% else %}
-                    <div class="empty-state">
-                        No lots found for this variety
-                    </div>
-                    {% endif %}
-                </div> -->
             </div>
 
             <!-- Right Side: Label Info Section -->
@@ -2365,41 +2289,6 @@
             </div>
         </div>
     </div>
-
-    <!-- <div class="print-popup-overlay" id="printPopupOverlay">
-        <div class="print-popup">
-            <div class="print-popup-header">
-                <h3 class="print-popup-title">Print Labels</h3>
-                <button class="print-popup-close" onclick="hidePrintPopup()">×</button>
-            </div>
-            
-            <div class="print-quantity-container">
-                <label class="print-quantity-label" for="printQuantity">Quantity:</label>
-                <input type="number" class="print-quantity-input" id="printQuantity" min="1" value="1">
-            </div>
-            <div class="print-quantity-container">
-                <label class="print-quantity-label" for="packedForYearSelect">Packed for year:</label>
-                <input type="text" class="print-quantity-input" id="packedForYearInput" style="display: none;" readonly>
-                <select class="print-quantity-input" id="packedForYearSelect" style="display: none;">
-                
-                </select>
-            </div>
-
-            <div class="print-options">
-                <button class="print-option-btn selected" data-option="front_single">Front Single</button>
-                <button class="print-option-btn" data-option="front_sheet">Front Sheet</button>
-                <button class="print-option-btn" data-option="back_single">Back Single</button>
-                <button class="print-option-btn" data-option="back_sheet">Back Sheet</button>
-                <button class="print-option-btn" data-option="front_back_single">Front/Back Single</button>
-                <button class="print-option-btn" data-option="front_back_sheet">Front/Back Sheet</button>
-            </div>
-            
-            <div class="print-actions">
-                <button class="print-action-btn cancel-btn" onclick="hidePrintPopup()">Cancel</button>
-                <button class="print-action-btn print-btn" onclick="submitPrintJob()">Print</button>
-            </div>
-        </div>
-    </div> -->
 
     <!-- Low Inventory Warning Popup -->
     <div class="print-popup-overlay" id="lowInventoryWarning">
@@ -2831,6 +2720,37 @@
                 <div class="print-actions">
                     <button type="button" class="print-action-btn cancel-btn" onclick="hideGerminationPopup()">Cancel</button>
                     <button type="submit" class="print-action-btn print-btn">Record Germination</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Record Inventory Popup -->
+    <div class="print-popup-overlay" id="inventoryPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title" id="inventoryTitle">Record Inventory</h3>
+                <button class="print-popup-close" onclick="hideInventoryPopup()">×</button>
+            </div>
+            
+            <form id="inventoryForm" onsubmit="submitInventory(event)">
+                <div class="form-group">
+                    <label>Weight (lbs):</label>
+                    <input type="number" id="inventoryWeightInput" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Inventory Date:</label>
+                    <input type="date" id="inventoryDateInput">
+                </div>
+                <div class="form-group">
+                    <label>Notes:</label>
+                    <textarea id="inventoryNotesInput" rows="4" placeholder="Enter inventory notes..."></textarea>
+                </div>
+                
+                <div class="print-actions">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hideInventoryPopup()">Cancel</button>
+                    <button type="submit" class="print-action-btn print-btn">Record Inventory</button>
                 </div>
             </form>
         </div>
@@ -4696,6 +4616,13 @@
                 }
             });
 
+            // Inventory popup click outside to close
+            document.getElementById('inventoryPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideInventoryPopup();
+                }
+            });
+
         }
         
 
@@ -5707,11 +5634,95 @@
         }
        
 
+        // function recordInventory(lotId) {
+        //     hideLotActionsPopup();
+        //     // console.log('Record inventory:', lotId);
+        //     // TODO: Implement inventory popup
+        // }
+
+
+
+
         function recordInventory(lotId) {
             hideLotActionsPopup();
-            // console.log('Record inventory:', lotId);
-            // TODO: Implement inventory popup
+            currentLotId = lotId;
+            
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inventoryDateInput').value = today;
+            
+            // Find the lot data to display variety and lot info
+            const lot = allLotsData.find(l => l.id == lotId);
+            let title = "Record Inventory";
+            
+            if (lot) {
+                const varietyName = document.getElementById('varietyName').textContent.trim();
+                const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+                title = `Record Inventory<br>${varietyName} ${lotDisplay}`;
+            }
+            
+            document.getElementById('inventoryTitle').innerHTML = title;
+            document.getElementById('inventoryPopup').classList.add('show');
         }
+
+        function hideInventoryPopup() {
+            document.getElementById('inventoryPopup').classList.remove('show');
+            document.getElementById('inventoryForm').reset();
+        }
+
+        function submitInventory(event) {
+            event.preventDefault();
+            
+            const weight = document.getElementById('inventoryWeightInput').value;
+            const invDate = document.getElementById('inventoryDateInput').value;
+            const notes = document.getElementById('inventoryNotesInput').value;
+            
+            fetch('/office/record-inventory/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    lot_id: currentLotId,
+                    weight: weight,
+                    inv_date: invDate,
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('Inventory recorded successfully', 'success');
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showMessage('Error recording inventory: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                if (error.error) {
+                    showMessage('Error recording inventory: ' + error.error, 'error');
+                } else {
+                    console.error('Error:', error);
+                    showMessage('Network error occurred', 'error');
+                }
+            });
+            
+            hideInventoryPopup();
+        }
+
+
+
+
+
+
 
         function recordGermination(lotId) {
             hideLotActionsPopup();

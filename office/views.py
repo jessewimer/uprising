@@ -10,7 +10,7 @@ import lots
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
 from orders.models import OOIncludes, OnlineOrder
-from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint
+from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Case, When, IntegerField, Max, Sum, F, CharField, Value
 from django.db.models.functions import Concat
@@ -20,6 +20,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 import pytz
+from decimal import Decimal
 
 
 
@@ -1041,6 +1042,38 @@ def record_germination(request):
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def record_inventory(request):
+    try:
+        data = json.loads(request.body)
+        lot_id = data.get('lot_id')
+        weight = data.get('weight')
+        inv_date = data.get('inv_date')
+        notes = data.get('notes', '')
+        
+        if not lot_id or weight is None:
+            return JsonResponse({'success': False, 'error': 'Missing required fields'})
+        
+        lot = Lot.objects.get(pk=lot_id)
+        
+        # Create inventory record with notes
+        Inventory.objects.create(
+            lot=lot,
+            weight=Decimal(weight),
+            inv_date=inv_date if inv_date else timezone.now().date(),
+            notes=notes if notes else None
+        )
+        
+        return JsonResponse({'success': True})
+        
+    except Lot.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Lot not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    
 
 @login_required
 @user_passes_test(is_employee)
