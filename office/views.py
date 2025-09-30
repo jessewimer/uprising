@@ -6,7 +6,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.http import JsonResponse
 from django.contrib.auth import login
-import lots
+# import lots
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
 from orders.models import OOIncludes, OnlineOrder
@@ -19,11 +19,9 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from datetime import timedelta
 import pytz
 from decimal import Decimal
-
-
-
 
 @login_required
 @require_http_methods(["GET"])
@@ -146,7 +144,7 @@ def view_variety(request):
         lots = Lot.objects.filter(variety=variety_obj).order_by("year")
         has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
         growers = Grower.objects.all().order_by('code')
-        
+
         # Build lots JSON data
         lots_json = json.dumps([
             {
@@ -159,15 +157,51 @@ def view_variety(request):
             }
             for lot in lots
         ])
-        
-        # Build lots extra data for next-year-only detection
+
+        # Build lots extra data for next-year-only detection and recent inventory
         lots_extra_data_list = []
+        six_months_ago = timezone.now().date() - timedelta(days=180)
+
         for lot in lots:
-            lots_extra_data_list.append({
+            extra_data = {
                 'id': lot.id,
                 'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
-            })
+            }
+            
+            # Check for recent inventory
+            recent_inv = lot.inventory.order_by('-inv_date').first()
+            if recent_inv and recent_inv.inv_date >= six_months_ago:
+                extra_data['recent_inventory'] = {
+                    'id': recent_inv.id,
+                    'weight': str(recent_inv.weight),
+                    'date': recent_inv.inv_date.strftime('%m/%Y'),
+                    'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
+                }
+            
+            lots_extra_data_list.append(extra_data)
+
         lots_extra_data = json.dumps(lots_extra_data_list)
+        # # Build lots JSON data
+        # lots_json = json.dumps([
+        #     {
+        #         'id': lot.id,
+        #         'grower': str(lot.grower) if lot.grower else '',
+        #         'year': lot.year,
+        #         'harvest': lot.harvest or '',
+        #         'is_retired': hasattr(lot, 'retired_info'),
+        #         'low_inv': lot.low_inv,
+        #     }
+        #     for lot in lots
+        # ])
+        
+        # # Build lots extra data for next-year-only detection
+        # lots_extra_data_list = []
+        # for lot in lots:
+        #     lots_extra_data_list.append({
+        #         'id': lot.id,
+        #         'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
+        #     })
+        # lots_extra_data = json.dumps(lots_extra_data_list)
 
     context = {
         'last_selected': last_selected_variety,
@@ -2396,3 +2430,33 @@ def get_stock_seed_data(request):
 #                 'success': False,
 #                 'error': str(e)
 #             })
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_inventory(request):
+    try:
+        data = json.loads(request.body)
+        inventory_id = data.get('inventory_id')
+        weight = data.get('weight')
+        action = data.get('action')  # 'add' or 'overwrite'
+        
+        if not inventory_id or weight is None or action not in ['add', 'overwrite']:
+            return JsonResponse({'success': False, 'error': 'Missing or invalid fields'})
+        
+        inventory = Inventory.objects.get(pk=inventory_id)
+        
+        if action == 'add':
+            inventory.weight += Decimal(weight)
+        else:  # overwrite
+            inventory.weight = Decimal(weight)
+        
+        inventory.save()
+        
+        return JsonResponse({'success': True})
+        
+    except Inventory.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Inventory not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

@@ -2774,6 +2774,34 @@
         </div>
     </div>
 
+    <!-- Add/Overwrite Inventory Popup -->
+    <div class="print-popup-overlay" id="addOverwriteInventoryPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Recent Inventory Exists</h3>
+                <button class="print-popup-close" onclick="hideAddOverwriteInventoryPopup()">×</button>
+            </div>
+            
+            <p style="text-align: center; margin-bottom: 20px;">
+                Last inventory: <strong id="lastInventoryDisplay"></strong><br>
+                Would you like to add to it or overwrite it?
+            </p>
+            
+            <form id="addOverwriteInventoryForm" onsubmit="submitAddOverwriteInventory(event)">
+                <div class="form-group">
+                    <label>Weight (lbs):</label>
+                    <input type="number" id="addOverwriteWeightInput" step="0.01" min="0" required>
+                </div>
+                
+                <div class="print-actions" style="display: flex; gap: 8px;">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hideAddOverwriteInventoryPopup()">Cancel</button>
+                    <button type="submit" name="action" value="add" class="print-action-btn print-btn" style="flex: 1;">Add to Existing</button>
+                    <button type="submit" name="action" value="overwrite" class="print-action-btn print-btn" style="flex: 1; background: #ff9800;">Overwrite</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Lot History Popup -->
     <div class="modal-overlay" id="lotHistoryPopup">
         <div class="modal lot-history-modal">
@@ -3174,6 +3202,8 @@
         let currentProductName = null;
         let currentNotePopup = null;
         let currentPackingRecordId = null;
+        let lastInventoryId = null;
+        let inventoryAction = null;
         // Filter out retired lots
         availableLots = availableLots.filter(lot => !lot.is_retired);
         let currentProductId = null;
@@ -4641,6 +4671,13 @@
                 }
             });
 
+            // Add/Overwrite Inventory popup click outside to close
+            document.getElementById('addOverwriteInventoryPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideAddOverwriteInventoryPopup();
+                }
+            });
+
         }
         
 
@@ -5678,24 +5715,33 @@
         }
        
 
-        // function recordInventory(lotId) {
-        //     hideLotActionsPopup();
-        //     // console.log('Record inventory:', lotId);
-        //     // TODO: Implement inventory popup
-        // }
-
-
 
 
         function recordInventory(lotId) {
             hideLotActionsPopup();
             currentLotId = lotId;
             
-            // Set default date to today
+            // Find recent inventory data from pre-loaded data
+            const lotExtraData = lotsExtraData.find(extra => extra.id === parseInt(lotId));
+            
+            if (lotExtraData && lotExtraData.recent_inventory) {
+                // Show add/overwrite popup
+                lastInventoryId = lotExtraData.recent_inventory.id;
+                document.getElementById('lastInventoryDisplay').textContent = lotExtraData.recent_inventory.display;
+                document.getElementById('addOverwriteInventoryPopup').classList.add('show');
+            } else {
+                // Show normal inventory popup
+                showNormalInventoryPopup(lotId);
+            }
+        }
+
+        function showNormalInventoryPopup(lotId) {
+            lastInventoryId = null;
+            inventoryAction = 'new';
+            
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('inventoryDateInput').value = today;
             
-            // Find the lot data to display variety and lot info
             const lot = allLotsData.find(l => l.id == lotId);
             let title = "Record Inventory";
             
@@ -5707,6 +5753,50 @@
             
             document.getElementById('inventoryTitle').innerHTML = title;
             document.getElementById('inventoryPopup').classList.add('show');
+        }
+
+        function hideAddOverwriteInventoryPopup() {
+            document.getElementById('addOverwriteInventoryPopup').classList.remove('show');
+            document.getElementById('addOverwriteInventoryForm').reset();
+            lastInventoryId = null;
+        }
+
+        function submitAddOverwriteInventory(event) {
+            event.preventDefault();
+            
+            const weight = document.getElementById('addOverwriteWeightInput').value;
+            const action = event.submitter.value; // 'add' or 'overwrite'
+            
+            fetch('/office/update-inventory/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    inventory_id: lastInventoryId,
+                    weight: weight,
+                    action: action
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const actionText = action === 'add' ? 'added to' : 'overwritten';
+                    showMessage(`Inventory ${actionText} successfully`, 'success');
+                    setTimeout(() => {
+                        window.location.href = window.location.pathname;
+                    }, 2000);
+                } else {
+                    showMessage('Error updating inventory: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+            });
+            
+            hideAddOverwriteInventoryPopup();
         }
 
         function hideInventoryPopup() {
@@ -5761,6 +5851,101 @@
             
             hideInventoryPopup();
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // function recordInventory(lotId) {
+        //     hideLotActionsPopup();
+        //     currentLotId = lotId;
+            
+        //     // Set default date to today
+        //     const today = new Date().toISOString().split('T')[0];
+        //     document.getElementById('inventoryDateInput').value = today;
+            
+        //     // Find the lot data to display variety and lot info
+        //     const lot = allLotsData.find(l => l.id == lotId);
+        //     let title = "Record Inventory";
+            
+        //     if (lot) {
+        //         const varietyName = document.getElementById('varietyName').textContent.trim();
+        //         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        //         title = `Record Inventory<br>${varietyName} ${lotDisplay}`;
+        //     }
+            
+        //     document.getElementById('inventoryTitle').innerHTML = title;
+        //     document.getElementById('inventoryPopup').classList.add('show');
+        // }
+
+        // function hideInventoryPopup() {
+        //     document.getElementById('inventoryPopup').classList.remove('show');
+        //     document.getElementById('inventoryForm').reset();
+        // }
+
+        // function submitInventory(event) {
+        //     event.preventDefault();
+            
+        //     const weight = document.getElementById('inventoryWeightInput').value;
+        //     const invDate = document.getElementById('inventoryDateInput').value;
+        //     const notes = document.getElementById('inventoryNotesInput').value;
+            
+        //     fetch('/office/record-inventory/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')
+        //         },
+        //         body: JSON.stringify({
+        //             lot_id: currentLotId,
+        //             weight: weight,
+        //             inv_date: invDate,
+        //             notes: notes
+        //         })
+        //     })
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             return response.json().then(err => Promise.reject(err));
+        //         }
+        //         return response.json();
+        //     })
+        //     .then(data => {
+        //         if (data.success) {
+        //             showMessage('Inventory recorded successfully', 'success');
+        //             setTimeout(() => {
+        //                 window.location.href = window.location.pathname;
+        //             }, 2000);
+        //         } else {
+        //             showMessage('Error recording inventory: ' + (data.error || 'Unknown error'), 'error');
+        //         }
+        //     })
+        //     .catch(error => {
+        //         if (error.error) {
+        //             showMessage('Error recording inventory: ' + error.error, 'error');
+        //         } else {
+        //             console.error('Error:', error);
+        //             showMessage('Network error occurred', 'error');
+        //         }
+        //     });
+            
+        //     hideInventoryPopup();
+        // }
 
 
 

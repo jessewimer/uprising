@@ -63,6 +63,7 @@ urlpatterns = [
     path('edit-packing-record/', edit_packing_record, name='edit_packing_record'),
     path('delete-packing-record/', delete_packing_record, name='delete_packing_record'),
     path('set-lot-low-inv/', set_lot_low_inv, name='set_lot_low_inv'),
+    path('update-inventory/', update_inventory, name='update_inventory'),
     path('add-lot/', add_lot, name='add_lot'),
     path('delete-lot/', delete_lot, name='delete_lot'),
     path('retire-lot/', retire_lot, name='retire_lot'),
