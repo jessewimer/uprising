@@ -568,10 +568,11 @@ def manage_stock_seed():
         print("\n=== Stock Seed Manager ===")
         print("1. View stock seed entries")
         print("2. Delete a stock seed entry")
-        print("3. Quit")
+        print("3. Edit stock seed notes")
+        print("4. Quit")
+       
+        choice = input("Select an option (1–4): ").strip()
         
-        choice = input("Select an option (1–3): ").strip()
-
         if choice == "1":
             stock_seeds = StockSeed.objects.all()
             if not stock_seeds:
@@ -581,18 +582,16 @@ def manage_stock_seed():
                 for idx, ss in enumerate(stock_seeds, start=1):
                     print(f"{idx}. Lot: {ss.lot.build_lot_code()} | "
                           f"Qty: {ss.qty} | Date: {ss.date} | Notes: {ss.notes or '-'}")
-
+        
         elif choice == "2":
             stock_seeds = StockSeed.objects.all()
             if not stock_seeds:
                 print("\nNo stock seed entries available to delete.")
                 continue
-
             print("\n--- Select an entry to delete ---")
             for idx, ss in enumerate(stock_seeds, start=1):
                 print(f"{idx}. Lot: {ss.lot.build_lot_code()} | "
                       f"Qty: {ss.qty} | Date: {ss.date} | Notes: {ss.notes or '-'}")
-
             try:
                 selection = int(input("Enter the number of the entry to delete (0 to cancel): ").strip())
                 if selection == 0:
@@ -602,19 +601,107 @@ def manage_stock_seed():
             except (ValueError, IndexError):
                 print("Invalid selection. Please try again.")
                 continue
-
             confirm = input(f"Are you sure you want to delete Lot {entry_to_delete.lot.build_lot_code()}? (y/n): ").strip().lower()
             if confirm == "y":
                 entry_to_delete.delete()
                 print("Entry deleted successfully.")
             else:
                 print("Delete canceled.")
-
+        
         elif choice == "3":
+            stock_seeds = StockSeed.objects.all()
+            if not stock_seeds:
+                print("\nNo stock seed entries available to edit.")
+                continue
+            print("\n--- Select an entry to edit ---")
+            for idx, ss in enumerate(stock_seeds, start=1):
+                print(f"{idx}. Lot: {ss.lot.build_lot_code()} | "
+                      f"Qty: {ss.qty} | Date: {ss.date} | Notes: {ss.notes or '-'}")
+            try:
+                selection = int(input("Enter the number of the entry to edit (0 to cancel): ").strip())
+                if selection == 0:
+                    print("Edit canceled.")
+                    continue
+                entry_to_edit = stock_seeds[selection - 1]
+            except (ValueError, IndexError):
+                print("Invalid selection. Please try again.")
+                continue
+            
+            # Show current notes
+            print(f"\nCurrent notes: {entry_to_edit.notes or '(empty)'}")
+            print("Enter new notes (or type 'CLEAR' to remove notes, or press Enter to cancel):")
+            new_notes = input().strip()
+            
+            if new_notes == "":
+                print("Edit canceled.")
+            elif new_notes.upper() == "CLEAR":
+                entry_to_edit.notes = None
+                entry_to_edit.save()
+                print("Notes cleared successfully.")
+            else:
+                entry_to_edit.notes = new_notes
+                entry_to_edit.save()
+                print("Notes updated successfully.")
+        
+        elif choice == "4":
             print("Exiting Stock Seed Manager. Goodbye!")
             break
+        
         else:
-            print("Invalid option. Please choose 1, 2, or 3.")
+            print("Invalid option. Please choose 1, 2, 3, or 4.")
+# def manage_stock_seed():
+#     """Interactive menu for viewing and deleting stock seed entries"""
+#     while True:
+#         print("\n=== Stock Seed Manager ===")
+#         print("1. View stock seed entries")
+#         print("2. Delete a stock seed entry")
+#         print("3. Quit")
+        
+#         choice = input("Select an option (1–3): ").strip()
+
+#         if choice == "1":
+#             stock_seeds = StockSeed.objects.all()
+#             if not stock_seeds:
+#                 print("\nNo stock seed entries found.")
+#             else:
+#                 print("\n--- Stock Seed Entries ---")
+#                 for idx, ss in enumerate(stock_seeds, start=1):
+#                     print(f"{idx}. Lot: {ss.lot.build_lot_code()} | "
+#                           f"Qty: {ss.qty} | Date: {ss.date} | Notes: {ss.notes or '-'}")
+
+#         elif choice == "2":
+#             stock_seeds = StockSeed.objects.all()
+#             if not stock_seeds:
+#                 print("\nNo stock seed entries available to delete.")
+#                 continue
+
+#             print("\n--- Select an entry to delete ---")
+#             for idx, ss in enumerate(stock_seeds, start=1):
+#                 print(f"{idx}. Lot: {ss.lot.build_lot_code()} | "
+#                       f"Qty: {ss.qty} | Date: {ss.date} | Notes: {ss.notes or '-'}")
+
+#             try:
+#                 selection = int(input("Enter the number of the entry to delete (0 to cancel): ").strip())
+#                 if selection == 0:
+#                     print("Delete canceled.")
+#                     continue
+#                 entry_to_delete = stock_seeds[selection - 1]
+#             except (ValueError, IndexError):
+#                 print("Invalid selection. Please try again.")
+#                 continue
+
+#             confirm = input(f"Are you sure you want to delete Lot {entry_to_delete.lot.build_lot_code()}? (y/n): ").strip().lower()
+#             if confirm == "y":
+#                 entry_to_delete.delete()
+#                 print("Entry deleted successfully.")
+#             else:
+#                 print("Delete canceled.")
+
+#         elif choice == "3":
+#             print("Exiting Stock Seed Manager. Goodbye!")
+#             break
+#         else:
+#             print("Invalid option. Please choose 1, 2, or 3.")
 
 def add_grower():
     """Add a new grower interactively"""
@@ -641,8 +728,8 @@ def add_grower():
 
 
 if __name__ == "__main__":
-    add_grower()
-    # manage_stock_seed()
+    # add_grower()
+    manage_stock_seed()
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
 #     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")
