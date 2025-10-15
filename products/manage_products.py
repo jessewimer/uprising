@@ -739,7 +739,32 @@ def print_varieties_with_no_photo_path():
     for var in varieties:
         print(var.sku_prefix, var.var_name)
 
+def export_rack_locations(filepath="rack_locations.csv"):
+    """
+    Export all Product records with their rack locations to CSV.
+    Columns: sku_prefix, sku_suffix, rack_location
+    """
+    products = Product.objects.select_related('variety').all().order_by(
+        'variety__sku_prefix', 'sku_suffix'
+    )
+    
+    with open(filepath, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["sku_prefix", "sku_suffix", "rack_location"])  # header row
+        
+        for product in products:
+            writer.writerow([
+                product.variety.sku_prefix,
+                product.sku_suffix,
+                product.rack_location or ''  # handle None values
+            ])
+    
+    print(f"✅ Exported {products.count()} products to {filepath}")
+
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
+if __name__ == "__main__":
+    export_rack_locations()
+
 # print_varieties_with_no_photo_path()
 # update_all_variety_photos()
 

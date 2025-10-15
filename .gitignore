@@ -33,3 +33,5 @@ logs/
 
 # static files
 /staticfiles/
+
+rack_locations.csv
