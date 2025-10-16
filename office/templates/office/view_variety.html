@@ -3187,6 +3187,39 @@
         </div>
     </div>
 
+    <!-- Password Verification Popup -->
+    <div class="print-popup-overlay" id="passwordPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Password Required</h3>
+                <button class="print-popup-close" onclick="hidePasswordPopup()">×</button>
+            </div>
+            
+            <p style="text-align: center; margin-bottom: 20px; color: #333;">
+                Please enter password to proceed
+            </p>
+            
+            <form id="passwordForm" onsubmit="return false;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <input 
+                        type="text" 
+                        id="passwordInput" 
+                        placeholder="Enter password"
+                        style="padding: 10px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 8px; width: 200px; text-align: center;"
+                        autocomplete="off"
+                    >
+                    <div id="passwordError" style="color: #dc3545; font-size: 0.85rem; margin-top: 8px; display: none;">
+                        Incorrect password
+                    </div>
+                </div>
+                
+                <div class="print-actions">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hidePasswordPopup()">Cancel</button>
+                    <button type="button" class="print-action-btn print-btn" onclick="verifyPassword()">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         const varietyDataString = '{{ all_vars_json|escapejs }}';
@@ -3210,6 +3243,60 @@
         let currentProductId = null;
         let currentEditProductId = null;
         let selectedPrintOption = 'front_single';
+        let passwordCallback = null;
+        let passwordParams = null;
+
+        function showPasswordPopup(callback, params) {
+            passwordCallback = callback;
+            passwordParams = params;
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+            document.getElementById('passwordPopup').classList.add('show');
+            
+            // Focus on input
+            setTimeout(() => {
+                document.getElementById('passwordInput').focus();
+            }, 100);
+        }
+
+        function hidePasswordPopup() {
+            document.getElementById('passwordPopup').classList.remove('show');
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+            passwordCallback = null;
+            passwordParams = null;
+        }
+
+        function verifyPassword() {
+            const password = document.getElementById('passwordInput').value;
+            
+            if (password === 'uprising') {
+                console.log('Password correct!');
+                console.log('Callback:', passwordCallback);
+                console.log('Params:', passwordParams);
+                
+                // SAVE callback and params to local variables BEFORE hiding popup
+                const callbackToExecute = passwordCallback;
+                const paramsToPass = passwordParams;
+                
+                hidePasswordPopup(); // This clears passwordCallback and passwordParams
+                
+                // Execute the callback with saved variables
+                if (callbackToExecute) {
+                    try {
+                        console.log('About to call callback...');
+                        callbackToExecute(paramsToPass);
+                        console.log('Callback executed successfully');
+                    } catch (error) {
+                        console.error('Error calling callback:', error);
+                    }
+                }
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -3225,6 +3312,16 @@
                     }, 300);
                 }, 4000); // 4 seconds delay
             });
+
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        verifyPassword();
+                    }
+                });
+            }
+
             setupSearch();
             setupPrintHandlers();
             reorderGrowerDropdown(); 
@@ -3620,8 +3717,14 @@
 
         function editProduct(productId) {
             hideProductActionsPopup();
+            showPasswordPopup(proceedWithEditProduct, productId);
+        }
+
+        function proceedWithEditProduct(productId) {
+            console.log('proceedWithEditProduct called with:', productId); // DEBUG
             
             currentProductId = productId || currentProductId;
+            
             // Get product data from the row
             const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
             
@@ -3649,6 +3752,37 @@
             document.getElementById('editProductPopup').classList.add('show');
             document.body.classList.add('modal-open');
         }
+        // function editProduct(productId) {
+        //     hideProductActionsPopup();
+            
+        //     currentProductId = productId || currentProductId;
+        //     // Get product data from the row
+        //     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            
+        //     if (!productRow) {
+        //         showMessage('Could not find product data', 'error');
+        //         return;
+        //     }
+            
+        //     // Pre-fill all the form fields
+        //     document.getElementById('editProductVariety').value = productRow.dataset.varietyName || '';
+        //     document.getElementById('editProductSkuSuffix').value = productRow.dataset.skuSuffix || '';
+        //     document.getElementById('editProductPkgSize').value = productRow.dataset.pkgSize || '';
+        //     document.getElementById('editProductAltSku').value = productRow.dataset.altSku || '';
+        //     document.getElementById('editProductLineitemName').value = productRow.dataset.lineitemName || '';
+        //     document.getElementById('editProductRackLocation').value = productRow.dataset.rackLocation || '';
+        //     document.getElementById('editProductEnvType').value = productRow.dataset.envType || '';
+        //     document.getElementById('editProductEnvMultiplier').value = productRow.dataset.envMultiplier || '1';
+        //     document.getElementById('editProductScoopSize').value = productRow.dataset.scoopSize || '';
+            
+        //     // Handle checkboxes - convert string to boolean
+        //     document.getElementById('editProductPrintBack').checked = productRow.dataset.printBack === 'true';
+        //     document.getElementById('editProductIsSubProduct').checked = productRow.dataset.isSubProduct === 'true';
+            
+        //     // Show the popup
+        //     document.getElementById('editProductPopup').classList.add('show');
+        //     document.body.classList.add('modal-open');
+        // }
 
         function hideEditProductPopup() {
             document.getElementById('editProductPopup').classList.remove('show');
@@ -3784,77 +3918,7 @@
             populateProductPackingHistoryRecords(data.packing_history);
         }
 
-        // function populateProductPackingHistoryRecords(packingHistory) {
-        //     const container = document.getElementById('productPackingHistoryContent');
-            
-        //     if (!packingHistory || packingHistory.length === 0) {
-        //         container.innerHTML = '<div class="no-records">No print records found</div>';
-        //         return;
-        //     }
-            
-        //     // Group by for_year and sort
-        //     const groupedByYear = {};
-            
-        //     packingHistory.forEach(pack => {
-        //         const year = pack.for_year || 'Unknown';
-        //         if (!groupedByYear[year]) {
-        //             groupedByYear[year] = [];
-        //         }
-        //         groupedByYear[year].push(pack);
-        //     });
-            
-        //     // Sort years (newest first) and sort records within each year by date (newest first)
-        //     const sortedYears = Object.keys(groupedByYear).sort((a, b) => {
-        //         if (a === 'Unknown') return 1;
-        //         if (b === 'Unknown') return -1;
-        //         return b.localeCompare(a);
-        //     });
-            
-        //     let html = '';
-            
-        //     sortedYears.forEach(year => {
-        //         // Sort records within year by date (newest first)
-        //         const sortedRecords = groupedByYear[year].sort((a, b) => 
-        //             new Date(b.date) - new Date(a.date)
-        //         );
-                
-        //         // Add year header
-        //         const displayYear = year.length === 2 ? `20${year}` : year;
-        //         html += `
-        //             <div class="packing-year-header">
-        //                 <h4>Printed for ${displayYear}:</h4>
-        //             </div>
-        //         `;
-                
-        //         // Add records for this year
-        //         sortedRecords.forEach(pack => {
-        //             html += `
-        //                 <div class="record-item" style="margin-left: 15px;">
-        //                     <div class="record-main-info" style="justify-content: space-between;">
-        //                         <div style="display: flex; align-items: center; gap: 40px;">
-        //                             <span class="record-date" style="min-width: 80px;">${pack.date}</span>
-        //                             <div class="record-detail">
-        //                                 <span class="record-detail-label">Qty:</span>
-        //                                 <span class="record-detail-value">${pack.qty}</span>
-        //                             </div>
-        //                         </div>
-        //                         <div class="record-detail">
-        //                             <span class="record-detail-label">Lot:</span>
-        //                             <span class="record-detail-value">${pack.lot_code}</span>
-        //                         </div>
-        //                     </div>
-        //                 </div>
-        //             `;
-        //         });
-                
-        //         // Add spacing between year groups
-        //         if (year !== sortedYears[sortedYears.length - 1]) {
-        //             html += '<div class="year-group-spacing"></div>';
-        //         }
-        //     });
-            
-        //     container.innerHTML = html;
-        // }
+       
         function populateProductPackingHistoryRecords(packingHistory) {
             const container = document.getElementById('productPackingHistoryContent');
             
@@ -4257,107 +4321,7 @@
                 resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
             }
         }
-        // function submitPrintJob() {
-        //     const quantity = document.getElementById('printQuantity').value;
-            
-        //     if (!currentProductId || !quantity || quantity < 1) {
-        //         showMessage('Please enter a valid quantity', 'error');
-        //         return;
-        //     }
-
-        //     // Disable buttons and show loading state immediately
-        //     const printBtn = document.querySelector('.print-btn');
-        //     const cancelBtn = document.querySelector('.cancel-btn');
-        //     const popup = document.querySelector('.print-popup');
-            
-        //     printBtn.disabled = true;
-        //     cancelBtn.disabled = true;
-        //     printBtn.classList.add('loading');
-        //     popup.classList.add('loading');
-            
-        //     // Change button text to indicate loading
-        //     const originalPrintText = printBtn.textContent;
-        //     printBtn.textContent = 'Printing...';
-
-        //     try {
-        //         // Collect all data from the page
-        //         const printData = collectPrintData(currentProductId, quantity);
-                
-        //         if (!printData) {
-        //             showMessage('Could not collect print data', 'error');
-        //             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-        //             return;
-        //         }
-
-        //         // Determine Flask endpoints based on print option
-        //         const endpoints = getFlaskEndpoints(selectedPrintOption);
-                
-        //         if (endpoints.length === 0) {
-        //             showMessage('Invalid print option selected', 'error');
-        //             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-        //             return;
-        //         }
-
-        //         console.log('Sending to Flask:', printData);
-
-        //         // Step 1: Send to Flask for printing
-        //         Promise.all(endpoints.map(endpoint => 
-        //             fetch(`http://localhost:5000${endpoint}`, {
-        //                 method: 'POST',
-        //                 headers: { 'Content-Type': 'application/json' },
-        //                 body: JSON.stringify(printData)
-        //             })
-        //         ))
-        //         .then(responses => {
-        //             const allSuccessful = responses.every(response => response.ok);
-                    
-        //             if (allSuccessful) {
-        //                 // Step 2: Record print job in Django (include selected year)
-        //                 return fetch('/office/print-product-labels/', {
-        //                     method: 'POST',
-        //                     headers: {
-        //                         'Content-Type': 'application/json',
-        //                         'X-CSRFToken': getCookie('csrftoken')
-        //                     },
-        //                     body: JSON.stringify({
-        //                         product_id: currentProductId,
-        //                         print_type: selectedPrintOption,
-        //                         quantity: quantity,
-        //                         packed_for_year: printData.for_year
-        //                     })
-        //                 });
-        //             } else {
-        //                 throw new Error('Flask printing failed');
-        //             }
-        //         })
-        //         .then(response => response.json())
-        //         .then(data => {
-        //             if (data.success) {
-        //                 showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
-        //                 hidePrintPopup(); // This will reset the buttons when popup closes
-        //                 // Refresh page after 2 seconds to show updated print count
-        //                 setTimeout(() => {
-        //                     window.location.href = window.location.pathname;
-        //                 }, 2000);
-        //             } else {
-        //                 showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
-        //                 hidePrintPopup(); // This will reset the buttons when popup closes
-        //             }
-        //         })
-        //         .catch(error => {
-        //             console.error('Print job error:', error);
-        //             console.log('This is the data that would be sent to Flask:', printData);
-        //             showMessage('Printing failed: ' + error.message, 'error');
-        //             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-        //         });
-
-        //     } catch (error) {
-        //         console.error('Data collection error:', error);
-        //         console.log('This is the data that would be sent to Flask: [Data collection failed]');
-        //         showMessage('Failed to collect print data', 'error');
-        //         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-        //     }
-        // }
+       
 
         // Helper function to reset button states
         function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
@@ -4784,6 +4748,13 @@
             document.getElementById('addOverwriteInventoryPopup').addEventListener('click', function(e) {
                 if (e.target === this) {
                     hideAddOverwriteInventoryPopup();
+                }
+            });
+
+            // Password popup click outside to close
+            document.getElementById('passwordPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hidePasswordPopup();
                 }
             });
 
@@ -6130,18 +6101,37 @@
             // TODO: Implement usage view popup
         }
 
-        function deleteLot(lotId) {
-            hideLotActionsPopup();
-            if (confirm('Are you sure you want to delete this lot? This action cannot be undone.')) {
-                // console.log('Delete lot:', lotId);
-                // TODO: Implement delete lot API call
-            }
-        }
+        // function deleteLot(lotId) {
+        //     hideLotActionsPopup();
+        //     if (confirm('Are you sure you want to delete this lot? This action cannot be undone.')) {
+        //         // console.log('Delete lot:', lotId);
+        //         // TODO: Implement delete lot API call
+        //     }
+        // }
+
+        // function deleteLot(lotId) {
+        //     hideLotActionsPopup();
+        //     lotToDelete = lotId;
+        //     document.getElementById('deleteConfirmPopup').classList.add('show');
+        // }
 
         function deleteLot(lotId) {
             hideLotActionsPopup();
+            showPasswordPopup(proceedWithDeleteLot, lotId);
+        }
+
+        function proceedWithDeleteLot(lotId) {
+            console.log('proceedWithDeleteLot called with:', lotId); // DEBUG
             lotToDelete = lotId;
+            console.log('lotToDelete set to:', lotToDelete); // DEBUG
+            
+            const deletePopup = document.getElementById('deleteConfirmPopup');
+            console.log('Delete popup element:', deletePopup); // DEBUG
+            console.log('About to add show class...'); // DEBUG
+            
             document.getElementById('deleteConfirmPopup').classList.add('show');
+            
+            console.log('Show class added. Current classes:', deletePopup.classList); // DEBUG
         }
 
         function confirmDeleteLot() {
