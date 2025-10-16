@@ -2016,6 +2016,7 @@
                                     <tr data-product-id="{{ product.pk }}"
                                         data-variety-name="{{ product.variety.var_name }}"
                                         data-crop="{{ product.variety.crop|default:'' }}"
+                                        data-common-name="{{ product.variety.common_name|default:'' }}"
                                         data-days="{{ product.variety.days|default:'' }}"
                                         data-sku-suffix="{{ product.sku_suffix|default:'' }}"
                                         data-pkg-size="{{ product.pkg_size|default:'' }}"
@@ -4391,6 +4392,7 @@
                 quantity: parseInt(quantity),
                 variety_name: productRow.dataset.varietyName,
                 crop: productRow.dataset.crop,
+                common_name: productRow.dataset.commonName,
                 days: productRow.dataset.days,
                 sku_suffix: productRow.dataset.skuSuffix,
                 pkg_size: productRow.dataset.pkgSize,
