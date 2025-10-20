@@ -70,7 +70,7 @@ def office_landing(request):
     """
 
     pending_orders_count = StoreOrder.objects.filter(fulfilled_date__isnull=True).count()
-    
+
     context = {
         'user': request.user,
         'user_name': request.user.get_full_name() or request.user.username,
@@ -1736,7 +1736,8 @@ def get_order_details(request, order_id):
             'order': {  # Add the order object
                 'id': order.id,
                 'order_number': order.order_number,
-                'fulfilled_date': order.fulfilled_date.strftime('%Y-%m-%d %H:%M:%S') if order.fulfilled_date else None
+                'fulfilled_date': order.fulfilled_date.strftime('%Y-%m-%d %H:%M:%S') if order.fulfilled_date else None,
+                'store_name': order.store.store_name
             },
             'items': formatted_items
         })
@@ -1799,45 +1800,45 @@ def finalize_order(request):
         data = json.loads(request.body)
         order_id = data.get('order_id')
         items = data.get('items', [])
-        
+       
         # Get the order
         order = StoreOrder.objects.get(id=order_id)
-        
+       
         # Set fulfilled_date to current timezone-aware datetime
         from django.utils import timezone
         order.fulfilled_date = timezone.now()
         order.save()
-        pkt_price = settings.PACKET_PRICE   
+        pkt_price = settings.PACKET_PRICE  
+        
         # Validate all products exist first (safer approach)
         new_so_includes = []
         for item in items:
             try:
                 # Get Variety by sku_prefix
                 variety = Variety.objects.get(sku_prefix=item['sku_prefix'])
-                
+               
                 # Find the associated Product with sku_suffix == "pkt"
-                # Adjust the relationship field name as needed (e.g., variety__sku_prefix or however they're connected)
                 product = Product.objects.get(
-                    variety=variety,  # Adjust this field name based on your Product model
+                    variety=variety,
                     sku_suffix="pkt"
                 )
-                
+               
                 new_so_includes.append({
                     'product': product,
                     'variety': variety,  # Keep variety reference for response
                     'quantity': item['quantity'],
                     'photo': item.get('has_photo', False),
-                    'price': pkt_price  # Set price here if needed
+                    'price': pkt_price
                 })
-                
+               
             except Variety.DoesNotExist:
                 return JsonResponse({'error': f'Variety with sku_prefix {item["sku_prefix"]} not found'}, status=400)
             except Product.DoesNotExist:
                 return JsonResponse({'error': f'Packet product not found for variety {item["sku_prefix"]}'}, status=400)
-        
+       
         # Only delete existing ones after validating all new ones can be created
         SOIncludes.objects.filter(store_order=order).delete()
-        
+       
         # Create new SOIncludes
         for include_data in new_so_includes:
             SOIncludes.objects.create(
@@ -1847,37 +1848,51 @@ def finalize_order(request):
                 price=pkt_price,
                 photo=include_data['photo']
             )
-        
+       
         # Get store and return response
         store = order.store
         so_includes = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
-        
+       
         return JsonResponse({
             'success': True,
             'order': {
                 'id': order.id,
                 'order_number': order.order_number,
-                'fulfilled_date': order.fulfilled_date.strftime('%Y-%m-%d %H:%M:%S')
+                'date': order.date.isoformat() if order.date else None,  # ADDED
+                'fulfilled_date': order.fulfilled_date.isoformat(),  # Changed to isoformat
+                'notes': order.notes or ''  # ADDED
             },
             'store': {
-                'name': store.store_name,
+                'store_name': store.store_name,  # FIXED: was 'name'
+                'store_contact_name': store.store_contact_name or '',  # ADDED
+                'store_contact_phone': store.store_contact_phone or '',  # ADDED
+                'store_contact_email': store.store_contact_email or '',  # ADDED
+                'store_address': store.store_address or '',  # ADDED
+                'store_address2': store.store_address2 or '',  # ADDED
+                'store_city': store.store_city or '',  # ADDED
+                'store_state': store.store_state or '',  # ADDED
+                'store_zip': store.store_zip or ''  # ADDED
             },
             'items': [
                 {
                     'sku_prefix': include.product.variety.sku_prefix,
                     'var_name': include.product.variety.var_name,
+                    'veg_type': include.product.variety.veg_type,  # ADDED
                     'quantity': include.quantity,
-                    'has_photo': include.photo
+                    'has_photo': include.photo,
+                    'price': float(include.price)  # ADDED
                 }
                 for include in so_includes
             ]
         })
-        
+       
     except Exception as e:
         print(f"Error in finalize_order: {str(e)}")
+        import traceback
+        traceback.print_exc()  # ADDED for better debugging
         return JsonResponse({'error': str(e)}, status=500)
     
-
+    
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])

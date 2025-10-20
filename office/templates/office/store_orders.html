@@ -851,6 +851,29 @@
         let currentLookupType = 'variety';
         let hasUnsavedChanges = false;
         let currentEditItem = null;
+
+        // Flask configuration
+        const FLASK_BASE_URL = 'http://127.0.0.1:5000';
+
+        // Function to check Flask health
+        async function checkFlaskHealth() {
+            try {
+                const response = await fetch(`${FLASK_BASE_URL}/health`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(3000) // 3 second timeout
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Flask health check failed');
+                }
+                
+                const data = await response.json();
+                return data.status === 'ok';
+            } catch (error) {
+                console.error('Flask health check error:', error);
+                return false;
+            }
+        }
         
         // Function to get CSRF token
         function getCookie(name) {
@@ -1778,6 +1801,152 @@
             document.getElementById('finalize-confirm-modal').style.display = 'none';
         }
 
+
+
+        // Handle pick list button click
+        async function handlePickListClick() {
+            if (!currentOrderId) {
+                showNotification('No Order Selected', 'Please select an order first', 'error', '📋');
+                return;
+            }
+
+            if (Object.keys(orderItems).length === 0) {
+                showNotification('Empty Order', 'Cannot generate pick list for empty order', 'error', '📦');
+                return;
+            }
+
+            // Check if order is already finalized
+            const isFinalized = currentOrderData && 
+                            currentOrderData.fulfilled_date && 
+                            currentOrderData.fulfilled_date !== null && 
+                            currentOrderData.fulfilled_date.trim() !== '';
+
+            if (isFinalized) {
+                showNotification('Order Already Finalized', 
+                    `This order was completed on ${formatDate(currentOrderData.fulfilled_date)}. Pick lists cannot be generated for finalized orders.`,
+                    'error', '🔒');
+                return;
+            }
+
+            // Check Flask health
+            const flaskHealthy = await checkFlaskHealth();
+            if (!flaskHealthy) {
+                showNotification('Print Service Unavailable', 
+                    'The Flask printing service is not running. Please start the Flask service and try again.',
+                    'error', '🖨️');
+                return;
+            }
+
+            // Proceed with pick list generation
+            await generatePickList();
+        }
+
+        // NEW FUNCTION - Generate and send pick list to Flask
+        async function generatePickList() {
+            try {
+                // Prepare pick list data
+                const pickListItems = Object.values(orderItems).map(item => ({
+                    variety_name: item.var_name,
+                    veg_type: item.veg_type,
+                    quantity: item.quantity,
+                    has_photo: item.hasPhoto
+                }));
+
+                const pickListData = {
+                    order_id: currentOrderId,
+                    order_number: currentOrderData?.order_number || 'Unknown',
+                    store_name: currentOrderData?.store_name || 'Unknown',
+                    items: pickListItems
+                };
+
+                // Send to Flask
+                const response = await fetch(`${FLASK_BASE_URL}/print-pick-list`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(pickListData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Flask responded with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Pick List Generated', 
+                        `Pick list for ${pickListItems.length} items sent to printer`,
+                        'success', '✓');
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+            } catch (error) {
+                console.error('Error generating pick list:', error);
+                showNotification('Pick List Error', 
+                    `Failed to generate pick list: ${error.message}`,
+                    'error', '❌');
+            }
+        }
+
+        // NEW FUNCTION - Send order data to Flask for invoice printing
+        async function printStoreOrderInvoice(orderData) {
+            try {
+                const invoiceData = {
+                    order: {
+                        order_number: orderData.order.order_number,
+                        date: orderData.order.date,
+                        fulfilled_date: orderData.order.fulfilled_date,
+                        notes: orderData.order.notes
+                    },
+                    store: {
+                        store_name: orderData.store.store_name,
+                        contact_name: orderData.store.store_contact_name,
+                        contact_phone: orderData.store.store_contact_phone,
+                        contact_email: orderData.store.store_contact_email,
+                        address: orderData.store.store_address,
+                        address2: orderData.store.store_address2,
+                        city: orderData.store.store_city,
+                        state: orderData.store.store_state,
+                        zip: orderData.store.store_zip
+                    },
+                    items: orderData.items.map(item => ({
+                        variety_name: item.var_name,
+                        veg_type: item.veg_type,
+                        quantity: item.quantity,
+                        has_photo: item.has_photo,
+                        price: item.price
+                    }))
+                };
+
+                const response = await fetch(`${FLASK_BASE_URL}/print-store-order-invoice`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(invoiceData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Flask responded with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                console.log('Invoice printed successfully');
+
+            } catch (error) {
+                console.error('Flask invoice printing error:', error);
+                throw error;
+            }
+        }
+
+
         // Function to finalize order (called from modal confirmation)
         async function finalizeOrder() {
             const finalizeBtn = document.getElementById('confirm-finalize-btn');
@@ -1832,28 +2001,21 @@
                 // Close the confirmation modal
                 closeFinalizeConfirmModal();
 
-                // Try to call Flask app for invoice printing (but don't fail if it doesn't work)
+                // Send to Flask for invoice printing
                 try {
-                    await callFlaskForInvoice({
-                        order: data.order,
-                        store: data.store,
-                        items: data.items
-                    });
+                    await printStoreOrderInvoice(data);
                     
                     showNotification('Order Finalized!', 
                         `Order #${data.order.order_number} has been finalized and invoice sent to printer`);
                 } catch (flaskError) {
-                    // Flask error already handled in callFlaskForInvoice, but order is still finalized
                     console.log('Flask call failed, but order was finalized successfully');
                     showNotification('Order Finalized!', 
                         `Order #${data.order.order_number} has been finalized successfully`);
                 }
 
                 // Re-render table in read-only mode and update UI
-                renderOrderTable(true); // Pass true for read-only mode
-                updateSaveButton(); // This will now show "Order Finalized"
-                
-                // Update the dropdowns to reflect the change
+                renderOrderTable(true);
+                updateSaveButton();
                 refreshOrderDropdowns();
 
             } catch (error) {
@@ -1869,8 +2031,100 @@
             }
         }
 
+        // Function to finalize order (called from modal confirmation)
+        // async function finalizeOrder() {
+        //     const finalizeBtn = document.getElementById('confirm-finalize-btn');
+        //     const cancelBtn = document.getElementById('cancel-finalize-btn');
+            
+        //     finalizeBtn.disabled = true;
+        //     cancelBtn.disabled = true;
+        //     finalizeBtn.textContent = 'Finalizing...';
+
+        //     try {
+        //         // First save any unsaved changes
+        //         if (hasUnsavedChanges) {
+        //             await saveOrderChanges();
+        //         }
+
+        //         console.log('Finalizing order:', currentOrderId);
+                
+        //         // Call backend to finalize order
+        //         const response = await fetch(`/office/finalize-order/`, {
+        //             method: 'POST',
+        //             headers: {
+        //                 'X-CSRFToken': getCookie('csrftoken'),
+        //                 'Content-Type': 'application/json',
+        //             },
+        //             body: JSON.stringify({
+        //                 order_id: currentOrderId,
+        //                 items: Object.values(orderItems).map(item => ({
+        //                     sku_prefix: item.sku_prefix,
+        //                     quantity: item.quantity,
+        //                     has_photo: item.hasPhoto
+        //                 }))
+        //             })
+        //         });
+
+        //         if (!response.ok) {
+        //             throw new Error(`HTTP error! status: ${response.status}`);
+        //         }
+
+        //         const data = await response.json();
+
+        //         if (data.error) {
+        //             throw new Error(data.error);
+        //         }
+
+        //         console.log('Order finalized successfully:', data);
+
+        //         // Update currentOrderData with fulfilled_date
+        //         if (currentOrderData) {
+        //             currentOrderData.fulfilled_date = data.order.fulfilled_date;
+        //         }
+
+        //         // Close the confirmation modal
+        //         closeFinalizeConfirmModal();
+
+        //         // Try to call Flask app for invoice printing (but don't fail if it doesn't work)
+        //         try {
+        //             await callFlaskForInvoice({
+        //                 order: data.order,
+        //                 store: data.store,
+        //                 items: data.items
+        //             });
+                    
+        //             showNotification('Order Finalized!', 
+        //                 `Order #${data.order.order_number} has been finalized and invoice sent to printer`);
+        //         } catch (flaskError) {
+        //             // Flask error already handled in callFlaskForInvoice, but order is still finalized
+        //             console.log('Flask call failed, but order was finalized successfully');
+        //             showNotification('Order Finalized!', 
+        //                 `Order #${data.order.order_number} has been finalized successfully`);
+        //         }
+
+        //         // Re-render table in read-only mode and update UI
+        //         renderOrderTable(true); // Pass true for read-only mode
+        //         updateSaveButton(); // This will now show "Order Finalized"
+                
+        //         // Update the dropdowns to reflect the change
+        //         refreshOrderDropdowns();
+
+        //     } catch (error) {
+        //         console.error('Error finalizing order:', error);
+        //         showNotification('Finalization Error', 
+        //             `Failed to finalize order: ${error.message}`,
+        //             'error', '❌');
+                
+        //         // Re-enable modal buttons
+        //         finalizeBtn.disabled = false;
+        //         cancelBtn.disabled = false;
+        //         finalizeBtn.textContent = 'Finalize Order';
+        //     }
+        // }
+
+
         // Function to initiate finalize process (called by finalize button)
-        function initiateFinalizeOrder() {
+        async function initiateFinalizeOrder() {
             if (!currentOrderId) {
                 showNotification('No Order Selected', 'Please select an order to finalize', 'error', '📋');
                 return;
@@ -1883,9 +2137,9 @@
 
             // Check if order is already finalized
             const isFinalized = currentOrderData && 
-                               currentOrderData.fulfilled_date && 
-                               currentOrderData.fulfilled_date !== null && 
-                               currentOrderData.fulfilled_date.trim() !== '';
+                            currentOrderData.fulfilled_date && 
+                            currentOrderData.fulfilled_date !== null && 
+                            currentOrderData.fulfilled_date.trim() !== '';
 
             if (isFinalized) {
                 showNotification('Order Already Finalized', 
@@ -1894,8 +2148,19 @@
                 return;
             }
 
+            // Check Flask health BEFORE showing the modal
+            const flaskHealthy = await checkFlaskHealth();
+            if (!flaskHealthy) {
+                showNotification('Print Service Unavailable', 
+                    'The Flask printing service is not running. Please start the Flask service and try again.',
+                    'error', '🖨️');
+                return;
+            }
+
+            // If all checks pass, show the confirmation modal
             openFinalizeConfirmModal();
         }
+
 
         // Function to disable order editing
         function disableOrderEditing() {
@@ -1956,7 +2221,8 @@
             document.getElementById('pending-btn').addEventListener('click', openPendingOrdersModal);
             document.getElementById('save-order-btn').addEventListener('click', saveOrderChanges);
             document.getElementById('finalize-btn').addEventListener('click', initiateFinalizeOrder);
-            
+            document.getElementById('pick-list-btn').addEventListener('click', handlePickListClick);
+
             // Modal event listeners
             document.getElementById('close-pending-modal').addEventListener('click', closePendingOrdersModal);
             document.getElementById('close-variety-modal').addEventListener('click', closeVarietyModal);

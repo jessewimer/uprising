@@ -128,3 +128,22 @@ class LastSelectedStore(models.Model):
 
     def __str__(self):
         return f"{self.user.username} last selected {self.store.store_name if self.store else 'None'}"
+    
+    
+class PickListPrinted(models.Model):
+    """
+    Track when pick lists have been printed for store orders
+    """
+    store_order = models.OneToOneField(
+        StoreOrder, 
+        on_delete=models.CASCADE, 
+        related_name="pick_list_record",
+        primary_key=True
+    )
+    
+    class Meta:
+        verbose_name = "Pick List Print Record"
+        verbose_name_plural = "Pick List Print Records"
+    
+    def __str__(self):
+        return f"Pick list for {self.store_order.order_number}"
