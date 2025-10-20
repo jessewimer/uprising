@@ -86,60 +86,11 @@
             color: inherit;
             min-width: 0;
             width: 100%;
-            position: relative;
         }
 
         .action-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-        }
-
-        /* Notification Badge */
-        .notification-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 6px 12px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            animation: pulse 2s ease-in-out infinite;
-            z-index: 10;
-            white-space: nowrap;
-        }
-
-        .notification-badge-count {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            font-size: 0.8rem;
-            font-weight: 700;
-            min-width: 24px;
-            height: 24px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            animation: pulse 2s ease-in-out infinite;
-            z-index: 10;
-            padding: 0 6px;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            }
-            50% {
-                transform: scale(1.05);
-                box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
-            }
         }
 
         .action-icon {
@@ -604,19 +555,6 @@
                 font-size: 1.2rem;
             }
 
-            .notification-badge {
-                font-size: 0.7rem;
-                padding: 5px 10px;
-                top: 12px;
-                right: 12px;
-            }
-
-            .notification-badge-count {
-                font-size: 0.75rem;
-                min-width: 22px;
-                height: 22px;
-            }
-
             .footer {
                 padding: 15px 20px;
                 margin-top: 25px;
@@ -761,15 +699,13 @@
         <div class="header">
             <h1 class="brand-title">Uprising Seeds</h1>
             <p class="brand-subtitle">Office Dashboard</p>
+            <!-- <p class="welcome-text">Select an action to get started</p> -->
         </div>
 
         <!-- Action Cards Section -->
         <div class="actions-container">
-            <!-- Wholesale Card with Notification Badge -->
+            <!-- Wholesale Card -->
             <div class="action-card wholesale-card" onclick="showWholesaleMenu()">
-                {% if pending_orders_count > 0 %}
-                    <div class="notification-badge-count">{{ pending_orders_count }}</div>
-                {% endif %}
                 <div class="action-icon">🛒</div>
                 <h3 class="action-title">Wholesale</h3>
                 <p class="action-description">Manage wholesale operations and store products</p>
@@ -1056,6 +992,8 @@
 
         // Logout function
         function logout() {
+            // console.log('Logout function called');
+
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = window.logoutUrl || '/accounts/logout/';

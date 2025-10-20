@@ -68,9 +68,13 @@ def office_landing(request):
     """
     Office landing page view - displays the main office portal with action cards
     """
+
+    pending_orders_count = StoreOrder.objects.filter(fulfilled_date__isnull=True).count()
+    
     context = {
         'user': request.user,
         'user_name': request.user.get_full_name() or request.user.username,
+        'pending_orders_count': pending_orders_count,
     }
     
     return render(request, 'office/office_landing.html', context)
