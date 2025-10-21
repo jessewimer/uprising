@@ -79,4 +79,6 @@ urlpatterns = [
 
     path('check-pick-list-printed/<int:order_id>/', check_pick_list_printed, name='check_pick_list_printed'),
     path('record-pick-list-printed/', record_pick_list_printed, name='record_pick_list_printed'),
+    path('set-wholesale-price/', set_wholesale_price, name='set_wholesale_price'),
+    path('record-store-returns/', record_store_returns, name='record_store_returns'),
 ]

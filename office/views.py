@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth import login
 # import lots
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
-from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted
+from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted, StoreReturns
 from orders.models import OOIncludes, OnlineOrder
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory
 from django.contrib.auth.forms import AuthenticationForm
@@ -21,7 +21,8 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 import pytz
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from stores.models import WholesalePktPrice
 
 @login_required
 @require_http_methods(["GET"])
@@ -1792,6 +1793,112 @@ def save_order_changes(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
+# @login_required
+# @user_passes_test(is_employee)
+# @require_http_methods(["POST"])
+# def finalize_order(request):
+#     try:
+#         data = json.loads(request.body)
+#         order_id = data.get('order_id')
+#         items = data.get('items', [])
+#         shipping = data.get('shipping', 0) 
+#         # Get the order
+#         order = StoreOrder.objects.get(id=order_id)
+
+#         # calculate credit if it is their first order for the year
+#         credit = 0
+       
+#         # Set fulfilled_date to current timezone-aware datetime
+#         from django.utils import timezone
+#         order.fulfilled_date = timezone.now()
+#         order.shipping = shipping
+#         order.save()
+#         pkt_price = settings.PACKET_PRICE  
+        
+#         # Validate all products exist first (safer approach)
+#         new_so_includes = []
+#         for item in items:
+#             try:
+#                 # Get Variety by sku_prefix
+#                 variety = Variety.objects.get(sku_prefix=item['sku_prefix'])
+               
+#                 # Find the associated Product with sku_suffix == "pkt"
+#                 product = Product.objects.get(
+#                     variety=variety,
+#                     sku_suffix="pkt"
+#                 )
+               
+#                 new_so_includes.append({
+#                     'product': product,
+#                     'variety': variety,  # Keep variety reference for response
+#                     'quantity': item['quantity'],
+#                     'photo': item.get('has_photo', False),
+#                     'price': pkt_price
+#                 })
+               
+#             except Variety.DoesNotExist:
+#                 return JsonResponse({'error': f'Variety with sku_prefix {item["sku_prefix"]} not found'}, status=400)
+#             except Product.DoesNotExist:
+#                 return JsonResponse({'error': f'Packet product not found for variety {item["sku_prefix"]}'}, status=400)
+       
+#         # Only delete existing ones after validating all new ones can be created
+#         SOIncludes.objects.filter(store_order=order).delete()
+       
+#         # Create new SOIncludes
+#         for include_data in new_so_includes:
+#             SOIncludes.objects.create(
+#                 store_order=order,
+#                 product=include_data['product'],
+#                 quantity=include_data['quantity'],
+#                 price=pkt_price,
+#                 photo=include_data['photo']
+#             )
+       
+#         # Get store and return response
+#         store = order.store
+#         so_includes = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
+       
+#         return JsonResponse({
+#             'success': True,
+#             'order': {
+#                 'id': order.id,
+#                 'order_number': order.order_number,
+#                 'date': order.date.isoformat() if order.date else None,  # ADDED
+#                 'fulfilled_date': order.fulfilled_date.isoformat(),  # Changed to isoformat
+#                 'notes': order.notes or '',
+#                 'shipping': float(order.shipping), 
+#                 'credit': credit 
+#             },
+#             'store': {
+#                 'store_name': store.store_name,  # FIXED: was 'name'
+#                 'store_contact_name': store.store_contact_name or '',  # ADDED
+#                 'store_contact_phone': store.store_contact_phone or '',  # ADDED
+#                 'store_contact_email': store.store_contact_email or '',  # ADDED
+#                 'store_address': store.store_address or '',  # ADDED
+#                 'store_address2': store.store_address2 or '',  # ADDED
+#                 'store_city': store.store_city or '',  # ADDED
+#                 'store_state': store.store_state or '',  # ADDED
+#                 'store_zip': store.store_zip or ''  # ADDED
+#             },
+#             'items': [
+#                 {
+#                     'sku_prefix': include.product.variety.sku_prefix,
+#                     'var_name': include.product.variety.var_name,
+#                     'veg_type': include.product.variety.veg_type,  # ADDED
+#                     'quantity': include.quantity,
+#                     'has_photo': include.photo,
+#                     'price': float(include.price)  # ADDED
+#                 }
+#                 for include in so_includes
+#             ]
+#         })
+       
+#     except Exception as e:
+#         print(f"Error in finalize_order: {str(e)}")
+#         import traceback
+#         traceback.print_exc()  # ADDED for better debugging
+#         return JsonResponse({'error': str(e)}, status=500)
+    
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -1801,14 +1908,71 @@ def finalize_order(request):
         order_id = data.get('order_id')
         items = data.get('items', [])
         shipping = data.get('shipping', 0) 
+        
         # Get the order
         order = StoreOrder.objects.get(id=order_id)
+
+        # Calculate credit if it is their first order for the year
+        credit = 0
+        order_number = order.order_number
+        
+        print(f"\n=== CREDIT DEBUG START ===")
+        print(f"Order number: {order_number}")
+        print(f"Store number: {order.store.store_num}")
+        
+        # Extract order sequence from order number (e.g., "W1001-26" -> "01")
+        # Format: W[store_id 2 digits][order_num 2 digits]-[year 2 digits]
+        try:
+            # Get the part before the hyphen (e.g., "W1001")
+            before_hyphen = order_number.split('-')[0]
+            print(f"Before hyphen: {before_hyphen}")
+            
+            # Get the last 2 digits (order number within year)
+            order_sequence = before_hyphen[-2:]
+            print(f"Order sequence: {order_sequence}")
+            
+            # Check if this is the first order of the year
+            if order_sequence == "01":
+                print("✓ This IS the first order of the year")
+                
+                # Extract year from order number (e.g., "26" from "W1001-26")
+                year_suffix = order_number.split('-')[-1]
+                invoice_year = int(year_suffix)
+                print(f"Invoice year: {invoice_year}")
+                print(f"Will look for returns from year: {invoice_year - 1}")
+                
+                # Get credit from previous year's returns
+                from stores.models import StoreReturns
+                packets_returned, credit = StoreReturns.get_credit_for_first_invoice(
+                    order.store.store_num,
+                    invoice_year
+                )
+                
+                print(f"Packets returned: {packets_returned}")
+                print(f"Credit amount: ${credit}")
+                
+                if credit > 0:
+                    print(f"✓ Applied credit of ${credit} to order {order_number} (from {packets_returned} packets returned)")
+                else:
+                    print(f"✗ No credit applied")
+            else:
+                print(f"✗ This is NOT the first order (sequence: {order_sequence})")
+                
+        except (IndexError, ValueError) as e:
+            print(f"✗ Error parsing order number for credit calculation: {e}")
+            import traceback
+            traceback.print_exc()
+            credit = 0
+        
+        print(f"Final credit value: {credit}")
+        print(f"=== CREDIT DEBUG END ===\n")
        
         # Set fulfilled_date to current timezone-aware datetime
         from django.utils import timezone
         order.fulfilled_date = timezone.now()
         order.shipping = shipping
         order.save()
+        
         pkt_price = settings.PACKET_PRICE  
         
         # Validate all products exist first (safer approach)
@@ -1853,36 +2017,42 @@ def finalize_order(request):
         # Get store and return response
         store = order.store
         so_includes = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
+        
+        print(f"\n=== RESPONSE DEBUG ===")
+        print(f"Credit being returned in response: {credit}")
+        print(f"Credit as float: {float(credit)}")
+        print(f"=== RESPONSE DEBUG END ===\n")
        
         return JsonResponse({
             'success': True,
             'order': {
                 'id': order.id,
                 'order_number': order.order_number,
-                'date': order.date.isoformat() if order.date else None,  # ADDED
-                'fulfilled_date': order.fulfilled_date.isoformat(),  # Changed to isoformat
+                'date': order.date.isoformat() if order.date else None,
+                'fulfilled_date': order.fulfilled_date.isoformat(),
                 'notes': order.notes or '',
-                'shipping': float(order.shipping)
+                'shipping': float(order.shipping), 
+                'credit': float(credit)  # Convert Decimal to float for JSON
             },
             'store': {
-                'store_name': store.store_name,  # FIXED: was 'name'
-                'store_contact_name': store.store_contact_name or '',  # ADDED
-                'store_contact_phone': store.store_contact_phone or '',  # ADDED
-                'store_contact_email': store.store_contact_email or '',  # ADDED
-                'store_address': store.store_address or '',  # ADDED
-                'store_address2': store.store_address2 or '',  # ADDED
-                'store_city': store.store_city or '',  # ADDED
-                'store_state': store.store_state or '',  # ADDED
-                'store_zip': store.store_zip or ''  # ADDED
+                'store_name': store.store_name,
+                'store_contact_name': store.store_contact_name or '',
+                'store_contact_phone': store.store_contact_phone or '',
+                'store_contact_email': store.store_contact_email or '',
+                'store_address': store.store_address or '',
+                'store_address2': store.store_address2 or '',
+                'store_city': store.store_city or '',
+                'store_state': store.store_state or '',
+                'store_zip': store.store_zip or ''
             },
             'items': [
                 {
                     'sku_prefix': include.product.variety.sku_prefix,
-                    'var_name': include.product.variety.var_name,
-                    'veg_type': include.product.variety.veg_type,  # ADDED
+                    'variety_name': include.product.variety.var_name,
+                    'veg_type': include.product.variety.veg_type,
                     'quantity': include.quantity,
                     'has_photo': include.photo,
-                    'price': float(include.price)  # ADDED
+                    'price': float(include.price)
                 }
                 for include in so_includes
             ]
@@ -1891,9 +2061,8 @@ def finalize_order(request):
     except Exception as e:
         print(f"Error in finalize_order: {str(e)}")
         import traceback
-        traceback.print_exc()  # ADDED for better debugging
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
-    
 
 @login_required
 @user_passes_test(is_employee)
@@ -2532,3 +2701,146 @@ def record_pick_list_printed(request):
         return JsonResponse({'error': 'Order not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def set_wholesale_price(request):
+    """
+    Set or update wholesale packet price for a given year
+    """
+    try:
+        year = request.POST.get('year')
+        price_per_packet = request.POST.get('price_per_packet')
+        
+        # Validate inputs
+        if not year or not price_per_packet:
+            return JsonResponse({
+                'success': False,
+                'message': 'Year and price are required'
+            }, status=400)
+        
+        try:
+            year = int(year)
+            
+            price_per_packet = Decimal(price_per_packet)
+            
+            if price_per_packet < 0:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'price_per_packet': ['Price must be positive']}
+                }, status=400)
+                
+        except (ValueError, InvalidOperation) as e:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid year or price format'
+            }, status=400)
+        
+        # Create or update the price record
+        price_obj, created = WholesalePktPrice.objects.update_or_create(
+            year=year,
+            defaults={'price_per_packet': price_per_packet}
+        )
+        
+        action = "created" if created else "updated"
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Wholesale price {action} successfully',
+            'data': {
+                'year': year,
+                'price_per_packet': str(price_per_packet)
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error setting wholesale price: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+    
+# from django.http import JsonResponse
+# from django.views.decorators.http import require_http_methods
+# from django.contrib.auth.decorators import login_required
+# from stores.models import Store, StoreReturns
+
+@login_required
+@require_http_methods(["POST"])
+def record_store_returns(request):
+    """
+    Record packet returns for a store
+    """
+    try:
+        store_num = request.POST.get('store_num')
+        year = request.POST.get('year')
+        packets_returned = request.POST.get('packets_returned')
+        
+        # Validate inputs
+        if not store_num or not year or not packets_returned:
+            return JsonResponse({
+                'success': False,
+                'message': 'All fields are required'
+            }, status=400)
+        
+        try:
+            store_num = int(store_num)
+            year = int(year)
+            packets_returned = int(packets_returned)
+            
+            # # Convert 2-digit year to 4-digit year (e.g., 24 -> 2024)
+            # if year < 100:
+            #     year = 2000 + year
+            
+            if packets_returned < 0:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'packets': ['Number of packets must be positive']}
+                }, status=400)
+                
+        except ValueError as e:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid input format'
+            }, status=400)
+        
+        # Get the store
+        try:
+            store = Store.objects.get(store_num=store_num)
+        except Store.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'errors': {'store': ['Store not found']}
+            }, status=404)
+        
+        # Create or update the return record
+        return_obj, created = StoreReturns.objects.update_or_create(
+            store=store,
+            return_year=year,
+            defaults={'packets_returned': packets_returned}
+        )
+        
+        action = "created" if created else "updated"
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Returns {action} successfully',
+            'data': {
+                'store_name': store.store_name,
+                'year': year,
+                'packets_returned': packets_returned
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error recording store returns: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)

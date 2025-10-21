@@ -16,6 +16,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
 from orders.models import OnlineOrder, OOIncludes, OOIncludesMisc, BatchMetadata
+from stores.models import Store, StoreOrder
 
 def view_order_includes(store_num):
 
@@ -43,7 +44,7 @@ def view_orders():
     print("End of list")
 
 def view_single_store_orders(store_num):
-    orders = OnlineOrder.objects.all()
+    orders = StoreOrder.objects.all()
     for order in orders:
         order_number_str = str(order.order_number)
         store_num_str = str(store_num)
@@ -54,6 +55,15 @@ def view_single_store_orders(store_num):
                 print(f"- {include.product.variety} ({include.product.veg_type}) x {include.quantity}")
 
 
+def delete_store_orders(store_num):
+    orders = StoreOrder.objects.all()
+    for order in orders:
+        prefix = f"W{str(store_num)}"
+        if str(order.order_number).startswith(prefix):
+            print("deleting order: ", order.order_number)
+            order.delete()
+
+    print("Finished deleting orders for store ", store_num)
 # from orders.models import OrderIncludes
 # from stores.models import Store
 
@@ -62,10 +72,11 @@ def view_single_store_orders(store_num):
 # for i in includes:
 #     print(i.product.item_number, i.order.order_number)
 
+delete_store_orders(10)
 
 
 
-delete_orders()
+# delete_orders()
 
 # view_orders()
 # view_single_store_orders(27)

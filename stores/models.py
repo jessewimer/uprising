@@ -183,21 +183,42 @@ class StoreReturns(models.Model):
     def get_credit_for_first_invoice(cls, store_num, invoice_year):
         """
         Get credit for a store's first invoice based on previous year's returns.
-        Returns (packets_returned, credit_amount) or (0, 0) if no returns found.
+        Returns (packets_returned, credit_amount) or (0, Decimal('0')) if no returns found.
         """
+        from decimal import Decimal
+        
         previous_year = invoice_year - 1
+        
+        print(f"\n--- get_credit_for_first_invoice DEBUG ---")
+        print(f"Store num: {store_num}")
+        print(f"Invoice year: {invoice_year}")
+        print(f"Looking for returns from year: {previous_year}")
+        
         try:
             return_record = cls.objects.get(
                 store__store_num=store_num,
                 return_year=previous_year
             )
+            print(f"✓ Found return record: {return_record}")
+            print(f"  Packets returned: {return_record.packets_returned}")
             
             # Calculate credit using the packet price from settings
-            credit_amount = return_record.packets_returned * WholesalePktPrice.get_price_for_year(previous_year)
+            price = WholesalePktPrice.get_price_for_year(previous_year)
+            print(f"  Price for year {previous_year}: {price}")
+            
+            if price is None:
+                print(f"✗ No price found for year {previous_year}")
+                return 0, Decimal('0')
+            
+            credit_amount = Decimal(str(return_record.packets_returned)) * price
+            print(f"✓ Calculated credit: {credit_amount}")
+            print(f"--- get_credit_for_first_invoice DEBUG END ---\n")
             return return_record.packets_returned, credit_amount
         except cls.DoesNotExist:
-            return 0, 0
-        
+            print(f"✗ No return record found for store {store_num}, year {previous_year}")
+            print(f"--- get_credit_for_first_invoice DEBUG END ---\n")
+            return 0, Decimal('0')
+    
 class WholesalePktPrice(models.Model):
     """
     Model to track wholesale packet prices over different years.

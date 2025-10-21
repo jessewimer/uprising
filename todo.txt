@@ -14,10 +14,7 @@ in settings.py:
     -> TRANSITION = TRUE/FALSE
 
 
-    C
-
-
 
 == wholesale finalize order ==
-factor in store credit for pkts returned
+factor in store credit for pkts returned when finalizing an order
 =============================
