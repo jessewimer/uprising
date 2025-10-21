@@ -19,10 +19,5 @@ in settings.py:
 
 
 == wholesale finalize order ==
-prompt user for shipping cost
-fix due date below net30
-fix date, address, city stat zip in info box
-move qty to left side of table
-change price to unit price
-add ext. price column
+factor in store credit for pkts returned
 =============================

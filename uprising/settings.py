@@ -163,11 +163,14 @@ AXES_LOCK_OUT_BY_USER = True
 AXES_LOCK_OUT_BY_IP = True
 AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html' 
 
+# FOR_YEAR might be for germ samples mostly??
 FOR_YEAR = 26
-CURRENT_ORDER_YEAR = 25
+
+# Change this to the next year once we shut the website down in mid-November
+CURRENT_ORDER_YEAR = 26
 PACKET_PRICE = 2.40
 SITE_MAINTENANCE_MODE = True
-TRANSITION = True  # whether we are in the transition period between years (July - Dec)
+TRANSITION = False  # whether we are in the transition period between years (July - Dec)
 
 PKG_SIZES = ["Pkg Size", "Net wt. 1/8 oz", "Net wt. 1/4 oz", "Net wt. 1/2 oz", "Net wt. 1 oz", "Net wt. 2 oz", "Net wt. 1/4 lb", "Net wt. 1/2 lb", 
              "Net wt. 1 lb", "Net wt. 2½ lb", "Net wt. 5 lb", "Approx. 10 seeds", "Approx. 15 seeds", "Approx. 20 seeds", "Approx. 20-25 seeds", "Approx. 25 seeds", 

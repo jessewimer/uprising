@@ -1,6 +1,8 @@
 from django.db import models
 from products.models import Product
 from django.contrib.auth.models import User
+# import PKT_PRICE from settings
+from django.conf import settings
 
 
 class Store(models.Model):
@@ -148,3 +150,77 @@ class PickListPrinted(models.Model):
     
     def __str__(self):
         return f"Pick list for {self.store_order.order_number}"
+    
+class StoreReturns(models.Model):
+    """
+    Track seed packet returns from stores. 
+    Credits auto-apply to first invoice of following year.
+    """
+    store = models.ForeignKey(
+        Store, 
+        on_delete=models.CASCADE, 
+        related_name="returns",
+        to_field='store_num'
+    )
+    return_year = models.IntegerField(
+        help_text="Year the packets were returned (e.g., 2024)"
+    )
+    packets_returned = models.IntegerField(
+        default=0,
+        help_text="Number of packets returned by store"
+    )
+
+    class Meta:
+        verbose_name = "Store Return"
+        verbose_name_plural = "Store Returns"
+        unique_together = ('store', 'return_year')
+        ordering = ['-return_year']
+
+    def __str__(self):
+        return f"{self.store.store_name} - {self.return_year}: {self.packets_returned} packets"
+    
+    @classmethod
+    def get_credit_for_first_invoice(cls, store_num, invoice_year):
+        """
+        Get credit for a store's first invoice based on previous year's returns.
+        Returns (packets_returned, credit_amount) or (0, 0) if no returns found.
+        """
+        previous_year = invoice_year - 1
+        try:
+            return_record = cls.objects.get(
+                store__store_num=store_num,
+                return_year=previous_year
+            )
+            
+            # Calculate credit using the packet price from settings
+            credit_amount = return_record.packets_returned * WholesalePktPrice.get_price_for_year(previous_year)
+            return return_record.packets_returned, credit_amount
+        except cls.DoesNotExist:
+            return 0, 0
+        
+class WholesalePktPrice(models.Model):
+    """
+    Model to track wholesale packet prices over different years.
+    """
+    year = models.IntegerField(unique=True)
+    price_per_packet = models.DecimalField(max_digits=6, decimal_places=2)
+
+    class Meta:
+        verbose_name = "Wholesale Packet Price"
+        verbose_name_plural = "Wholesale Packet Prices"
+        ordering = ['-year']
+
+    def __str__(self):
+        return f"{self.year}: ${self.price_per_packet} per packet"
+    
+    @classmethod
+    def get_price_for_year(cls, year):
+        """
+        Get the wholesale packet price for a given year.
+        Returns the price as a Decimal or None if not found.
+        """
+        try:
+            price_record = cls.objects.get(year=year)
+            return price_record.price_per_packet
+        except cls.DoesNotExist:
+            return None
