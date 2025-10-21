@@ -76,4 +76,7 @@ urlpatterns = [
 
     # path('check-stock-seed-exists/', check_stock_seed_exists, name='check_stock_seed_exists'),
     path('get-stock-seed-data/', get_stock_seed_data, name='get_stock_seed_data'),
+
+    path('check-pick-list-printed/<int:order_id>/', check_pick_list_printed, name='check_pick_list_printed'),
+    path('record-pick-list-printed/', record_pick_list_printed, name='record_pick_list_printed'),
 ]

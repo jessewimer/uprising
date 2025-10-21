@@ -838,6 +838,61 @@
         </div>
     </div>
 
+
+    <!-- Pick List Confirmation Modal -->
+    <div id="pick-list-confirm-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Pick List Already Printed</h3>
+                <span class="close" id="close-pick-list-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3rem; color: #f39c12; margin-bottom: 10px;">📋</div>
+                    <p style="font-size: 1.1rem; margin-bottom: 10px;">A pick list has already been printed for this order.</p>
+                    <p style="color: #666; font-size: 0.9rem;">Do you want to print it again?</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-pick-list-btn">Cancel</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #f39c12, #e67e22);" id="confirm-pick-list-btn">Print Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipping Input Modal -->
+    <div id="shipping-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Enter Shipping Cost</h3>
+                <span class="close" id="close-shipping-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3rem; color: #667eea; margin-bottom: 10px;">🚚</div>
+                    <p style="font-size: 1.1rem; margin-bottom: 20px;">Enter the shipping cost for this order</p>
+                </div>
+                <div class="form-group">
+                    <label for="shipping-amount" class="form-label">Shipping Amount ($):</label>
+                    <input 
+                        type="text" 
+                        id="shipping-amount" 
+                        class="form-input" 
+                        placeholder="0.00"
+                        inputmode="decimal"
+                    >
+                    <div id="shipping-error" style="display: none; color: #ff6b6b; font-size: 0.9rem; margin-top: 8px;">
+                        Please enter a valid dollar amount (e.g., 0.00, 15.50)
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-shipping-btn">Cancel</button>
+                    <button class="btn btn-success" id="confirm-shipping-btn">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Django template data
         const varietyData = JSON.parse('{{ variety_data|escapejs }}');
@@ -851,6 +906,7 @@
         let currentLookupType = 'variety';
         let hasUnsavedChanges = false;
         let currentEditItem = null;
+        let currentShippingCost = 0;
 
         // Flask configuration
         const FLASK_BASE_URL = 'http://127.0.0.1:5000';
@@ -1803,7 +1859,7 @@
 
 
 
-        // Handle pick list button click
+
         async function handlePickListClick() {
             if (!currentOrderId) {
                 showNotification('No Order Selected', 'Please select an order first', 'error', '📋');
@@ -1828,6 +1884,43 @@
                 return;
             }
 
+            // Check if pick list has already been printed
+            try {
+                const response = await fetch(`/office/check-pick-list-printed/${currentOrderId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.already_printed) {
+                    // Show confirmation modal
+                    document.getElementById('pick-list-confirm-modal').style.display = 'block';
+                    return;
+                }
+
+                // Not printed yet, proceed directly
+                await proceedWithPickList();
+
+            } catch (error) {
+                console.error('Error checking pick list status:', error);
+                showNotification('Error', 'Failed to check pick list status', 'error', '❌');
+            }
+        }
+
+        // Function to close pick list confirmation modal
+        function closePickListConfirmModal() {
+            document.getElementById('pick-list-confirm-modal').style.display = 'none';
+        }
+
+        // Function to proceed with pick list generation
+        async function proceedWithPickList() {
             // Check Flask health
             const flaskHealthy = await checkFlaskHealth();
             if (!flaskHealthy) {
@@ -1837,11 +1930,11 @@
                 return;
             }
 
-            // Proceed with pick list generation
+            // Generate the pick list
             await generatePickList();
         }
 
-        // NEW FUNCTION - Generate and send pick list to Flask
+        // Updated generatePickList function to record the print
         async function generatePickList() {
             try {
                 // Prepare pick list data
@@ -1875,6 +1968,9 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    // Record the print in Django
+                    await recordPickListPrinted();
+                    
                     showNotification('Pick List Generated', 
                         `Pick list for ${pickListItems.length} items sent to printer`,
                         'success', '✓');
@@ -1890,15 +1986,43 @@
             }
         }
 
+        // Function to record pick list as printed
+        async function recordPickListPrinted() {
+            try {
+                const response = await fetch('/office/record-pick-list-printed/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order_id: currentOrderId
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('Failed to record pick list print');
+                }
+            } catch (error) {
+                console.error('Error recording pick list print:', error);
+            }
+        }
+  
+
         // NEW FUNCTION - Send order data to Flask for invoice printing
         async function printStoreOrderInvoice(orderData) {
             try {
+                console.log('=== PRINT STORE ORDER INVOICE ===');
+                console.log('Order data received:', orderData);
+                console.log('Shipping from order data:', orderData.order.shipping);
+                
                 const invoiceData = {
                     order: {
                         order_number: orderData.order.order_number,
                         date: orderData.order.date,
                         fulfilled_date: orderData.order.fulfilled_date,
-                        notes: orderData.order.notes
+                        notes: orderData.order.notes,
+                        shipping: orderData.order.shipping
                     },
                     store: {
                         store_name: orderData.store.store_name,
@@ -1919,6 +2043,9 @@
                         price: item.price
                     }))
                 };
+
+                console.log('Invoice data being sent to Flask:', invoiceData);
+                console.log('Shipping in invoice data:', invoiceData.order.shipping);
 
                 const response = await fetch(`${FLASK_BASE_URL}/print-store-order-invoice`, {
                     method: 'POST',
@@ -1946,6 +2073,56 @@
             }
         }
 
+        // Function to show shipping modal
+        function showShippingModal() {
+            document.getElementById('shipping-modal').style.display = 'block';
+            document.getElementById('shipping-amount').value = '0.00';
+            document.getElementById('shipping-error').style.display = 'none';
+            // Focus on input field
+            setTimeout(() => {
+                document.getElementById('shipping-amount').focus();
+            }, 100);
+        }
+
+        // Function to close shipping modal
+        function closeShippingModal() {
+            document.getElementById('shipping-modal').style.display = 'none';
+            document.getElementById('shipping-amount').value = '';
+            document.getElementById('shipping-error').style.display = 'none';
+        }
+
+        // Function to validate and process shipping input
+        function validateAndProcessShipping() {
+            const shippingInput = document.getElementById('shipping-amount').value.trim();
+            const errorDiv = document.getElementById('shipping-error');
+            
+            // Remove any dollar signs if user entered them
+            const cleanInput = shippingInput.replace('$', '').trim();
+            
+            // Validate floating point number
+            const floatRegex = /^\d+\.?\d{0,2}$/;
+            
+            if (!floatRegex.test(cleanInput)) {
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            
+            const shippingAmount = parseFloat(cleanInput);
+            
+            if (isNaN(shippingAmount) || shippingAmount < 0) {
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            
+            // Valid input - store it and proceed
+            currentShippingCost = shippingAmount;
+            closeShippingModal();
+            
+            // Continue to finalize confirmation modal
+            openFinalizeConfirmModal();
+            
+            return true;
+        }
 
         // Function to finalize order (called from modal confirmation)
         async function finalizeOrder() {
@@ -1962,7 +2139,9 @@
                     await saveOrderChanges();
                 }
 
-                console.log('Finalizing order:', currentOrderId);
+                console.log('=== FINALIZE ORDER ===');
+                console.log('Order ID:', currentOrderId);
+                console.log('Shipping cost being sent to Django:', currentShippingCost);
                 
                 // Call backend to finalize order
                 const response = await fetch(`/office/finalize-order/`, {
@@ -1973,6 +2152,7 @@
                     },
                     body: JSON.stringify({
                         order_id: currentOrderId,
+                        shipping: currentShippingCost,
                         items: Object.values(orderItems).map(item => ({
                             sku_prefix: item.sku_prefix,
                             quantity: item.quantity,
@@ -1991,7 +2171,8 @@
                     throw new Error(data.error);
                 }
 
-                console.log('Order finalized successfully:', data);
+                console.log('Data received from Django:', data);
+                console.log('Shipping in returned data:', data.order.shipping);
 
                 // Update currentOrderData with fulfilled_date
                 if (currentOrderData) {
@@ -2003,6 +2184,7 @@
 
                 // Send to Flask for invoice printing
                 try {
+                    console.log('Sending to Flask...');
                     await printStoreOrderInvoice(data);
                     
                     showNotification('Order Finalized!', 
@@ -2031,96 +2213,8 @@
             }
         }
 
-        // Function to finalize order (called from modal confirmation)
-        // async function finalizeOrder() {
-        //     const finalizeBtn = document.getElementById('confirm-finalize-btn');
-        //     const cancelBtn = document.getElementById('cancel-finalize-btn');
-            
-        //     finalizeBtn.disabled = true;
-        //     cancelBtn.disabled = true;
-        //     finalizeBtn.textContent = 'Finalizing...';
 
-        //     try {
-        //         // First save any unsaved changes
-        //         if (hasUnsavedChanges) {
-        //             await saveOrderChanges();
-        //         }
 
-        //         console.log('Finalizing order:', currentOrderId);
-                
-        //         // Call backend to finalize order
-        //         const response = await fetch(`/office/finalize-order/`, {
-        //             method: 'POST',
-        //             headers: {
-        //                 'X-CSRFToken': getCookie('csrftoken'),
-        //                 'Content-Type': 'application/json',
-        //             },
-        //             body: JSON.stringify({
-        //                 order_id: currentOrderId,
-        //                 items: Object.values(orderItems).map(item => ({
-        //                     sku_prefix: item.sku_prefix,
-        //                     quantity: item.quantity,
-        //                     has_photo: item.hasPhoto
-        //                 }))
-        //             })
-        //         });
-
-        //         if (!response.ok) {
-        //             throw new Error(`HTTP error! status: ${response.status}`);
-        //         }
-
-        //         const data = await response.json();
-
-        //         if (data.error) {
-        //             throw new Error(data.error);
-        //         }
-
-        //         console.log('Order finalized successfully:', data);
-
-        //         // Update currentOrderData with fulfilled_date
-        //         if (currentOrderData) {
-        //             currentOrderData.fulfilled_date = data.order.fulfilled_date;
-        //         }
-
-        //         // Close the confirmation modal
-        //         closeFinalizeConfirmModal();
-
-        //         // Try to call Flask app for invoice printing (but don't fail if it doesn't work)
-        //         try {
-        //             await callFlaskForInvoice({
-        //                 order: data.order,
-        //                 store: data.store,
-        //                 items: data.items
-        //             });
-                    
-        //             showNotification('Order Finalized!', 
-        //                 `Order #${data.order.order_number} has been finalized and invoice sent to printer`);
-        //         } catch (flaskError) {
-        //             // Flask error already handled in callFlaskForInvoice, but order is still finalized
-        //             console.log('Flask call failed, but order was finalized successfully');
-        //             showNotification('Order Finalized!', 
-        //                 `Order #${data.order.order_number} has been finalized successfully`);
-        //         }
-
-        //         // Re-render table in read-only mode and update UI
-        //         renderOrderTable(true); // Pass true for read-only mode
-        //         updateSaveButton(); // This will now show "Order Finalized"
-                
-        //         // Update the dropdowns to reflect the change
-        //         refreshOrderDropdowns();
-
-        //     } catch (error) {
-        //         console.error('Error finalizing order:', error);
-        //         showNotification('Finalization Error', 
-        //             `Failed to finalize order: ${error.message}`,
-        //             'error', '❌');
-                
-        //         // Re-enable modal buttons
-        //         finalizeBtn.disabled = false;
-        //         cancelBtn.disabled = false;
-        //         finalizeBtn.textContent = 'Finalize Order';
-        //     }
-        // }
 
 
         // Function to initiate finalize process (called by finalize button)
@@ -2157,8 +2251,8 @@
                 return;
             }
 
-            // If all checks pass, show the confirmation modal
-            openFinalizeConfirmModal();
+            // Show shipping input modal FIRST
+            showShippingModal();
         }
 
 
@@ -2221,7 +2315,16 @@
             document.getElementById('pending-btn').addEventListener('click', openPendingOrdersModal);
             document.getElementById('save-order-btn').addEventListener('click', saveOrderChanges);
             document.getElementById('finalize-btn').addEventListener('click', initiateFinalizeOrder);
-            document.getElementById('pick-list-btn').addEventListener('click', handlePickListClick);
+            document.getElementById('pick-list-btn').addEventListener('click', handlePickListClick); 
+            document.getElementById('close-pick-list-modal').addEventListener('click', closePickListConfirmModal);
+            document.getElementById('cancel-pick-list-btn').addEventListener('click', closePickListConfirmModal);
+            document.getElementById('close-shipping-modal').addEventListener('click', closeShippingModal);
+            document.getElementById('cancel-shipping-btn').addEventListener('click', closeShippingModal);
+            document.getElementById('confirm-shipping-btn').addEventListener('click', validateAndProcessShipping);
+            document.getElementById('confirm-pick-list-btn').addEventListener('click', async function() {
+                closePickListConfirmModal();
+                await proceedWithPickList();
+            });
 
             // Modal event listeners
             document.getElementById('close-pending-modal').addEventListener('click', closePendingOrdersModal);
@@ -2252,6 +2355,14 @@
                 const deleteModal = document.getElementById('delete-confirm-modal');
                 const editModal = document.getElementById('edit-item-modal');
                 const finalizeModal = document.getElementById('finalize-confirm-modal');
+                const pickListModal = document.getElementById('pick-list-confirm-modal');
+                const shippingModal = document.getElementById('shipping-modal');
+                if (event.target === shippingModal) {
+                    closeShippingModal();
+                }
+                if (event.target === pickListModal) {
+                    closePickListConfirmModal();
+                }
                 
                 if (event.target === varietyModal) {
                     closeVarietyModal();
@@ -2267,6 +2378,25 @@
                 }
                 if (event.target === finalizeModal) {
                     closeFinalizeConfirmModal();
+                }
+            });
+
+            document.getElementById('shipping-amount').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    validateAndProcessShipping();
+                }
+            });
+
+            // Keyboard shortcuts for closing modals
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeVarietyModal();
+                    closePendingOrdersModal();
+                    closeDeleteModal();
+                    closeEditItemModal();
+                    closeFinalizeConfirmModal();
+                    closePickListConfirmModal();  
+                    closeShippingModal();
                 }
             });
 

@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth import login
 # import lots
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
-from stores.models import Store, StoreProduct, StoreOrder, SOIncludes
+from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted
 from orders.models import OOIncludes, OnlineOrder
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory
 from django.contrib.auth.forms import AuthenticationForm
@@ -1800,13 +1800,14 @@ def finalize_order(request):
         data = json.loads(request.body)
         order_id = data.get('order_id')
         items = data.get('items', [])
-       
+        shipping = data.get('shipping', 0) 
         # Get the order
         order = StoreOrder.objects.get(id=order_id)
        
         # Set fulfilled_date to current timezone-aware datetime
         from django.utils import timezone
         order.fulfilled_date = timezone.now()
+        order.shipping = shipping
         order.save()
         pkt_price = settings.PACKET_PRICE  
         
@@ -1860,7 +1861,8 @@ def finalize_order(request):
                 'order_number': order.order_number,
                 'date': order.date.isoformat() if order.date else None,  # ADDED
                 'fulfilled_date': order.fulfilled_date.isoformat(),  # Changed to isoformat
-                'notes': order.notes or ''  # ADDED
+                'notes': order.notes or '',
+                'shipping': float(order.shipping)
             },
             'store': {
                 'store_name': store.store_name,  # FIXED: was 'name'
@@ -1892,7 +1894,7 @@ def finalize_order(request):
         traceback.print_exc()  # ADDED for better debugging
         return JsonResponse({'error': str(e)}, status=500)
     
-    
+
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -2479,3 +2481,54 @@ def update_inventory(request):
         return JsonResponse({'success': False, 'error': 'Inventory not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+    
+
+
+
+
+
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def check_pick_list_printed(request, order_id):
+    """
+    Check if a pick list has already been printed for this order
+    """
+    try:
+        order = StoreOrder.objects.get(id=order_id)
+        already_printed = PickListPrinted.objects.filter(store_order=order).exists()
+        
+        return JsonResponse({
+            'already_printed': already_printed
+        })
+            
+    except StoreOrder.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def record_pick_list_printed(request):
+    """
+    Record that a pick list has been printed for an order
+    """
+    try:
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        
+        order = StoreOrder.objects.get(id=order_id)
+        
+        # Create the record (only if it doesn't exist)
+        PickListPrinted.objects.get_or_create(store_order=order)
+        
+        return JsonResponse({'success': True})
+        
+    except StoreOrder.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

@@ -102,6 +102,7 @@ class StoreOrder(models.Model):
     date = models.DateTimeField(null=True, blank=True)
     fulfilled_date = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+    shipping = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return f"Order {self.order_number} for {self.store.store_name}" 
@@ -129,7 +130,7 @@ class LastSelectedStore(models.Model):
     def __str__(self):
         return f"{self.user.username} last selected {self.store.store_name if self.store else 'None'}"
     
-    
+
 class PickListPrinted(models.Model):
     """
     Track when pick lists have been printed for store orders
