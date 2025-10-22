@@ -81,4 +81,6 @@ urlpatterns = [
     path('record-pick-list-printed/', record_pick_list_printed, name='record_pick_list_printed'),
     path('set-wholesale-price/', set_wholesale_price, name='set_wholesale_price'),
     path('record-store-returns/', record_store_returns, name='record_store_returns'),
+    path('store-returns-years/', get_store_returns_years, name='get_store_returns_years'),
+    path('store-returns-data/', get_store_returns_data, name='get_store_returns_data'),
 ]

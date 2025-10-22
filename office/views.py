@@ -6,13 +6,12 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.http import JsonResponse
 from django.contrib.auth import login
-# import lots
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
-from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted, StoreReturns
+from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted, StoreReturns, WholesalePktPrice
 from orders.models import OOIncludes, OnlineOrder
 from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory
 from django.contrib.auth.forms import AuthenticationForm
-from django.db.models import Case, When, IntegerField, Max, Sum, F, CharField, Value
+from django.db.models import Case, When, IntegerField, Max, Sum, F, CharField, Value, Q
 from django.db.models.functions import Concat
 from uprising.utils.auth import is_employee
 from django.conf import settings
@@ -23,6 +22,7 @@ from datetime import timedelta
 import pytz
 from decimal import Decimal, InvalidOperation
 from stores.models import WholesalePktPrice
+import math
 
 @login_required
 @require_http_methods(["GET"])
@@ -2587,39 +2587,6 @@ def get_stock_seed_data(request):
                 'success': False,
                 'error': str(e)
             })
-# def get_stock_seed_data(request):
-#     if request.method == 'POST':
-#         data = json.loads(request.body)
-#         lot_id = data.get('lot_id')
-        
-#         try:
-#             # Get the most recent stock seed record for this lot
-#             stock_seed = StockSeed.objects.filter(lot_id=lot_id).order_by('-date').first()
-            
-#             if not stock_seed:
-#                 return JsonResponse({
-#                     'success': False,
-#                     'error': 'No stock seed found'
-#                 })
-            
-#             lot = stock_seed.lot
-#             variety = lot.variety
-            
-#             # Construct lot number
-#             lot_number = f"{lot.grower.code}{lot.year}"
-            
-#             return JsonResponse({
-#                 'success': True,
-#                 'variety_name': variety.var_name,
-#                 'veg_type': variety.veg_type or '',
-#                 'lot_number': lot_number,
-#                 'quantity': stock_seed.qty
-#             })
-#         except Exception as e:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': str(e)
-#             })
 
 
 @login_required
@@ -2651,11 +2618,6 @@ def update_inventory(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
     
-
-
-
-
-
 
 
 @login_required
@@ -2764,10 +2726,6 @@ def set_wholesale_price(request):
             'message': str(e)
         }, status=500)
     
-# from django.http import JsonResponse
-# from django.views.decorators.http import require_http_methods
-# from django.contrib.auth.decorators import login_required
-# from stores.models import Store, StoreReturns
 
 @login_required
 @require_http_methods(["POST"])
@@ -2838,6 +2796,136 @@ def record_store_returns(request):
         
     except Exception as e:
         print(f"Error recording store returns: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_store_returns_years(request):
+    """
+    Get list of all years from store orders, always including 25 as minimum
+    """
+    try:
+        # Extract unique years from order numbers (e.g., "W1001-25" -> 25)
+        order_numbers = StoreOrder.objects.values_list('order_number', flat=True)
+        years = set()
+        
+        for order_num in order_numbers:
+            try:
+                # Split by '-' and get last part (year)
+                year_str = order_num.split('-')[-1]
+                year = int(year_str)
+                years.add(year)
+            except (ValueError, IndexError):
+                continue
+        
+        # Always include 25 as minimum
+        years.add(25)
+        
+        # Sort in descending order (most recent first)
+        sorted_years = sorted(years, reverse=True)
+        
+        return JsonResponse({
+            'success': True,
+            'years': sorted_years
+        })
+        
+    except Exception as e:
+        print(f"Error getting returns years: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_store_returns_data(request):
+    """
+    Get returns data for all stores for a specific year
+    Calculates # packets allowed based on 5% of total packets sold
+    """
+    try:
+        year = request.GET.get('year')
+        
+        if not year:
+            return JsonResponse({
+                'success': False,
+                'message': 'Year parameter is required'
+            }, status=400)
+        
+        try:
+            year = int(year)
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid year format'
+            }, status=400)
+        
+        # Get all stores
+        stores = Store.objects.all().order_by('store_num')
+        
+        # Get wholesale price for this year
+        try:
+            price = WholesalePktPrice.objects.get(year=year).price_per_packet
+        except WholesalePktPrice.DoesNotExist:
+            price = None
+        
+        # Build data for each store
+        stores_data = []
+        for store in stores:
+            # Calculate total packets sold for this store in this year
+            # Get all orders for this store ending with this year
+            year_suffix = str(year).zfill(2)  # Ensure 2 digits (e.g., 25)
+            
+            total_packets_sold = SOIncludes.objects.filter(
+                store_order__store=store,
+                store_order__order_number__endswith=f'-{year_suffix}',
+                store_order__fulfilled_date__isnull=False  # Only count fulfilled orders
+            ).aggregate(total=Sum('quantity'))['total'] or 0
+            
+            # Calculate 5% of total packets sold, rounded up
+            if total_packets_sold > 0:
+                packets_allowed = math.ceil(total_packets_sold * 0.05)
+            else:
+                packets_allowed = None  # Will display as "--"
+            
+            # Get returns for this store/year
+            try:
+                returns = StoreReturns.objects.get(store=store, return_year=year)
+                packets_returned = returns.packets_returned
+            except StoreReturns.DoesNotExist:
+                packets_returned = 0
+            
+            # Calculate credit
+            credit = float(packets_returned * price) if (price and packets_returned > 0) else 0
+            
+            stores_data.append({
+                'store_num': store.store_num,
+                'store_name': store.store_name,
+                'total_packets_sold': total_packets_sold,
+                'packets_allowed': packets_allowed if packets_allowed is not None else '--',
+                'packets_returned': packets_returned,
+                'credit': credit
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'year': year,
+            'price_per_packet': float(price) if price else None,
+            'stores': stores_data
+        })
+        
+    except Exception as e:
+        print(f"Error getting store returns data: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({

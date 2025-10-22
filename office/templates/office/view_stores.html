@@ -248,7 +248,7 @@
         }
 
         /* Edit Button */
-        .edit-btn {
+        .edit-btn, .add-btn {
             background: none;
             border: none;
             cursor: pointer;
@@ -261,10 +261,21 @@
             justify-content: center;
         }
 
-        .edit-btn:hover {
+        .edit-btn:hover, .add-btn:hover {
             background: rgba(102, 126, 234, 0.1);
             color: #764ba2;
             transform: scale(1.1);
+        }
+
+        .add-btn {
+            color: #10ac84;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .add-btn:hover {
+            background: rgba(16, 172, 132, 0.1);
+            color: #01a3a4;
         }
 
         .edit-btn svg {
@@ -340,6 +351,10 @@
             transform: translateY(-20px);
             animation: slideInUp 0.3s ease-out;
             position: relative;
+        }
+
+        .modal-large {
+            max-width: 1200px;
         }
 
         .modal-header {
@@ -498,6 +513,102 @@
             display: none;
         }
 
+        /* Returns Table Specific Styles */
+        .returns-filter {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+        }
+
+        .returns-filter label {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .returns-filter select {
+            padding: 10px 20px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .returns-filter select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .returns-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .returns-table thead {
+            background: linear-gradient(135deg, #10ac84, #01a3a4);
+            color: white;
+        }
+
+        .returns-table thead th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .returns-table thead th:last-child {
+            text-align: center;
+        }
+
+        .returns-table tbody tr {
+            background: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .returns-table tbody tr:hover {
+            background: rgba(16, 172, 132, 0.03);
+        }
+
+        .returns-table tbody td {
+            padding: 15px 12px;
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        .returns-table tbody td:last-child {
+            text-align: center;
+        }
+
+        .credit-value {
+            font-weight: 600;
+            color: #10ac84;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -565,7 +676,7 @@
                 <h1 class="brand-title">Store Directory</h1>
                 <p class="brand-subtitle">View/Edit Wholesale Stores</p>
             </div>
-            <button class="returns-button" onclick="openReturnsModal()">📦 Returns</button>
+            <button class="returns-button" onclick="openReturnsModal()">Returns</button>
         </div>
 
         <!-- Table Container -->
@@ -704,60 +815,86 @@
         </div>
     </div>
 
-    <!-- Returns Modal -->
+    <!-- Returns Overview Modal -->
     <div class="modal-overlay" id="returnsModal">
-        <div class="modal" style="max-width: 500px;">
+        <div class="modal modal-large">
             <div class="modal-header">
-                <h3 class="modal-title">Record Store Returns</h3>
+                <h3 class="modal-title">Store Returns Overview</h3>
                 <button class="close-btn" onclick="closeReturnsModal()">&times;</button>
             </div>
 
-            <div id="returnsSuccessMessage" class="success-message">
+            <!-- Year Filter -->
+            <div class="returns-filter">
+                <label for="yearFilter">Sales Year:</label>
+                <select id="yearFilter" class="form-select" onchange="loadReturnsData()">
+                    <option value="">Loading years...</option>
+                </select>
+            </div>
+
+            <!-- Returns Table -->
+            <div class="table-wrapper">
+                <table class="returns-table">
+                    <thead>
+                        <tr>
+                            <th>Store #</th>
+                            <th>Store Name</th>
+                            <th># Pkts Allowed</th>
+                            <th># Returned</th>
+                            <th>Credit</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returnsTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                <div class="loading-spinner"></div>
+                                <p style="margin-top: 10px;">Loading data...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Returns Modal -->
+    <div class="modal-overlay" id="addReturnsModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="addReturnsModalTitle">Record Returns</h3>
+                <button class="close-btn" onclick="closeAddReturnsModal()">&times;</button>
+            </div>
+
+            <div id="addReturnsSuccessMessage" class="success-message">
                 Returns recorded successfully!
             </div>
 
-            <form id="returnsForm">
+            <form id="addReturnsForm">
                 <div class="form-group">
-                    <label class="form-label" for="returnStore">Store *</label>
-                    <select id="returnStore" class="form-select" required>
-                        <option value="">Select a store...</option>
-                        {% for store in stores %}
-                            <option value="{{ store.store_num }}">
-                                #{{ store.store_num }} - {{ store.store_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <div class="error-message" id="store_error"></div>
+                    <label class="form-label" for="addReturnsStoreName">Store</label>
+                    <input type="text" id="addReturnsStoreName" class="form-input" readonly>
+                    <input type="hidden" id="addReturnsStoreNum">
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="returnYear">Year (2 digits) *</label>
-                        <input type="number" 
-                               id="returnYear" 
-                               class="form-input" 
-                               min="0" 
-                               max="99" 
-                               required 
-                               placeholder="e.g., 24">
-                        <div class="error-message" id="year_error"></div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="addReturnsYear">Sales Year</label>
+                    <input type="text" id="addReturnsYear" class="form-input" readonly>
+                </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="packetsReturned">Packets Returned *</label>
-                        <input type="number" 
-                               id="packetsReturned" 
-                               class="form-input" 
-                               min="0" 
-                               required 
-                               placeholder="e.g., 150">
-                        <div class="error-message" id="packets_error"></div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="addReturnsPackets"># Packets Returned *</label>
+                    <input type="number" 
+                           id="addReturnsPackets" 
+                           class="form-input" 
+                           min="0" 
+                           required 
+                           placeholder="e.g., 150">
+                    <div class="error-message" id="packets_error"></div>
                 </div>
 
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeReturnsModal()">Cancel</button>
-                    <button type="submit" class="btn btn-success">Record Returns</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAddReturnsModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Returns</button>
                 </div>
             </form>
         </div>
@@ -866,6 +1003,8 @@
         // Global variables
         let currentStoreId = null;
         let currentStoreNum = null;
+        let currentSelectedYear = null;
+        let returnsData = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             // Handle column toggle buttons
@@ -918,16 +1057,22 @@
                 }
             });
 
+            document.getElementById('addReturnsModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAddReturnsModal();
+                }
+            });
+
             // Handle edit form submission
             document.getElementById('editStoreForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveStoreChanges();
             });
 
-            // Handle returns form submission
-            document.getElementById('returnsForm').addEventListener('submit', function(e) {
+            // Handle add returns form submission
+            document.getElementById('addReturnsForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                saveReturns();
+                saveReturnsEntry();
             });
 
             // Close modals with Escape key
@@ -939,74 +1084,188 @@
                     if (document.getElementById('returnsModal').classList.contains('active')) {
                         closeReturnsModal();
                     }
+                    if (document.getElementById('addReturnsModal').classList.contains('active')) {
+                        closeAddReturnsModal();
+                    }
                 }
             });
         });
 
         // Returns Modal Functions
-        function openReturnsModal() {
+        async function openReturnsModal() {
             document.getElementById('returnsModal').classList.add('active');
             document.body.style.overflow = 'hidden';
+            
+            // Load available years
+            await loadReturnsYears();
         }
 
         function closeReturnsModal() {
             document.getElementById('returnsModal').classList.remove('active');
             document.body.style.overflow = '';
-            document.getElementById('returnsForm').reset();
-            clearErrors();
-            hideSuccessMessage('returnsSuccessMessage');
+            currentSelectedYear = null;
         }
 
-        function validateReturnsForm() {
-            clearErrors();
-            let isValid = true;
-
-            const store = document.getElementById('returnStore').value;
-            const year = document.getElementById('returnYear').value;
-            const packets = document.getElementById('packetsReturned').value;
-
-            if (!store) {
-                showError('store', 'Please select a store');
-                isValid = false;
+        async function loadReturnsYears() {
+            try {
+                const response = await fetch('/office/store-returns-years/');
+                const data = await response.json();
+                
+                if (data.success && data.years.length > 0) {
+                    const yearFilter = document.getElementById('yearFilter');
+                    yearFilter.innerHTML = '';
+                    
+                    data.years.forEach(year => {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = `20${year}`;
+                        yearFilter.appendChild(option);
+                    });
+                    
+                    // Load data for the first year
+                    currentSelectedYear = data.years[0];
+                    await loadReturnsData();
+                } else {
+                    document.getElementById('yearFilter').innerHTML = '<option value="">No data available</option>';
+                    document.getElementById('returnsTableBody').innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                No returns data available. Add wholesale prices and returns to get started.
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading years:', error);
+                showNotification('Error loading years', error.message, 'error');
             }
-
-            if (!year || year < 0 || year > 99) {
-                showError('year', 'Please enter a valid 2-digit year (0-99)');
-                isValid = false;
-            }
-
-            if (!packets || parseInt(packets) < 0) {
-                showError('packets', 'Please enter a valid number of packets');
-                isValid = false;
-            }
-
-            return isValid;
         }
 
-        function saveReturns() {
-            if (!validateReturnsForm()) {
+        async function loadReturnsData() {
+            const selectedYear = document.getElementById('yearFilter').value;
+            if (!selectedYear) return;
+            
+            currentSelectedYear = selectedYear;
+            
+            // Show loading
+            document.getElementById('returnsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 10px;">Loading data...</p>
+                    </td>
+                </tr>
+            `;
+            
+            try {
+                const response = await fetch(`/office/store-returns-data/?year=${selectedYear}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    returnsData = data.stores;
+                    renderReturnsTable(data.stores);
+                } else {
+                    throw new Error(data.message || 'Failed to load returns data');
+                }
+            } catch (error) {
+                console.error('Error loading returns data:', error);
+                document.getElementById('returnsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #e74c3c;">
+                            Error loading data: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderReturnsTable(stores) {
+            const tbody = document.getElementById('returnsTableBody');
+            
+            if (stores.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                            No stores found.
+                        </td>
+                    </tr>
+                `;
                 return;
             }
+            
+            tbody.innerHTML = stores.map(store => `
+                <tr>
+                    <td><strong>#${store.store_num}</strong></td>
+                    <td>${store.store_name}</td>
+                    <td>${store.packets_allowed}</td>
+                    <td>${store.packets_returned > 0 ? store.packets_returned : '--'}</td>
+                    <td class="credit-value">${store.credit > 0 ? '$' + store.credit.toFixed(2) : '$0.00'}</td>
+                    <td>
+                        <button class="add-btn" 
+                                onclick="openAddReturnsModal(${store.store_num}, '${store.store_name}')"
+                                title="Add/Edit returns for ${store.store_name}">
+                            +
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
+        // Add/Edit Returns Modal Functions
+        function openAddReturnsModal(storeNum, storeName) {
+            // Find existing returns for this store
+            const storeData = returnsData.find(s => s.store_num === storeNum);
+            
+            document.getElementById('addReturnsModalTitle').textContent = 
+                `# pkts returned by ${storeName} for sales year ${currentSelectedYear}`;
+            document.getElementById('addReturnsStoreName').value = storeName;
+            document.getElementById('addReturnsStoreNum').value = storeNum;
+            document.getElementById('addReturnsYear').value = `20${currentSelectedYear}`;
+            document.getElementById('addReturnsPackets').value = storeData?.packets_returned || '';
+            
+            document.getElementById('addReturnsModal').classList.add('active');
+        }
+
+        function closeAddReturnsModal() {
+            document.getElementById('addReturnsModal').classList.remove('active');
+            document.getElementById('addReturnsForm').reset();
+            clearErrors();
+            hideSuccessMessage('addReturnsSuccessMessage');
+        }
+
+        async function saveReturnsEntry() {
+            clearErrors();
+            
+            const storeNum = document.getElementById('addReturnsStoreNum').value;
+            const packetsReturned = document.getElementById('addReturnsPackets').value;
+            
+            if (!packetsReturned || parseInt(packetsReturned) < 0) {
+                showError('packets', 'Please enter a valid number of packets');
+                return;
+            }
+            
             const formData = new FormData();
-            formData.append('store_num', document.getElementById('returnStore').value);
-            formData.append('year', document.getElementById('returnYear').value);
-            formData.append('packets_returned', document.getElementById('packetsReturned').value);
-
-            fetch('/office/record-store-returns/', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
+            formData.append('store_num', storeNum);
+            formData.append('year', currentSelectedYear);
+            formData.append('packets_returned', packetsReturned);
+            
+            try {
+                const response = await fetch('/office/record-store-returns/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                });
+                
+                const data = await response.json();
+                
                 if (data.success) {
-                    showSuccessMessage('returnsSuccessMessage');
-                    setTimeout(() => {
-                        closeReturnsModal();
-                        showNotification('Returns recorded successfully!', 'success');
+                    showSuccessMessage('addReturnsSuccessMessage');
+                    setTimeout(async () => {
+                        closeAddReturnsModal();
+                        await loadReturnsData(); // Reload the table
+                        showNotification('Returns Updated', 'Returns recorded successfully!', 'success');
                     }, 1500);
                 } else {
                     if (data.errors) {
@@ -1017,11 +1276,10 @@
                         alert('Error recording returns: ' + (data.message || 'Unknown error'));
                     }
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error:', error);
                 alert('Network error occurred. Please try again.');
-            });
+            }
         }
 
         // Edit Store Functions
@@ -1095,7 +1353,7 @@
                 if (data.success) {
                     updateTableRow(formData);
                     closeEditModal();
-                    showNotification('Store updated successfully!', 'success');
+                    showNotification('Store Updated', 'Store updated successfully!', 'success');
                 } else {
                     console.error('Server returned error:', data.error);
                     alert('Error saving changes: ' + data.error);
@@ -1214,21 +1472,22 @@
             return cookieValue;
         }
 
-        function showNotification(message, type = 'success') {
+        function showNotification(title, message, type = 'success') {
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
                 padding: 15px 20px;
-                border-radius: 8px;
+                border-radius: 12px;
                 color: white;
                 font-weight: 600;
                 z-index: 9999;
                 animation: slideInRight 0.3s ease-out;
                 background: ${type === 'success' ? 'linear-gradient(135deg, #10ac84, #01a3a4)' : 'linear-gradient(135deg, #ee5a24, #ff6b6b)'};
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             `;
-            notification.textContent = message;
+            notification.innerHTML = `<strong>${title}</strong><br>${message}`;
             
             document.body.appendChild(notification);
             

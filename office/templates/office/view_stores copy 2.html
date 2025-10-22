@@ -63,7 +63,7 @@
             font-weight: 500;
         }
 
-        .back-button {
+        .back-button, .returns-button {
             padding: 12px 24px;
             border: none;
             border-radius: 12px;
@@ -75,14 +75,26 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: 2px solid transparent;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
         }
 
         .back-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .returns-button {
+            background: linear-gradient(135deg, #10ac84, #01a3a4);
+        }
+
+        .returns-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 172, 132, 0.3);
         }
 
         /* Table Container */
@@ -235,12 +247,6 @@
             color: #666;
         }
 
-        .placeholder-cell {
-            color: #999;
-            font-style: italic;
-            font-size: 0.85rem;
-        }
-
         /* Edit Button */
         .edit-btn {
             background: none;
@@ -271,7 +277,7 @@
             stroke-linejoin: round;
         }
 
-        /* Column Groups - Initially hidden except contact */
+        /* Column Groups */
         .col-group-contact {
             display: table-cell;
         }
@@ -282,7 +288,6 @@
             display: none;
         }
 
-        /* Show column groups when active */
         .show-contact .col-group-contact {
             display: table-cell;
         }
@@ -293,7 +298,6 @@
             display: table-cell;
         }
 
-        /* Hide column groups when not active */
         .hide-contact .col-group-contact {
             display: none;
         }
@@ -393,7 +397,7 @@
             letter-spacing: 0.5px;
         }
 
-        .form-input {
+        .form-input, .form-select {
             width: 100%;
             padding: 12px 16px;
             border: 2px solid rgba(102, 126, 234, 0.2);
@@ -403,7 +407,7 @@
             background: rgba(102, 126, 234, 0.05);
         }
 
-        .form-input:focus {
+        .form-input:focus, .form-select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -457,6 +461,16 @@
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
+        .btn-success {
+            background: linear-gradient(135deg, #10ac84, #01a3a4);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 172, 132, 0.3);
+        }
+
         .btn-secondary {
             background: rgba(0, 0, 0, 0.1);
             color: #666;
@@ -465,6 +479,23 @@
         .btn-secondary:hover {
             background: rgba(0, 0, 0, 0.15);
             color: #333;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #10ac84, #01a3a4);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
         }
 
         @keyframes fadeIn {
@@ -534,7 +565,7 @@
                 <h1 class="brand-title">Store Directory</h1>
                 <p class="brand-subtitle">View/Edit Wholesale Stores</p>
             </div>
-            <div style="width: 140px;"></div>
+            <button class="returns-button" onclick="openReturnsModal()">📦 Returns</button>
         </div>
 
         <!-- Table Container -->
@@ -552,7 +583,6 @@
                         <tr>
                             <th>Store #</th>
                             <th>Store Name</th>
-                            <!-- <th>Username</th> -->
                             <!-- Contact Info Group -->
                             <th class="col-group-contact">Contact Name</th>
                             <th class="col-group-contact">Phone</th>
@@ -588,9 +618,6 @@
                                     {{ store.store_name|default:"Unnamed Store" }}
                                 </div>
                             </td>
-                            <!-- <td>
-                                {{ store.store_user.username|default:"--" }}
-                            </td> -->
                             <!-- Contact Info Group -->
                             <td class="col-group-contact">
                                 {{ store.store_contact_name|default:"--" }}
@@ -677,6 +704,65 @@
         </div>
     </div>
 
+    <!-- Returns Modal -->
+    <div class="modal-overlay" id="returnsModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Record Store Returns</h3>
+                <button class="close-btn" onclick="closeReturnsModal()">&times;</button>
+            </div>
+
+            <div id="returnsSuccessMessage" class="success-message">
+                Returns recorded successfully!
+            </div>
+
+            <form id="returnsForm">
+                <div class="form-group">
+                    <label class="form-label" for="returnStore">Store *</label>
+                    <select id="returnStore" class="form-select" required>
+                        <option value="">Select a store...</option>
+                        {% for store in stores %}
+                            <option value="{{ store.store_num }}">
+                                #{{ store.store_num }} - {{ store.store_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="error-message" id="store_error"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="returnYear">Year (2 digits) *</label>
+                        <input type="number" 
+                               id="returnYear" 
+                               class="form-input" 
+                               min="0" 
+                               max="99" 
+                               required 
+                               placeholder="e.g., 24">
+                        <div class="error-message" id="year_error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="packetsReturned">Packets Returned *</label>
+                        <input type="number" 
+                               id="packetsReturned" 
+                               class="form-input" 
+                               min="0" 
+                               required 
+                               placeholder="e.g., 150">
+                        <div class="error-message" id="packets_error"></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeReturnsModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Record Returns</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Edit Store Modal -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
@@ -730,7 +816,6 @@
                         <label class="form-label" for="storeZip">ZIP/Postal Code</label>
                         <input type="text" id="storeZip" class="form-input">
                     </div>
-  
                 </div>
 
                 <!-- Rack Info -->
@@ -778,13 +863,11 @@
     </div>
 
     <script>
-        // Column toggle functionality
+        // Global variables
         let currentStoreId = null;
         let currentStoreNum = null;
 
         document.addEventListener('DOMContentLoaded', function() {
-            // console.log('Enhanced store directory loaded');
-            
             // Handle column toggle buttons
             const toggleBtns = document.querySelectorAll('.toggle-btn');
             const tableWrapper = document.getElementById('tableWrapper');
@@ -795,12 +878,10 @@
                     const isActive = this.classList.contains('active');
                     
                     if (isActive) {
-                        // Deactivate button and hide columns
                         this.classList.remove('active');
                         tableWrapper.classList.remove(`show-${group}`);
                         tableWrapper.classList.add(`hide-${group}`);
                     } else {
-                        // Activate button and show columns
                         this.classList.add('active');
                         tableWrapper.classList.remove(`hide-${group}`);
                         tableWrapper.classList.add(`show-${group}`);
@@ -824,37 +905,136 @@
                 }
             });
 
-            // Close modal when clicking outside
+            // Close modals when clicking outside
             document.getElementById('editModal').addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeEditModal();
                 }
             });
 
-            // Handle form submission
+            document.getElementById('returnsModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeReturnsModal();
+                }
+            });
+
+            // Handle edit form submission
             document.getElementById('editStoreForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveStoreChanges();
             });
+
+            // Handle returns form submission
+            document.getElementById('returnsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveReturns();
+            });
+
+            // Close modals with Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    if (document.getElementById('editModal').classList.contains('active')) {
+                        closeEditModal();
+                    }
+                    if (document.getElementById('returnsModal').classList.contains('active')) {
+                        closeReturnsModal();
+                    }
+                }
+            });
         });
 
+        // Returns Modal Functions
+        function openReturnsModal() {
+            document.getElementById('returnsModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReturnsModal() {
+            document.getElementById('returnsModal').classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('returnsForm').reset();
+            clearErrors();
+            hideSuccessMessage('returnsSuccessMessage');
+        }
+
+        function validateReturnsForm() {
+            clearErrors();
+            let isValid = true;
+
+            const store = document.getElementById('returnStore').value;
+            const year = document.getElementById('returnYear').value;
+            const packets = document.getElementById('packetsReturned').value;
+
+            if (!store) {
+                showError('store', 'Please select a store');
+                isValid = false;
+            }
+
+            if (!year || year < 0 || year > 99) {
+                showError('year', 'Please enter a valid 2-digit year (0-99)');
+                isValid = false;
+            }
+
+            if (!packets || parseInt(packets) < 0) {
+                showError('packets', 'Please enter a valid number of packets');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function saveReturns() {
+            if (!validateReturnsForm()) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('store_num', document.getElementById('returnStore').value);
+            formData.append('year', document.getElementById('returnYear').value);
+            formData.append('packets_returned', document.getElementById('packetsReturned').value);
+
+            fetch('/office/record-store-returns/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('returnsSuccessMessage');
+                    setTimeout(() => {
+                        closeReturnsModal();
+                        showNotification('Returns recorded successfully!', 'success');
+                    }, 1500);
+                } else {
+                    if (data.errors) {
+                        for (const [field, errors] of Object.entries(data.errors)) {
+                            showError(field, errors[0]);
+                        }
+                    } else {
+                        alert('Error recording returns: ' + (data.message || 'Unknown error'));
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error occurred. Please try again.');
+            });
+        }
+
+        // Edit Store Functions
         function editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName) {
-            // console.log('editStore called with:', {storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName});
-            
-            // Use storeNum as the identifier since that's what has the actual values
             currentStoreId = storeNum;
             currentStoreNum = storeNum;
             
-            // console.log('Set currentStoreId to:', currentStoreId);
-            
-            // Populate form fields with current values
             document.getElementById('storeName').value = storeName || '';
             document.getElementById('contactEmail').value = storeEmail || '';
             document.getElementById('contactPhone').value = storePhone || '';
             document.getElementById('storeSlots').value = storeSlots || '';
             document.getElementById('contactName').value = contactName || '';
             
-            // Show modal
             document.getElementById('editModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
@@ -867,9 +1047,7 @@
         }
 
         function saveStoreChanges() {
-            // Use currentStoreNum since that has the correct value
             const storeIdentifier = currentStoreNum || currentStoreId;
-            // console.log('Using store identifier:', storeIdentifier);
             
             const formData = {
                 store_num: storeIdentifier,
@@ -889,16 +1067,9 @@
                 first_order: document.getElementById('firstOrder').value
             };
 
-            // console.log('Saving store changes:', formData);
-            
-            // Use the store_num directly
             const storeNum = parseInt(storeIdentifier);
             const updateUrl = `/accounts/${storeNum}/update/`;
-            
-            // console.log('Using store number:', storeNum);
-            // console.log('Final URL:', updateUrl);
 
-            // Send data to Django backend
             fetch(updateUrl, {
                 method: 'POST',
                 headers: {
@@ -908,12 +1079,8 @@
                 body: JSON.stringify(formData)
             })
             .then(response => {
-                // console.log('Response status:', response.status);
-                // console.log('Response ok:', response.ok);
-                
                 if (response.status === 500) {
                     return response.text().then(text => {
-                        // console.log('Server error response:', text);
                         throw new Error(`Server error (500): Check Django logs for details`);
                     });
                 }
@@ -925,8 +1092,6 @@
                 return response.json();
             })
             .then(data => {
-                // console.log('Response data:', data);
-                
                 if (data.success) {
                     updateTableRow(formData);
                     closeEditModal();
@@ -938,112 +1103,102 @@
             })
             .catch(error => {
                 console.error('Full error object:', error);
-                console.error('Error message:', error.message);
-                console.error('Error stack:', error.stack);
                 alert('An error occurred while saving changes: ' + error.message);
             });
         }
 
         function updateTableRow(data) {
-            // Use currentStoreNum since that has the correct value
             const storeIdentifier = currentStoreNum || currentStoreId;
-            // console.log('Looking for store with store_num:', storeIdentifier, 'Type:', typeof storeIdentifier);
-            // console.log('Data to update with:', data);
-            
-            // Find the table row for this store and update it
             const rows = document.querySelectorAll('.stores-table tbody tr');
-            let foundMatch = false;
             
-            rows.forEach((row, index) => {
+            rows.forEach((row) => {
                 const editBtn = row.querySelector('.edit-btn');
-                if (editBtn) {
-                    // Use storeNum to match since that's what has the actual values
-                    if (editBtn.dataset.storeNum === String(storeIdentifier)) {
-                        // console.log('Found matching row at index:', index);
-                        foundMatch = true;
-                        
-                        // Update the row data
-                        const cells = row.querySelectorAll('td');
-                        // console.log('Found', cells.length, 'cells in the row');
-                        
-                        // Update store name (index 1)
-                        const storeNameCell = cells[1]?.querySelector('.store-name');
-                        if (storeNameCell) {
-                            // console.log('Updating store name from', storeNameCell.textContent, 'to', data.name || 'Unnamed Store');
-                            storeNameCell.textContent = data.name || 'Unnamed Store';
-                        }
-                        
-                        // Update contact info (if visible)
-                        const contactNameCell = row.querySelector('td.col-group-contact');
-                        if (contactNameCell && data.contact_name) {
-                            contactNameCell.textContent = data.contact_name;
-                        }
-                        
-                        // Update phone (second contact column)
-                        const contactCells = row.querySelectorAll('td.col-group-contact');
-                        if (contactCells[1] && data.contact_phone) {
-                            contactCells[1].innerHTML = `<span class="phone-number">${data.contact_phone}</span>`;
-                        }
-                        
-                        // Update email (third contact column)
-                        if (contactCells[2] && data.email) {
-                            contactCells[2].innerHTML = `<a href="mailto:${data.email}" class="email-link">${data.email}</a>`;
-                        }
-                        
-                        // Update address fields
-                        if (contactCells[3] && data.address) contactCells[3].textContent = data.address;
-                        if (contactCells[4] && data.city) contactCells[4].textContent = data.city;
-                        if (contactCells[5] && data.state) contactCells[5].textContent = data.state;
-                        if (contactCells[6] && data.zip) contactCells[6].textContent = data.zip;
-                        
-                        // Update rack info (if visible)
-                        const rackCells = row.querySelectorAll('td.col-group-rack');
-                        if (rackCells[0] && data.slots) {
-                            rackCells[0].innerHTML = `<strong>${data.slots}</strong>`;
-                        }
-                        if (rackCells[1] && data.header) rackCells[1].textContent = data.header;
-                        if (rackCells[2]) {
-                            const velcroClass = data.velcro ? 'boolean-true' : 'boolean-false';
-                            const velcroSymbol = data.velcro ? '✓' : '✗';
-                            rackCells[2].innerHTML = `<span class="boolean-indicator ${velcroClass}">${velcroSymbol}</span>`;
-                        }
-                        if (rackCells[3] && data.rack_material) rackCells[3].textContent = data.rack_material;
-                        if (rackCells[4] && data.rack_num) rackCells[4].textContent = data.rack_num;
-                        
-                        // Update order info (if visible)
-                        const orderCell = row.querySelector('td.col-group-order');
-                        if (orderCell && data.first_order) {
-                            orderCell.textContent = data.first_order;
-                        }
-
-                        // Update the data attributes with new values
-                        editBtn.dataset.storeId = String(storeIdentifier);
-                        editBtn.dataset.storeNum = String(storeIdentifier);
-                        editBtn.dataset.storeName = data.name || '';
-                        editBtn.dataset.storeEmail = data.email || '';
-                        editBtn.dataset.storePhone = data.contact_phone || '';
-                        editBtn.dataset.storeSlots = data.slots || '';
-                        editBtn.dataset.contactName = data.contact_name || '';
-                        
-                        // console.log('Row updated successfully - all changes applied');
-                        return; // Exit the forEach loop early since we found our match
+                if (editBtn && editBtn.dataset.storeNum === String(storeIdentifier)) {
+                    const cells = row.querySelectorAll('td');
+                    
+                    const storeNameCell = cells[1]?.querySelector('.store-name');
+                    if (storeNameCell) {
+                        storeNameCell.textContent = data.name || 'Unnamed Store';
                     }
+                    
+                    const contactCells = row.querySelectorAll('td.col-group-contact');
+                    if (contactCells[0] && data.contact_name) contactCells[0].textContent = data.contact_name;
+                    if (contactCells[1] && data.contact_phone) {
+                        contactCells[1].innerHTML = `<span class="phone-number">${data.contact_phone}</span>`;
+                    }
+                    if (contactCells[2] && data.email) {
+                        contactCells[2].innerHTML = `<a href="mailto:${data.email}" class="email-link">${data.email}</a>`;
+                    }
+                    if (contactCells[3] && data.address) contactCells[3].textContent = data.address;
+                    if (contactCells[4] && data.city) contactCells[4].textContent = data.city;
+                    if (contactCells[5] && data.state) contactCells[5].textContent = data.state;
+                    if (contactCells[6] && data.zip) contactCells[6].textContent = data.zip;
+                    
+                    const rackCells = row.querySelectorAll('td.col-group-rack');
+                    if (rackCells[0] && data.slots) {
+                        rackCells[0].innerHTML = `<strong>${data.slots}</strong>`;
+                    }
+                    if (rackCells[1] && data.header) rackCells[1].textContent = data.header;
+                    if (rackCells[2]) {
+                        const velcroClass = data.velcro ? 'boolean-true' : 'boolean-false';
+                        const velcroSymbol = data.velcro ? '✓' : '✗';
+                        rackCells[2].innerHTML = `<span class="boolean-indicator ${velcroClass}">${velcroSymbol}</span>`;
+                    }
+                    if (rackCells[3] && data.rack_material) rackCells[3].textContent = data.rack_material;
+                    if (rackCells[4] && data.rack_num) rackCells[4].textContent = data.rack_num;
+                    
+                    const orderCell = row.querySelector('td.col-group-order');
+                    if (orderCell && data.first_order) {
+                        orderCell.textContent = data.first_order;
+                    }
+
+                    editBtn.dataset.storeId = String(storeIdentifier);
+                    editBtn.dataset.storeNum = String(storeIdentifier);
+                    editBtn.dataset.storeName = data.name || '';
+                    editBtn.dataset.storeEmail = data.email || '';
+                    editBtn.dataset.storePhone = data.contact_phone || '';
+                    editBtn.dataset.storeSlots = data.slots || '';
+                    editBtn.dataset.contactName = data.contact_name || '';
+                    
+                    return;
                 }
             });
-            
-            if (!foundMatch) {
-                console.error('No matching row found for store_num:', storeIdentifier);
-                console.error('Available store nums in table:');
-                rows.forEach((row, idx) => {
-                    const btn = row.querySelector('.edit-btn');
-                    if (btn) {
-                        console.error(`Row ${idx}: storeNum="${btn.dataset.storeNum}"`);
-                    }
-                });
+        }
+
+        // Utility Functions
+        function clearErrors() {
+            const errorElements = document.querySelectorAll('.error-message');
+            errorElements.forEach(element => {
+                element.style.display = 'none';
+                element.textContent = '';
+            });
+        }
+
+        function showError(fieldName, message) {
+            const errorElement = document.getElementById(fieldName + '_error');
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
             }
         }
 
-        // Helper function to get Django CSRF token
+        function showSuccessMessage(elementId) {
+            const successElement = document.getElementById(elementId);
+            if (successElement) {
+                successElement.style.display = 'block';
+                setTimeout(() => {
+                    successElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function hideSuccessMessage(elementId) {
+            const successElement = document.getElementById(elementId);
+            if (successElement) {
+                successElement.style.display = 'none';
+            }
+        }
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -1059,7 +1214,6 @@
             return cookieValue;
         }
 
-        // Show notification messages
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
             notification.style.cssText = `
@@ -1078,7 +1232,6 @@
             
             document.body.appendChild(notification);
             
-            // Add slideInRight animation
             const style = document.createElement('style');
             style.textContent = `
                 @keyframes slideInRight {
@@ -1104,7 +1257,6 @@
             `;
             document.head.appendChild(style);
             
-            // Remove after 3 seconds
             setTimeout(() => {
                 notification.style.animation = 'slideOutRight 0.3s ease-in';
                 setTimeout(() => {
