@@ -223,15 +223,6 @@
             top: 0;
             z-index: 2;
         }
-        .order-table th.clickable-header {
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s ease;
-        }
-        .order-table th.clickable-header:hover {
-            background: #e9ecef;
-            color: #667eea;
-        }
         .order-table td {
             padding: 12px;
             border-bottom: 1px solid #f1f3f4;
@@ -783,7 +774,6 @@
                     <div class="checkbox-group">
                         <input type="checkbox" id="variety-photo" class="checkbox-input">
                         <label for="variety-photo" class="form-label">Include Photo</label>
-                         
                     </div>
                 </div>
                 <div class="modal-actions">
@@ -849,24 +839,6 @@
     </div>
 
 
-
-    <!-- Bulk Photo Modal -->
-    <div id="bulk-photo-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>Bulk Photo Action</h3>
-                <button class="modal-close" onclick="closeBulkPhotoModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 20px;">Choose an action for all items in this order:</p>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button class="btn" style="background: #26de81;" onclick="includeAllPhotos()">✅ Include Photo for All Items</button>
-                    <button class="btn" style="background: #ff6b6b;" onclick="removeAllPhotos()">❌ Remove Photo for All Items</button>
-                    <button class="btn" style="background: #6c757d;" onclick="closeBulkPhotoModal()">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
     <!-- Pick List Confirmation Modal -->
     <div id="pick-list-confirm-modal" class="modal">
         <div class="modal-content" style="max-width: 450px;">
@@ -1128,71 +1100,6 @@
             });
         }
 
-        // Function to open bulk photo modal
-        function openBulkPhotoModal() {
-            const isFinalized = currentOrderData && 
-                            currentOrderData.fulfilled_date && 
-                            currentOrderData.fulfilled_date !== null && 
-                            currentOrderData.fulfilled_date.trim() !== '';
-            
-            if (isFinalized) {
-                showNotification('Order Finalized', 
-                    'Cannot modify photos on a finalized order', 
-                    'error', '🔒');
-                return;
-            }
-
-            if (Object.keys(orderItems).length === 0) {
-                showNotification('Empty Order', 
-                    'Add items to the order first', 
-                    'warning', '⚠️');
-                return;
-            }
-
-            document.getElementById('bulk-photo-modal').style.display = 'block';
-        }
-
-        // Function to close bulk photo modal
-        function closeBulkPhotoModal() {
-            document.getElementById('bulk-photo-modal').style.display = 'none';
-        }
-
-        // Function to include all photos
-        async function includeAllPhotos() {
-            Object.keys(orderItems).forEach(key => {
-                orderItems[key].hasPhoto = true;
-            });
-
-            markUnsavedChanges();
-            renderOrderTable();
-            updateSaveButton();
-            closeBulkPhotoModal();
-
-            // Auto-save the changes
-            await saveOrderToDatabase();
-            showNotification('Photos Included', 
-                'All items now include photos', 
-                'success', '✅');
-        }
-
-        // Function to remove all photos
-        async function removeAllPhotos() {
-            Object.keys(orderItems).forEach(key => {
-                orderItems[key].hasPhoto = false;
-            });
-
-            markUnsavedChanges();
-            renderOrderTable();
-            updateSaveButton();
-            closeBulkPhotoModal();
-
-            // Auto-save the changes
-            await saveOrderToDatabase();
-            showNotification('Photos Removed', 
-                'All photo selections have been removed', 
-                'success', '✅');
-        }
-
         // Function to render order table
         function renderOrderTable(readOnly = false) {
             const container = document.getElementById('order-table-container');
@@ -1217,7 +1124,7 @@
                             <th style="width: 80px;">Qty</th>
                             <th>Variety</th>
                             <th>Crop Type</th>
-                            <th style="width: 60px;" id="photo-header" ${!readOnly && Object.keys(orderItems).length > 0 ? 'class="clickable-header" onclick="openBulkPhotoModal()" title="Click to bulk edit photos"' : ''}>Photo</th>
+                            <th style="width: 60px;">Photo</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1380,32 +1287,16 @@
 
         // Function to open variety modal
         function openVarietyModal(skuPrefix, varietyData) {
-            // NEW: Check if no order is selected
-            if (!currentOrderId) {
-                showNotification('No Order Selected', 
-                    'Please select a pending order before adding varieties', 
-                    'warning', '⚠️');
-                return;
-            }
-
-            // Check if order is finalized
+            // Check if order is finalized and prevent adding items
             const isFinalized = currentOrderData && 
-                            currentOrderData.fulfilled_date && 
-                            currentOrderData.fulfilled_date !== null && 
-                            currentOrderData.fulfilled_date.trim() !== '';
+                               currentOrderData.fulfilled_date && 
+                               currentOrderData.fulfilled_date !== null && 
+                               currentOrderData.fulfilled_date.trim() !== '';
 
             if (isFinalized) {
-                showNotification('Order Finalized', 
-                    'This order has been finalized and cannot be edited', 
+                showNotification('Cannot Add to Finalized Order', 
+                    'This order has been finalized and no additional items can be added', 
                     'error', '🔒');
-                return;
-            }
-
-            // NEW: Check if variety already exists in order
-            if (orderItems[skuPrefix]) {
-                showNotification('Variety Already Added', 
-                    'This variety is already in the order', 
-                    'error', '⚠️');
                 return;
             }
 

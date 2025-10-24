@@ -77,6 +77,8 @@
             gap: 8px;
             color: white;
             border: 2px solid transparent;
+            min-width: 140px;  /* ADD THIS LINE */
+            justify-content: center;  /* ADD THIS LINE to center the text */
         }
 
         .back-button {
@@ -513,6 +515,44 @@
             display: none;
         }
 
+
+        .sales-button {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .sales-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+        }
+
+        .sales-table thead {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .sales-table thead th:last-child {
+            text-align: right;
+        }
+
+        .sales-table tbody td:last-child,
+        .sales-table tbody td:nth-last-child(2),
+        .sales-table tbody td:nth-last-child(3) {
+            text-align: right;
+        }
+
+        .money-value {
+            font-weight: 600;
+            color: #f39c12;
+        }
+
+        .total-value {
+            font-weight: 700;
+            color: #e67e22;
+        }
+
+
+
+
         /* Returns Table Specific Styles */
         .returns-filter {
             display: flex;
@@ -676,7 +716,10 @@
                 <h1 class="brand-title">Store Directory</h1>
                 <p class="brand-subtitle">View/Edit Wholesale Stores</p>
             </div>
-            <button class="returns-button" onclick="openReturnsModal()">Returns</button>
+            <div style="display: flex; gap: 15px;">
+                <button class="sales-button returns-button" onclick="openSalesModal()">Sales</button>
+                <button class="returns-button" onclick="openReturnsModal()">Returns</button>
+            </div>
         </div>
 
         <!-- Table Container -->
@@ -900,6 +943,49 @@
         </div>
     </div>
 
+
+    <!-- Sales Overview Modal -->
+    <div class="modal-overlay" id="salesModal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title">Store Sales Overview</h3>
+                <button class="close-btn" onclick="closeSalesModal()">&times;</button>
+            </div>
+
+            <!-- Year Filter -->
+            <div class="returns-filter">
+                <label for="salesYearFilter">Sales Year:</label>
+                <select id="salesYearFilter" class="form-select" onchange="loadSalesData()">
+                    <option value="">Loading years...</option>
+                </select>
+            </div>
+
+            <!-- Sales Table -->
+            <div class="table-wrapper">
+                <table class="sales-table returns-table">
+                    <thead>
+                        <tr>
+                            <th>Store #</th>
+                            <th>Store Name</th>
+                            <th style="text-align: right;">Total # Pkts</th>
+                            <th style="text-align: right;">Subtotal</th>
+                            <th style="text-align: right;">Shipping</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                <div class="loading-spinner"></div>
+                                <p style="margin-top: 10px;">Loading data...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Store Modal -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
@@ -1063,6 +1149,12 @@
                 }
             });
 
+            document.getElementById('salesModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeSalesModal();
+                }
+            });
+
             // Handle edit form submission
             document.getElementById('editStoreForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -1083,6 +1175,9 @@
                     }
                     if (document.getElementById('returnsModal').classList.contains('active')) {
                         closeReturnsModal();
+                    }
+                    if (document.getElementById('salesModal').classList.contains('active')) {
+                        closeSalesModal();
                     }
                     if (document.getElementById('addReturnsModal').classList.contains('active')) {
                         closeAddReturnsModal();
@@ -1281,6 +1376,132 @@
                 alert('Network error occurred. Please try again.');
             }
         }
+
+
+        // Sales Modal Functions
+        async function openSalesModal() {
+            document.getElementById('salesModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Load available years
+            await loadSalesYears();
+        }
+
+        function closeSalesModal() {
+            document.getElementById('salesModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        async function loadSalesYears() {
+            try {
+                // Use the same years endpoint as returns (gets years from StoreOrder)
+                const response = await fetch('/office/store-returns-years/');
+                const data = await response.json();
+                
+                if (data.success && data.years.length > 0) {
+                    const yearFilter = document.getElementById('salesYearFilter');
+                    yearFilter.innerHTML = '';
+                    
+                    data.years.forEach(year => {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = `20${year}`;
+                        yearFilter.appendChild(option);
+                    });
+                    
+                    // Load data for the first year
+                    await loadSalesData();
+                } else {
+                    document.getElementById('salesYearFilter').innerHTML = '<option value="">No data available</option>';
+                    document.getElementById('salesTableBody').innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                No sales data available.
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading years:', error);
+                showNotification('Error', 'Failed to load years', 'error');
+            }
+        }
+
+        async function loadSalesData() {
+            const selectedYear = document.getElementById('salesYearFilter').value;
+            if (!selectedYear) return;
+            
+            // Show loading
+            document.getElementById('salesTableBody').innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 10px;">Loading data...</p>
+                    </td>
+                </tr>
+            `;
+            
+            try {
+                const response = await fetch(`/office/store-sales-data/?year=${selectedYear}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderSalesTable(data.stores);
+                } else {
+                    throw new Error(data.message || 'Failed to load sales data');
+                }
+            } catch (error) {
+                console.error('Error loading sales data:', error);
+                document.getElementById('salesTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #e74c3c;">
+                            Error loading data: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderSalesTable(stores) {
+            const tbody = document.getElementById('salesTableBody');
+            
+            if (stores.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                            No stores found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Calculate totals
+            const grandTotalPackets = stores.reduce((sum, s) => sum + s.total_packets, 0);
+            const grandSubtotal = stores.reduce((sum, s) => sum + s.subtotal, 0);
+            const grandShipping = stores.reduce((sum, s) => sum + s.total_shipping, 0);
+            const grandTotal = stores.reduce((sum, s) => sum + s.total, 0);
+            
+            tbody.innerHTML = stores.map(store => `
+                <tr>
+                    <td><strong>#${store.store_num}</strong></td>
+                    <td>${store.store_name}</td>
+                    <td style="text-align: right;">${store.total_packets}</td>
+                    <td style="text-align: right;" class="money-value">$${store.subtotal.toFixed(2)}</td>
+                    <td style="text-align: right;" class="money-value">$${store.total_shipping.toFixed(2)}</td>
+                    <td style="text-align: right;" class="total-value">$${store.total.toFixed(2)}</td>
+                </tr>
+            `).join('') + `
+                <tr style="border-top: 3px solid #e67e22; background: rgba(243, 156, 18, 0.05);">
+                    <td colspan="2" style="text-align: right; font-weight: 700; padding: 15px;"><strong>TOTALS:</strong></td>
+                    <td style="text-align: right; font-weight: 700;">${grandTotalPackets}</td>
+                    <td style="text-align: right; font-weight: 700; color: #f39c12;">$${grandSubtotal.toFixed(2)}</td>
+                    <td style="text-align: right; font-weight: 700; color: #f39c12;">$${grandShipping.toFixed(2)}</td>
+                    <td style="text-align: right; font-weight: 700; color: #e67e22; font-size: 1.1rem;">$${grandTotal.toFixed(2)}</td>
+                </tr>
+            `;
+        }
+
 
         // Edit Store Functions
         function editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName) {

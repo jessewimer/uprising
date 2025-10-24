@@ -208,6 +208,7 @@ def view_variety(request):
         #     })
         # lots_extra_data = json.dumps(lots_extra_data_list)
 
+
     context = {
         'last_selected': last_selected_variety,
         'variety': variety_obj,
@@ -220,6 +221,12 @@ def view_variety(request):
         'env_types': settings.ENV_TYPES,
         'sku_suffixes': settings.SKU_SUFFIXES,
         'pkg_sizes': settings.PKG_SIZES,
+        'groups': settings.GROUPS,
+        'categories': settings.CATEGORIES,
+        'crops': settings.CROPS,
+        'subtypes': settings.SUBTYPES,
+        'supergroups': settings.SUPERGROUPS,
+        'veg_types': settings.VEG_TYPES,
         'packed_for_year': packed_for_year,
         'transition': settings.TRANSITION,
         'has_pending_germ': has_pending_germ,
@@ -2510,27 +2517,6 @@ def delete_packing_record(request):
         })
     
 
-# @login_required
-# @user_passes_test(is_employee)
-# def check_stock_seed_exists(request):
-#     if request.method == 'POST':
-#         data = json.loads(request.body)
-#         lot_id = data.get('lot_id')
-        
-#         try:
-#             # Check if any StockSeed records exist for this lot
-#             exists = StockSeed.objects.filter(lot_id=lot_id).exists()
-            
-#             return JsonResponse({
-#                 'success': True,
-#                 'exists': exists
-#             })
-#         except Exception as e:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': str(e)
-#             })
-
 @login_required
 @user_passes_test(is_employee)
 def get_stock_seed_data(request):
@@ -2932,3 +2918,127 @@ def get_store_returns_data(request):
             'success': False,
             'message': str(e)
         }, status=500)
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def get_store_sales_data(request):
+    """
+    Get sales data for all stores for a specific year
+    """
+    try:
+        year = request.GET.get('year')
+        
+        if not year:
+            return JsonResponse({
+                'success': False,
+                'message': 'Year parameter is required'
+            }, status=400)
+        
+        try:
+            year = int(year)
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid year format'
+            }, status=400)
+        
+        # Get all stores
+        stores = Store.objects.all().order_by('store_num')
+        
+        # Build sales data for each store
+        stores_data = []
+        year_suffix = str(year).zfill(2)  # Ensure 2 digits
+        
+        for store in stores:
+            # Get all fulfilled orders for this store in this year
+            orders = StoreOrder.objects.filter(
+                store=store,
+                order_number__endswith=f'-{year_suffix}',
+                fulfilled_date__isnull=False
+            )
+            
+            # Calculate total packets
+            total_packets = SOIncludes.objects.filter(
+                store_order__in=orders
+            ).aggregate(total=Sum('quantity'))['total'] or 0
+            
+            # Calculate subtotal (sum of all line items)
+            from django.db.models import F
+            subtotal = SOIncludes.objects.filter(
+                store_order__in=orders
+            ).aggregate(
+                total=Sum(F('quantity') * F('price'))
+            )['total'] or 0
+            
+            # Calculate total shipping
+            total_shipping = orders.aggregate(
+                total=Sum('shipping')
+            )['total'] or 0
+            
+            # Calculate grand total
+            total = float(subtotal) + float(total_shipping)
+            
+            stores_data.append({
+                'store_num': store.store_num,
+                'store_name': store.store_name,
+                'total_packets': total_packets,
+                'subtotal': float(subtotal),
+                'total_shipping': float(total_shipping),
+                'total': total
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'year': year,
+            'stores': stores_data
+        })
+        
+    except Exception as e:
+        print(f"Error getting store sales data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def edit_variety(request):
+    try:
+        data = json.loads(request.body)
+        sku_prefix = data.get('sku_prefix')
+        
+        # Get the variety object
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+        
+        # Update fields
+        variety.var_name = data.get('var_name', variety.var_name)
+        variety.crop = data.get('crop').upper() if data.get('crop') else None
+        variety.common_spelling = data.get('common_spelling', variety.common_spelling)
+        variety.common_name = data.get('common_name', variety.common_name)
+        variety.group = data.get('group', variety.group)
+        variety.veg_type = data.get('veg_type').upper() if data.get('veg_type') else None
+        variety.species = data.get('species', variety.species)
+        variety.supergroup = data.get('supergroup', variety.supergroup)
+        variety.subtype = data.get('subtype', variety.subtype)
+        variety.days = data.get('days', variety.days)
+        variety.active = data.get('active', variety.active)
+        variety.stock_qty = data.get('stock_qty', variety.stock_qty)
+        variety.photo_path = data.get('photo_path', variety.photo_path)
+        variety.wholesale = data.get('wholesale', variety.wholesale)
+        variety.ws_notes = data.get('ws_notes', variety.ws_notes)
+        variety.ws_description = data.get('ws_description', variety.ws_description)
+        variety.category = data.get('category', variety.category)
+                
+        variety.save()
+        
+        return JsonResponse({'success': True, 'message': 'Variety updated successfully'})
+    
+    except Variety.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Variety not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

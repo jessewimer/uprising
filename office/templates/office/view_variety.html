@@ -1932,8 +1932,19 @@
             <!-- Center: Variety Info -->
             <div class="header-center">
                 <div class="variety-info">
-                    <div class="variety-name" id="varietyName">
+                    <!-- <div class="variety-name" id="varietyName">
                         {% if variety %}{{ variety.var_name|default:"Select a variety" }}{% else %}Select a variety{% endif %}
+                    </div> -->
+                    <div class="variety-name" id="varietyName" style="display: flex; align-items: center; gap: 10px;">
+                        {{ variety.var_name|default:"Select a variety to view details" }}
+                        {% if variety.var_name %}
+                        <span class="edit-icon" onclick="openEditVarietyPopup()" title="Edit Variety">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="variety-details">
                         <div class="variety-detail">
@@ -3027,6 +3038,157 @@
         </div>
     </div>
 
+
+    <!-- Edit Variety Popup -->
+    <div class="print-popup-overlay" id="editVarietyPopup">
+        <div class="print-popup" style="max-width: 800px; max-height: 85vh; overflow-y: auto;">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Edit Variety Details</h3>
+                <button class="print-popup-close" onclick="hideEditVarietyPopup()">×</button>
+            </div>
+            
+            <form id="editVarietyForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    
+                    <div class="form-group">
+                        <label>SKU Prefix</label>
+                        <input type="text" id="editSkuPrefix" value="{{ variety.sku_prefix }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Variety Name</label>
+                        <input type="text" id="editVarName" value="{{ variety.var_name|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Crop</label>
+                        <select id="editCrop">
+                            <option value="">Select Crop</option>
+                            {% for crop in crops %}
+                            <option value="{{ crop }}" {% if variety.crop|upper == crop|upper %}selected{% endif %}>{{ crop|upper }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Common Spelling</label>
+                        <input type="text" id="editCommonSpelling" value="{{ variety.common_spelling|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Common Name</label>
+                        <input type="text" id="editCommonName" value="{{ variety.common_name|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Group</label>
+                        <select id="editGroup">
+                            <option value="">Select Group</option>
+                            {% for group in groups %}
+                            <option value="{{ group }}" {% if variety.group and variety.group == group %}selected{% endif %}>{{ group }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Vegetable Type</label>
+                        <select id="editVegType">
+                            <option value="">Select Type</option>
+                            {% for veg_type in veg_types %}
+                            {% if veg_type != "Veg Type" %}
+                            <option value="{{ veg_type }}" {% if variety.veg_type|upper == veg_type|upper %}selected{% endif %}>{{ veg_type|upper }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Species</label>
+                        <input type="text" id="editSpecies" value="{{ variety.species|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Supergroup</label>
+                        <select id="editSupergroup">
+                            <option value="">Select Supergroup</option>
+                            {% for supergroup in supergroups %}
+                            <option value="{{ supergroup }}" {% if variety.supergroup and variety.supergroup == supergroup %}selected{% endif %}>{{ supergroup }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Subtype</label>
+                        <select id="editSubtype">
+                            <option value="">Select Subtype</option>
+                            {% for subtype in subtypes %}
+                            <option value="{{ subtype }}" {% if variety.subtype and variety.subtype == subtype %}selected{% endif %}>{{ subtype }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Days to Maturity</label>
+                        <input type="text" id="editDays" value="{{ variety.days|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Stock Quantity</label>
+                        <input type="text" id="editStockQty" value="{{ variety.stock_qty|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Photo Path</label>
+                        <input type="text" id="editPhotoPath" value="{{ variety.photo_path|default:'' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="editCategory">
+                            <option value="">Select Category</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}" {% if variety.category and variety.category == category %}selected{% endif %}>{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Active</label>
+                        <select id="editActive">
+                            <option value="true" {% if variety.active %}selected{% endif %}>True</option>
+                            <option value="false" {% if not variety.active %}selected{% endif %}>False</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Wholesale</label>
+                        <select id="editWholesale">
+                            <option value="true" {% if variety.wholesale %}selected{% endif %}>True</option>
+                            <option value="false" {% if not variety.wholesale %}selected{% endif %}>False</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Wholesale Notes</label>
+                        <textarea id="editWsNotes" rows="3">{{ variety.ws_notes|default:'' }}</textarea>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Wholesale Description</label>
+                        <textarea id="editWsDescription" rows="3">{{ variety.ws_description|default:'' }}</textarea>
+                    </div>
+
+                </div>
+
+                <div class="print-actions" style="margin-top: 20px;">
+                    <button type="button" class="print-action-btn cancel-btn" onclick="hideEditVarietyPopup()">Cancel</button>
+                    <button type="button" class="print-action-btn print-btn" onclick="saveVarietyChanges()">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <!-- Add Product Popup -->
     <div id="addProductPopup" class="modal-overlay">
         <div class="modal">
@@ -3752,6 +3914,76 @@
             document.getElementById('editProductPopup').classList.add('show');
             document.body.classList.add('modal-open');
         }
+
+
+
+
+
+
+
+        // Edit Variety Functions
+        function openEditVarietyPopup() {
+            console.log('openEditVarietyPopup called');
+            document.body.classList.add('modal-open');
+            document.getElementById('editVarietyPopup').classList.add('show');
+        }
+
+        function hideEditVarietyPopup() {
+            document.body.classList.remove('modal-open');
+            document.getElementById('editVarietyPopup').classList.remove('show');
+        }
+
+        function saveVarietyChanges() {
+            const formData = {
+                sku_prefix: document.getElementById('editSkuPrefix').value,
+                var_name: document.getElementById('editVarName').value,
+                crop: document.getElementById('editCrop').value,
+                common_spelling: document.getElementById('editCommonSpelling').value,
+                common_name: document.getElementById('editCommonName').value,
+                group: document.getElementById('editGroup').value,
+                veg_type: document.getElementById('editVegType').value,
+                species: document.getElementById('editSpecies').value,
+                supergroup: document.getElementById('editSupergroup').value,
+                subtype: document.getElementById('editSubtype').value,
+                days: document.getElementById('editDays').value,
+                active: document.getElementById('editActive').value === 'true',
+                stock_qty: document.getElementById('editStockQty').value,
+                photo_path: document.getElementById('editPhotoPath').value,
+                wholesale: document.getElementById('editWholesale').value === 'true',
+                ws_notes: document.getElementById('editWsNotes').value,
+                ws_description: document.getElementById('editWsDescription').value,
+                category: document.getElementById('editCategory').value
+            };
+
+            fetch('/office/edit-variety/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Variety updated successfully', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showMessage('Error updating variety: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error occurred', 'error');
+            });
+
+            hideEditVarietyPopup();
+        }
+
+
+
         // function editProduct(productId) {
         //     hideProductActionsPopup();
             
@@ -4758,6 +4990,12 @@
                 }
             });
 
+            // Close popup when clicking outside
+            document.getElementById('editVarietyPopup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideEditVarietyPopup();
+                }
+            });
         }
         
 

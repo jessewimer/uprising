@@ -83,4 +83,6 @@ urlpatterns = [
     path('record-store-returns/', record_store_returns, name='record_store_returns'),
     path('store-returns-years/', get_store_returns_years, name='get_store_returns_years'),
     path('store-returns-data/', get_store_returns_data, name='get_store_returns_data'),
+    path('store-sales-data/', get_store_sales_data, name='get_store_sales_data'), 
+    path('edit-variety/', edit_variety, name='edit_variety'),
 ]
