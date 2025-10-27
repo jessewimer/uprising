@@ -19,7 +19,14 @@ urlpatterns = [
     
     # Action card destinations (matching the landing page links)
     path('edit-products/', product_views.edit_products, name='edit_products'),
-    path('view-variety/', view_variety, name='view_variety'),
+    
+# ===========
+
+    # NEW changes for viewing variety, the first was the og, the second allows for sku prefix
+    path('view-variety/', view_variety, name='view_variety'), # For dashboard - loads last selected
+    path('view-variety/<str:sku_prefix>/', view_variety, name='view_variety_with_sku'),  # For specific variety
+
+# ============
     path('analytics/', analytics, name='analytics'),
     path('envelope-data-for-printing/', get_envelope_data_for_printing, name='envelope_data_for_printing'),
 

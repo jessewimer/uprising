@@ -81,22 +81,35 @@ def office_landing(request):
     return render(request, 'office/office_landing.html', context)
 
 
-
 @login_required
 @user_passes_test(is_employee)
-def view_variety(request):
+def view_variety(request, sku_prefix=None):  # Add optional parameter
     """
     View all varieties, last selected variety, products, lots, and all_vars dictionary.
     Handles POSTs for selecting variety, printing, editing, and adding records.
     """
     user = request.user
    
-    # --- Get the user's last selected variety (if any), else default to AST-HP ---
-    last_selected_entry = LastSelected.objects.filter(user=user).last()
-    last_selected_variety = (
-        last_selected_entry.variety if last_selected_entry else Variety.objects.get(pk="BEA-CA")
-    )
-   
+    # --- Determine which variety to display ---
+    if sku_prefix:
+        # If variety is in URL, use that
+        variety_obj = get_object_or_404(Variety, pk=sku_prefix)
+        # Update their last selected
+        LastSelected.objects.update_or_create(
+            user=user,
+            defaults={'variety': variety_obj}
+        )
+    else:
+        # No variety in URL, so get their last selected (or default)
+        last_selected_entry = LastSelected.objects.filter(user=user).last()
+        variety_obj = (
+            last_selected_entry.variety if last_selected_entry 
+            else Variety.objects.get(pk="BEA-CA")
+        )
+        # Redirect to URL with variety
+        # return redirect('view_variety', sku_prefix=variety_obj.sku_prefix)
+        return redirect('view_variety_with_sku', sku_prefix=variety_obj.sku_prefix)
+    
     packed_for_year = settings.CURRENT_ORDER_YEAR
     
     # --- All varieties ---
@@ -111,16 +124,7 @@ def view_variety(request):
         }
         for v in varieties
     }
-    # Add this line to convert to JSON
     all_vars_json = json.dumps(all_vars)
-   
-    # --- Initialize objects to pass to template ---
-    variety_obj = last_selected_variety  # Default to last selected
-    products = None
-    lots = None
-    lots_json = '[]'  # Default empty JSON
-    lots_extra_data = '[]'  # Default empty JSON
-    growers = Grower.objects.none()  # Default empty queryset
    
     # --- Handle POST actions ---
     if request.method == 'POST':
@@ -130,92 +134,61 @@ def view_variety(request):
         if action == 'select_variety':
             selected_variety_pk = request.POST.get('variety_sku')
             if selected_variety_pk:
-                variety_obj = get_object_or_404(Variety, pk=selected_variety_pk)
-                # Save as last selected for this user
-                LastSelected.objects.update_or_create(
-                    user=user,
-                    defaults={'variety': variety_obj}
-                )
-                return redirect('view_variety')
+                # Redirect to URL with new variety
+                return redirect('view_variety', sku_prefix=selected_variety_pk)
     
     # --- Get associated products and lots for the current variety ---
-    if variety_obj:
-        products = Product.objects.filter(variety=variety_obj)
-        # sort products based on SKU_SUFFIXES
-        products = Product.objects.filter(variety=variety_obj).order_by(
-            Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
-                output_field=IntegerField())
-        )
-        lots = Lot.objects.filter(variety=variety_obj).order_by("year")
-        has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
-        growers = Grower.objects.all().order_by('code')
+    products = Product.objects.filter(variety=variety_obj).order_by(
+        Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
+            output_field=IntegerField())
+    )
+    lots = Lot.objects.filter(variety=variety_obj).order_by("year")
+    has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
+    growers = Grower.objects.all().order_by('code')
 
-        # Build lots JSON data
-        lots_json = json.dumps([
-            {
-                'id': lot.id,
-                'grower': str(lot.grower) if lot.grower else '',
-                'year': lot.year,
-                'harvest': lot.harvest or '',
-                'is_retired': hasattr(lot, 'retired_info'),
-                'low_inv': lot.low_inv,
-            }
-            for lot in lots
-        ])
+    # Build lots JSON data
+    lots_json = json.dumps([
+        {
+            'id': lot.id,
+            'grower': str(lot.grower) if lot.grower else '',
+            'year': lot.year,
+            'harvest': lot.harvest or '',
+            'is_retired': hasattr(lot, 'retired_info'),
+            'low_inv': lot.low_inv,
+        }
+        for lot in lots
+    ])
 
-        # Build lots extra data for next-year-only detection and recent inventory
-        lots_extra_data_list = []
-        six_months_ago = timezone.now().date() - timedelta(days=180)
+    # Build lots extra data
+    lots_extra_data_list = []
+    six_months_ago = timezone.now().date() - timedelta(days=180)
 
-        for lot in lots:
-            extra_data = {
-                'id': lot.id,
-                'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
-            }
-            
-            # Check for recent inventory
-            recent_inv = lot.inventory.order_by('-inv_date').first()
-            if recent_inv and recent_inv.inv_date >= six_months_ago:
-                extra_data['recent_inventory'] = {
-                    'id': recent_inv.id,
-                    'weight': str(recent_inv.weight),
-                    'date': recent_inv.inv_date.strftime('%m/%Y'),
-                    'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
-                }
-            
-            lots_extra_data_list.append(extra_data)
-
-        lots_extra_data = json.dumps(lots_extra_data_list)
-        # # Build lots JSON data
-        # lots_json = json.dumps([
-        #     {
-        #         'id': lot.id,
-        #         'grower': str(lot.grower) if lot.grower else '',
-        #         'year': lot.year,
-        #         'harvest': lot.harvest or '',
-        #         'is_retired': hasattr(lot, 'retired_info'),
-        #         'low_inv': lot.low_inv,
-        #     }
-        #     for lot in lots
-        # ])
+    for lot in lots:
+        extra_data = {
+            'id': lot.id,
+            'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
+        }
         
-        # # Build lots extra data for next-year-only detection
-        # lots_extra_data_list = []
-        # for lot in lots:
-        #     lots_extra_data_list.append({
-        #         'id': lot.id,
-        #         'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
-        #     })
-        # lots_extra_data = json.dumps(lots_extra_data_list)
+        recent_inv = lot.inventory.order_by('-inv_date').first()
+        if recent_inv and recent_inv.inv_date >= six_months_ago:
+            extra_data['recent_inventory'] = {
+                'id': recent_inv.id,
+                'weight': str(recent_inv.weight),
+                'date': recent_inv.inv_date.strftime('%m/%Y'),
+                'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
+            }
+        
+        lots_extra_data_list.append(extra_data)
 
+    lots_extra_data = json.dumps(lots_extra_data_list)
 
     context = {
-        'last_selected': last_selected_variety,
+        'last_selected': variety_obj,
         'variety': variety_obj,
         'products': products,
         'lots': lots,
         'lots_json': lots_json,
-        'lots_extra_data': lots_extra_data,  # Add this new context variable
+        'lots_extra_data': lots_extra_data,
         'all_vars_json': all_vars_json,
         'growers': growers,
         'env_types': settings.ENV_TYPES,
@@ -232,6 +205,134 @@ def view_variety(request):
         'has_pending_germ': has_pending_germ,
     }
     return render(request, 'office/view_variety.html', context)
+# @login_required
+# @user_passes_test(is_employee)
+# def view_variety(request):
+#     """
+#     View all varieties, last selected variety, products, lots, and all_vars dictionary.
+#     Handles POSTs for selecting variety, printing, editing, and adding records.
+#     """
+#     user = request.user
+   
+#     # --- Get the user's last selected variety (if any), else default to AST-HP ---
+#     last_selected_entry = LastSelected.objects.filter(user=user).last()
+#     last_selected_variety = (
+#         last_selected_entry.variety if last_selected_entry else Variety.objects.get(pk="BEA-CA")
+#     )
+   
+#     packed_for_year = settings.CURRENT_ORDER_YEAR
+    
+#     # --- All varieties ---
+#     varieties = Variety.objects.all().order_by('veg_type', 'sku_prefix')
+   
+#     # --- Build all_vars dict for front-end dropdown (JS-friendly) ---
+#     all_vars = {
+#         v.sku_prefix: {
+#             'common_spelling': v.common_spelling,
+#             'var_name': v.var_name,
+#             'veg_type': v.veg_type,
+#         }
+#         for v in varieties
+#     }
+#     # Add this line to convert to JSON
+#     all_vars_json = json.dumps(all_vars)
+   
+#     # --- Initialize objects to pass to template ---
+#     variety_obj = last_selected_variety  # Default to last selected
+#     products = None
+#     lots = None
+#     lots_json = '[]'  # Default empty JSON
+#     lots_extra_data = '[]'  # Default empty JSON
+#     growers = Grower.objects.none()  # Default empty queryset
+   
+#     # --- Handle POST actions ---
+#     if request.method == 'POST':
+#         action = request.POST.get('action')
+       
+#         # Handle variety selection (this changes the current variety)
+#         if action == 'select_variety':
+#             selected_variety_pk = request.POST.get('variety_sku')
+#             if selected_variety_pk:
+#                 variety_obj = get_object_or_404(Variety, pk=selected_variety_pk)
+#                 # Save as last selected for this user
+#                 LastSelected.objects.update_or_create(
+#                     user=user,
+#                     defaults={'variety': variety_obj}
+#                 )
+#                 return redirect('view_variety')
+    
+#     # --- Get associated products and lots for the current variety ---
+#     if variety_obj:
+#         products = Product.objects.filter(variety=variety_obj)
+#         # sort products based on SKU_SUFFIXES
+#         products = Product.objects.filter(variety=variety_obj).order_by(
+#             Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
+#                 output_field=IntegerField())
+#         )
+#         lots = Lot.objects.filter(variety=variety_obj).order_by("year")
+#         has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
+#         growers = Grower.objects.all().order_by('code')
+
+#         # Build lots JSON data
+#         lots_json = json.dumps([
+#             {
+#                 'id': lot.id,
+#                 'grower': str(lot.grower) if lot.grower else '',
+#                 'year': lot.year,
+#                 'harvest': lot.harvest or '',
+#                 'is_retired': hasattr(lot, 'retired_info'),
+#                 'low_inv': lot.low_inv,
+#             }
+#             for lot in lots
+#         ])
+
+#         # Build lots extra data for next-year-only detection and recent inventory
+#         lots_extra_data_list = []
+#         six_months_ago = timezone.now().date() - timedelta(days=180)
+
+#         for lot in lots:
+#             extra_data = {
+#                 'id': lot.id,
+#                 'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
+#             }
+            
+#             # Check for recent inventory
+#             recent_inv = lot.inventory.order_by('-inv_date').first()
+#             if recent_inv and recent_inv.inv_date >= six_months_ago:
+#                 extra_data['recent_inventory'] = {
+#                     'id': recent_inv.id,
+#                     'weight': str(recent_inv.weight),
+#                     'date': recent_inv.inv_date.strftime('%m/%Y'),
+#                     'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
+#                 }
+            
+#             lots_extra_data_list.append(extra_data)
+
+#         lots_extra_data = json.dumps(lots_extra_data_list)
+
+#     context = {
+#         'last_selected': last_selected_variety,
+#         'variety': variety_obj,
+#         'products': products,
+#         'lots': lots,
+#         'lots_json': lots_json,
+#         'lots_extra_data': lots_extra_data,  # Add this new context variable
+#         'all_vars_json': all_vars_json,
+#         'growers': growers,
+#         'env_types': settings.ENV_TYPES,
+#         'sku_suffixes': settings.SKU_SUFFIXES,
+#         'pkg_sizes': settings.PKG_SIZES,
+#         'groups': settings.GROUPS,
+#         'categories': settings.CATEGORIES,
+#         'crops': settings.CROPS,
+#         'subtypes': settings.SUBTYPES,
+#         'supergroups': settings.SUPERGROUPS,
+#         'veg_types': settings.VEG_TYPES,
+#         'packed_for_year': packed_for_year,
+#         'transition': settings.TRANSITION,
+#         'has_pending_germ': has_pending_germ,
+#     }
+#     return render(request, 'office/view_variety.html', context)
 
 @login_required
 @user_passes_test(is_employee)

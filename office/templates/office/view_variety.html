@@ -3538,8 +3538,13 @@
             });
         }
 
-        // Select variety
         function selectVariety(sku) {
+            console.log('selectVariety called with sku:', sku);
+            // Simply navigate to the new URL
+            window.location.href = '/office/view-variety/' + sku + '/';
+        }
+        // Select variety
+        /*function selectVariety(sku) {
             console.log('selectVariety called with sku:', sku); // Debug line
             
             const form = document.createElement('form');
@@ -3562,7 +3567,7 @@
             console.log('Form about to submit:', form); // Debug line
             form.submit();
         }
-
+*/
 
 
         function showPrintPopup(productId, productName) {
