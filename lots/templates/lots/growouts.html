@@ -64,7 +64,7 @@
                         <thead>
                             <tr>
                                 <th>Variety</th>
-                                <th>Lot</th>
+                                <th>Lot (Inv. / Germ sent)</th>
                                 <th>Planted Date</th>
                                 <th>Transplant Date</th>
                                 <th>Quantity</th>
@@ -83,7 +83,28 @@
                                     <td class="variety-cell" title="{{ lot.variety.var_name|default:'Unknown' }}">
                                         {{ lot.variety.var_name|default:"Unknown"|truncatechars:20 }}
                                     </td>
-                                    <td>
+
+                                    <td class="lot-cell-container">
+                                        <svg class="edit-icon" onclick="openEditModal('{{ lot.id }}')" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                        </svg>
+                                        <span class="lot-cell">{{ lot.grower.code|default:"UNK" }}{{ lot.year }}</span>
+                                        
+                                        <!-- Inventory status indicator -->
+                                        {% if lot.has_inventory_status %}
+                                            <span class="status-badge status-available" title="Inventory available">inv</span>
+                                        {% else %}
+                                            <span class="status-badge status-missing" title="No inventory record">inv</span>
+                                        {% endif %}
+                                        
+                                        <!-- Germination status indicator -->
+                                        {% if lot.has_germination_for_year %}
+                                            <span class="status-badge status-available" title="Germ sample sent for {{ current_for_year }}">germ</span>
+                                        {% else %}
+                                            <span class="status-badge status-missing" title="No germ sample for {{ current_for_year }}">germ</span>
+                                        {% endif %}
+                                    </td>
+                                    <!-- <td>
                                         <div class="lot-cell-container">
                                             <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" onclick="openEditModal('{{ lot.id }}')">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -104,8 +125,22 @@
                                                     </svg>
                                                 </span>
                                             {% endif %}
+
+                                            {% if lot.has_germination_for_year %}
+                                                <span class="status-indicator status-germ-sent" title="Germ sample sent for {{ current_for_year }}">
+                                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                                    </svg>
+                                                </span>
+                                            {% else %}
+                                                <span class="status-indicator status-germ-pending" title="No germ sample for {{ current_for_year }}">
+                                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                                                    </svg>
+                                                </span>
+                                            {% endif %}
                                         </div>
-                                    </td>
+                                    </td> -->
                                     <td class="data-cell {% if not lot.growout_info.planted_date %}empty-data{% endif %}"
                                         data-field="planted_date">
                                         {{ lot.growout_info.planted_date|default:"—" }}

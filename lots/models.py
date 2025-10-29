@@ -91,11 +91,15 @@ class Lot(models.Model):
         germination = self.get_most_recent_germination()
         year = germination.for_year if germination else None
         return f"{germination.germination_rate}% (20{year})" if germination else None
-    # In your Lot model, add a method similar to get_most_recent_germ_percent
+    
     def get_most_recent_germ_for_year(self):
         germination = self.get_most_recent_germination()
         return germination.for_year if germination else None
-
+    
+    def get_most_recent_sent_germ(self):
+        germ_sample_print = self.germ_sample_prints.order_by("-print_date").first()
+        return germ_sample_print.for_year if germ_sample_print else None
+    
 
     def is_next_year_only_lot(self, current_packed_year):
         """
@@ -178,7 +182,6 @@ class GermSamplePrint(models.Model):
 
 class GerminationBatch(models.Model):
     batch_number = models.CharField(max_length=10)
-    # date = models.DateField(auto_now_add=True)
     date = models.DateField(null=True, blank=True)
     tracking_number = models.CharField(max_length=50, blank=True, null=True)
 

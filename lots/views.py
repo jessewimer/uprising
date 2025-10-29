@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from products.models import Variety
 from datetime import datetime
 from django.db.models import Q
+from django.conf import settings 
 
 @login_required
 @user_passes_test(is_employee)
@@ -277,9 +278,14 @@ def growouts(request):
                 'grower'
             ))
    
+    current_for_year = getattr(settings, 'FOR_YEAR', None)
+
     # Add inventory status as a dynamic attribute to each lot
     for lot in lots:
         lot.has_inventory_status = lot.has_inventory() 
+        # Check if lot has germination for current FOR_YEAR
+        lot_germ_year = lot.get_most_recent_sent_germ()
+        lot.has_germination_for_year = lot_germ_year == current_for_year
 
     context = {
         'lots': lots,

@@ -422,52 +422,58 @@ body {
     cursor: wait !important;
 }
 
-/* Inventory Status Indicators */
-.inventory-indicator {
-    width: 16px;
-    height: 16px;
+
+/* Status Badge Indicators */
+.status-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    margin-left: 6px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 4px;
     flex-shrink: 0;
     transition: all 0.3s ease;
+    min-width: 32px;
+    height: 20px;
 }
 
-.inventory-indicator svg {
-    width: 12px;
-    height: 12px;
+.status-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.inventory-available {
-    background: rgba(38, 222, 129, 0.1);
-    color: #26de81;
+/* Available/True State - Green */
+.status-available {
+    background: linear-gradient(135deg, #26de81, #20bf6b);
+    color: white;
     border: 1px solid rgba(38, 222, 129, 0.3);
 }
 
-.inventory-available:hover {
-    background: rgba(38, 222, 129, 0.2);
-    transform: scale(1.1);
+.status-available:hover {
+    background: linear-gradient(135deg, #20bf6b, #1dd1a1);
 }
 
-.inventory-missing {
-    background: rgba(255, 71, 87, 0.1);
-    color: #ff4757;
+/* Missing/False State - Red */
+.status-missing {
+    background: linear-gradient(135deg, #ff4757, #ff3742);
+    color: white;
     border: 1px solid rgba(255, 71, 87, 0.3);
 }
 
-.inventory-missing:hover {
-    background: rgba(255, 71, 87, 0.2);
-    transform: scale(1.1);
+.status-missing:hover {
+    background: linear-gradient(135deg, #ff3742, #ff2f3a);
 }
 
-/* Update lot-cell-container to accommodate the new indicator */
+/* Update lot-cell-container */
 .lot-cell-container {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 110px; /* Increased to accommodate indicator */
+    gap: 6px;
+    min-width: 140px; /* Adjusted for text badges */
 }
 
 /* Animations */
