@@ -728,8 +728,8 @@ def add_grower():
 
 
 if __name__ == "__main__":
-    # add_grower()
-    manage_stock_seed()
+    add_grower()
+    # manage_stock_seed()
 #     germ_file_path = os.path.join(os.path.dirname(__file__), "germination_export.csv")
 #     inv_file_path = os.path.join(os.path.dirname(__file__), "inventory_export.csv")
 #     ret_file_path = os.path.join(os.path.dirname(__file__), "retired_lots.csv")

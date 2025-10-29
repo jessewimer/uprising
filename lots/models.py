@@ -121,7 +121,10 @@ class Lot(models.Model):
             inv_date = inventory.inv_date.strftime("%m/%Y")
             return f"{inventory.weight} lbs ({inv_date})"
         return "--"   
-
+    
+    def has_inventory(self):
+        return self.inventory.exists()
+    
     def get_lot_status(self):
         # check to see if lot exists in retired lots
         if hasattr(self, "retired_info"):
