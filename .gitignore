@@ -12,7 +12,6 @@ env/
 *.sqlite3
 *.db
 
-
 # Config and secret files
 .env
 
@@ -35,3 +34,7 @@ logs/
 /staticfiles/
 
 rack_locations.csv
+
+# all csv folders
+csv/
+**/csv/
