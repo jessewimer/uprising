@@ -1040,8 +1040,58 @@ function continuePrintDespiteLowInv() {
     proceedWithPrintPopup(productId, productName);
 }
 
-
 function submitPrintJob() {
+    // Check for print_back mismatch before proceeding
+    if (checkPrintBackMismatch(currentProductId, selectedPrintOption)) {
+        return; // Show warning and wait for user response
+    }
+    
+    // If no mismatch, proceed with the actual print
+    proceedWithActualPrint();
+}
+
+function checkPrintBackMismatch(productId, printOption) {
+    const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+    if (!productRow) return false;
+    
+    const printBack = productRow.dataset.printBack === 'true';
+    
+    // Check if printing front and back options
+    const printingBothSides = ['front_back_single', 'front_back_sheet'].includes(printOption);
+    // Check if printing front only options
+    const printingFrontOnly = ['front_single', 'front_sheet'].includes(printOption);
+    
+    let warningMessage = null;
+    
+    // Case 1: Trying to print both sides but back labels not set to print
+    if (printingBothSides && !printBack) {
+        warningMessage = "This product's back labels are <strong>NOT</strong> set to print.<br><br>You are trying to print <strong>front and back</strong> labels.<br><br>Are you sure you want to continue?";
+    }
+    // Case 2: Trying to print front only but back labels ARE set to print
+    else if (printingFrontOnly && printBack) {
+        warningMessage = "This product's back labels <strong>ARE</strong> set to print.<br><br>You are only printing <strong>front</strong> labels.<br><br>Are you sure you want to continue?";
+    }
+    
+    if (warningMessage) {
+        document.getElementById('printBackWarningMessage').innerHTML = warningMessage;
+        document.getElementById('printBackWarning').classList.add('show');
+        return true; // Mismatch found
+    }
+    
+    return false; // No mismatch
+}
+
+function hidePrintBackWarning() {
+    document.getElementById('printBackWarning').classList.remove('show');
+}
+
+function continuePrintDespiteBackMismatch() {
+    hidePrintBackWarning();
+    // Proceed with the actual print submission
+    proceedWithActualPrint();
+}
+
+function proceedWithActualPrint() {
     const quantity = document.getElementById('printQuantity').value;
     
     if (!currentProductId || !quantity || quantity < 1) {
@@ -1148,6 +1198,113 @@ function submitPrintJob() {
         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
     }
 }
+// function submitPrintJob() {
+//     const quantity = document.getElementById('printQuantity').value;
+    
+//     if (!currentProductId || !quantity || quantity < 1) {
+//         showMessage('Please enter a valid quantity', 'error');
+//         return;
+//     }
+
+//     // Disable buttons and show loading state immediately
+//     const printBtn = document.querySelector('.print-btn');
+//     const cancelBtn = document.querySelector('.cancel-btn');
+//     const popup = document.querySelector('.print-popup');
+    
+//     printBtn.disabled = true;
+//     cancelBtn.disabled = true;
+//     printBtn.classList.add('loading');
+//     popup.classList.add('loading');
+    
+//     // Change button text to indicate loading
+//     const originalPrintText = printBtn.textContent;
+//     printBtn.textContent = 'Printing...';
+
+//     try {
+//         // Collect all data from the page
+//         const printData = collectPrintData(currentProductId, quantity);
+        
+//         if (!printData) {
+//             showMessage('Could not collect print data', 'error');
+//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//             return;
+//         }
+
+//         // Determine Flask endpoints based on print option
+//         const endpoints = getFlaskEndpoints(selectedPrintOption);
+        
+//         if (endpoints.length === 0) {
+//             showMessage('Invalid print option selected', 'error');
+//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//             return;
+//         }
+
+//         console.log('Sending to Flask:', printData);
+
+//         // Step 1: Send to Flask for printing - SEQUENTIALLY to maintain order
+//         let printPromise = Promise.resolve();
+        
+//         endpoints.forEach(endpoint => {
+//             printPromise = printPromise.then(() => 
+//                 fetch(`http://localhost:5000${endpoint}`, {
+//                     method: 'POST',
+//                     headers: { 'Content-Type': 'application/json' },
+//                     body: JSON.stringify(printData)
+//                 })
+//                 .then(response => {
+//                     if (!response.ok) {
+//                         throw new Error(`Flask endpoint ${endpoint} failed`);
+//                     }
+//                     return response;
+//                 })
+//             );
+//         });
+
+//         printPromise
+//             .then(() => {
+//                 // Step 2: Record print job in Django after all printing is complete
+//                 return fetch('/office/print-product-labels/', {
+//                     method: 'POST',
+//                     headers: {
+//                         'Content-Type': 'application/json',
+//                         'X-CSRFToken': getCookie('csrftoken')
+//                     },
+//                     body: JSON.stringify({
+//                         product_id: currentProductId,
+//                         print_type: selectedPrintOption,
+//                         quantity: quantity,
+//                         packed_for_year: printData.for_year
+//                     })
+//                 });
+//             })
+//             .then(response => response.json())
+//             .then(data => {
+//                 if (data.success) {
+//                     showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
+//                     hidePrintPopup(); // This will reset the buttons when popup closes
+//                     // Refresh page after 2 seconds to show updated print count
+//                     setTimeout(() => {
+//                         window.location.href = window.location.pathname;
+//                     }, 2000);
+//                 } else {
+//                     showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
+//                     hidePrintPopup(); // This will reset the buttons when popup closes
+//                 }
+//             })
+//             .catch(error => {
+//                 console.error('Print job error:', error);
+//                 console.log('This is the data that would be sent to Flask:', printData);
+//                 showMessage('Printing failed: ' + error.message, 'error');
+//                 resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//             });
+
+//     } catch (error) {
+//         console.error('Data collection error:', error);
+//         console.log('This is the data that would be sent to Flask: [Data collection failed]');
+//         showMessage('Failed to collect print data', 'error');
+//         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//     }
+// }
 
 
 // Helper function to reset button states

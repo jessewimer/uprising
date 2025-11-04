@@ -1486,6 +1486,22 @@
         </div>
     </div>
 
+    <!-- Print Back Mismatch Warning Popup -->
+    <div class="print-popup-overlay" id="printBackWarning">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Warning</h3>
+                <button class="print-popup-close" onclick="hidePrintBackWarning()">×</button>
+            </div>
+            <p id="printBackWarningMessage" style="text-align: center; margin-bottom: 20px; color: #333; font-size: 1rem; line-height: 1.5;">
+            </p>
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="hidePrintBackWarning()">Cancel</button>
+                <button class="print-action-btn print-btn" onclick="continuePrintDespiteBackMismatch()">Yes, Continue</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Django-rendered data
         const VARIETY_SKU_PREFIX = '{{ variety.sku_prefix }}';
