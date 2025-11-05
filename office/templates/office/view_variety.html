@@ -227,7 +227,15 @@
                                     </th>
                                     <th>Germ (For yr.)</th>
                                     <th>Inventory</th>
-                                    <th>Status</th>
+                                    <!-- <th>Status</th> -->
+                                     <th>
+                                        Status
+                                        <span class="filter-icon" id="statusFilterIcon" onclick="toggleRetiredLots()" title="Toggle retired lots">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                            </svg>
+                                        </span>
+                                    </th>
                                     <th>Low Inventory</th>
                                     <th>Stock</th>
                                 </tr>
@@ -254,19 +262,26 @@
                                         {% if lot.get_germ_record_with_no_test_date %}*{% endif %}
                                     </td>
                                     <td>{{ lot.get_most_recent_inventory|default:"--" }}</td>
-                                    <td>{{ lot.get_lot_status|default:"--" }}</td>
+                                    <!-- <td>{{ lot.get_lot_status|default:"--" }}</td> -->
+                                     <td>
+                                        {% if lot.get_lot_status %}
+                                            <span class="lot-status {{ lot.get_lot_status|lower }}">{{ lot.get_lot_status }}</span>
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if lot.low_inv %}
-                                            Yes
+                                            <span class="yes-no-pill no">Yes</span>
                                         {% else %}
-                                            No
+                                            <span class="yes-no-pill yes">No</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if lot.check_stock_seed %}
-                                            Yes
+                                            <span class="yes-no-pill yes">Yes</span>
                                         {% else %}
-                                            No
+                                            <span class="yes-no-pill no">No</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -727,7 +742,7 @@
             <div class="change-all-checkbox-container">
                 <label class="change-all-checkbox-label">
                     <input type="checkbox" id="changeAllProductsCheckbox" class="change-all-checkbox">
-                    <span class="checkbox-text">Change lot for all products in this variety?</span>
+                    <span class="checkbox-text">Change lot for all product sizes?</span>
                 </label>
             </div>
             

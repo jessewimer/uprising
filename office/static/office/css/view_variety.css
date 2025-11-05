@@ -1108,6 +1108,58 @@ body {
     height: 18px;
 }
 
+
+
+/* ------------------------------------------------------------ */
+
+/* Filter Icon */
+/* Filter Icon */
+.filter-icon {
+    cursor: pointer;
+    color: white;
+    margin-left: 4px;  /* Reduced from 8px to bring it closer */
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    opacity: 0.7;
+    position: relative;
+    top: 2px;  /* Nudges it down slightly */
+}
+
+.filter-icon:hover {
+    background: rgba(255, 255, 255, 0.2);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.filter-icon.active {
+    background: rgba(255, 255, 255, 0.3);
+    opacity: 1;
+}
+
+.filter-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Hide retired lots by default */
+.lots-table tbody tr.retired-lot {
+    display: none;
+}
+
+.lots-table tbody tr.retired-lot.show {
+    display: table-row;
+}
+
+
+/* ------------------------------------------------------ */
+
+
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -1451,6 +1503,31 @@ body {
     color: #f57c00;
 }
 
+
+/* Yes/No Pills */
+.yes-no-pill {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 60px;
+}
+
+.yes-no-pill.yes {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.yes-no-pill.no {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+
 /* Single-line record format */
 .record-item {
     background: white;
@@ -1534,6 +1611,37 @@ body {
 .record-status.active {
     background: #d4edda;
     color: #155724;
+}
+
+
+/* Lot Status Pills */
+.lot-status {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    text-align: center;
+    min-width: 80px;
+}
+
+.lot-status.active {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.lot-status.pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.lot-status.retired {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }
 
 /* Notes section for records */

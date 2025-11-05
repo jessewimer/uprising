@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupSearch();
     setupPrintHandlers();
     reorderGrowerDropdown(); 
+    initializeRetiredLotFilter(); 
 });
 
 // Search setup
@@ -1198,114 +1199,6 @@ function proceedWithActualPrint() {
         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
     }
 }
-// function submitPrintJob() {
-//     const quantity = document.getElementById('printQuantity').value;
-    
-//     if (!currentProductId || !quantity || quantity < 1) {
-//         showMessage('Please enter a valid quantity', 'error');
-//         return;
-//     }
-
-//     // Disable buttons and show loading state immediately
-//     const printBtn = document.querySelector('.print-btn');
-//     const cancelBtn = document.querySelector('.cancel-btn');
-//     const popup = document.querySelector('.print-popup');
-    
-//     printBtn.disabled = true;
-//     cancelBtn.disabled = true;
-//     printBtn.classList.add('loading');
-//     popup.classList.add('loading');
-    
-//     // Change button text to indicate loading
-//     const originalPrintText = printBtn.textContent;
-//     printBtn.textContent = 'Printing...';
-
-//     try {
-//         // Collect all data from the page
-//         const printData = collectPrintData(currentProductId, quantity);
-        
-//         if (!printData) {
-//             showMessage('Could not collect print data', 'error');
-//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//             return;
-//         }
-
-//         // Determine Flask endpoints based on print option
-//         const endpoints = getFlaskEndpoints(selectedPrintOption);
-        
-//         if (endpoints.length === 0) {
-//             showMessage('Invalid print option selected', 'error');
-//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//             return;
-//         }
-
-//         console.log('Sending to Flask:', printData);
-
-//         // Step 1: Send to Flask for printing - SEQUENTIALLY to maintain order
-//         let printPromise = Promise.resolve();
-        
-//         endpoints.forEach(endpoint => {
-//             printPromise = printPromise.then(() => 
-//                 fetch(`http://localhost:5000${endpoint}`, {
-//                     method: 'POST',
-//                     headers: { 'Content-Type': 'application/json' },
-//                     body: JSON.stringify(printData)
-//                 })
-//                 .then(response => {
-//                     if (!response.ok) {
-//                         throw new Error(`Flask endpoint ${endpoint} failed`);
-//                     }
-//                     return response;
-//                 })
-//             );
-//         });
-
-//         printPromise
-//             .then(() => {
-//                 // Step 2: Record print job in Django after all printing is complete
-//                 return fetch('/office/print-product-labels/', {
-//                     method: 'POST',
-//                     headers: {
-//                         'Content-Type': 'application/json',
-//                         'X-CSRFToken': getCookie('csrftoken')
-//                     },
-//                     body: JSON.stringify({
-//                         product_id: currentProductId,
-//                         print_type: selectedPrintOption,
-//                         quantity: quantity,
-//                         packed_for_year: printData.for_year
-//                     })
-//                 });
-//             })
-//             .then(response => response.json())
-//             .then(data => {
-//                 if (data.success) {
-//                     showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
-//                     hidePrintPopup(); // This will reset the buttons when popup closes
-//                     // Refresh page after 2 seconds to show updated print count
-//                     setTimeout(() => {
-//                         window.location.href = window.location.pathname;
-//                     }, 2000);
-//                 } else {
-//                     showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
-//                     hidePrintPopup(); // This will reset the buttons when popup closes
-//                 }
-//             })
-//             .catch(error => {
-//                 console.error('Print job error:', error);
-//                 console.log('This is the data that would be sent to Flask:', printData);
-//                 showMessage('Printing failed: ' + error.message, 'error');
-//                 resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//             });
-
-//     } catch (error) {
-//         console.error('Data collection error:', error);
-//         console.log('This is the data that would be sent to Flask: [Data collection failed]');
-//         showMessage('Failed to collect print data', 'error');
-//         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//     }
-// }
-
 
 // Helper function to reset button states
 function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
@@ -1524,6 +1417,60 @@ function submitEditBackLabels(event) {
     
     hideEditBackLabelsPopup();
 }
+
+
+
+
+
+
+
+// Filter retired lots functionality
+let showRetiredLots = false;
+
+function toggleRetiredLots() {
+    showRetiredLots = !showRetiredLots;
+    const retiredRows = document.querySelectorAll('.lots-table tbody tr.retired-lot');
+    const filterIcon = document.getElementById('statusFilterIcon');
+    
+    retiredRows.forEach(row => {
+        if (showRetiredLots) {
+            row.classList.add('show');
+        } else {
+            row.classList.remove('show');
+        }
+    });
+    
+    // Toggle active state on icon
+    if (showRetiredLots) {
+        filterIcon.classList.add('active');
+        filterIcon.title = 'Hide retired lots';
+    } else {
+        filterIcon.classList.remove('active');
+        filterIcon.title = 'Show retired lots';
+    }
+}
+
+// Initialize retired lot filtering on page load
+function initializeRetiredLotFilter() {
+    // Add 'retired-lot' class to rows with retired status
+    const lotsTable = document.querySelector('.lots-table tbody');
+    if (lotsTable) {
+        const rows = lotsTable.querySelectorAll('tr');
+        rows.forEach(row => {
+            const statusCell = row.querySelector('.lot-status');
+            if (statusCell && statusCell.classList.contains('retired')) {
+                row.classList.add('retired-lot');
+            }
+        });
+    }
+    // Retired lots are hidden by default via CSS
+}
+
+
+
+
+
+
 
 function reorderGrowerDropdown() {
     const select = document.getElementById('lotGrowerSelect');
