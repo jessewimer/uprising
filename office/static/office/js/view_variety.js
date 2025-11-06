@@ -1422,15 +1422,19 @@ function submitEditBackLabels(event) {
 
 
 
-
-
 // Filter retired lots functionality
 let showRetiredLots = false;
 
 function toggleRetiredLots() {
-    showRetiredLots = !showRetiredLots;
     const retiredRows = document.querySelectorAll('.lots-table tbody tr.retired-lot');
     const filterIcon = document.getElementById('statusFilterIcon');
+    
+    // If there are no retired lots, do nothing
+    if (retiredRows.length === 0) {
+        return;
+    }
+    
+    showRetiredLots = !showRetiredLots;
     
     retiredRows.forEach(row => {
         if (showRetiredLots) {
@@ -1440,12 +1444,14 @@ function toggleRetiredLots() {
         }
     });
     
-    // Toggle active state on icon
+    // Active state means "filtering is happening" (retired lots are hidden)
     if (showRetiredLots) {
-        filterIcon.classList.add('active');
+        // Showing retired lots = no filtering = remove active state
+        filterIcon.classList.remove('active');
         filterIcon.title = 'Hide retired lots';
     } else {
-        filterIcon.classList.remove('active');
+        // Hiding retired lots = filtering is active = add active state
+        filterIcon.classList.add('active');
         filterIcon.title = 'Show retired lots';
     }
 }
@@ -1463,8 +1469,63 @@ function initializeRetiredLotFilter() {
             }
         });
     }
-    // Retired lots are hidden by default via CSS
+    
+    // Set initial icon state based on whether retired lots exist
+    const retiredRows = document.querySelectorAll('.lots-table tbody tr.retired-lot');
+    const filterIcon = document.getElementById('statusFilterIcon');
+    
+    if (retiredRows.length > 0) {
+        // There are retired lots and they're hidden by default = filtering is active
+        filterIcon.classList.add('active');
+        filterIcon.title = 'Show retired lots';
+    } else {
+        // No retired lots = no filtering needed = no active state
+        filterIcon.classList.remove('active');
+        filterIcon.title = 'No retired lots to filter';
+    }
 }
+
+// // Filter retired lots functionality
+// let showRetiredLots = false;
+
+// function toggleRetiredLots() {
+//     showRetiredLots = !showRetiredLots;
+//     const retiredRows = document.querySelectorAll('.lots-table tbody tr.retired-lot');
+//     const filterIcon = document.getElementById('statusFilterIcon');
+    
+//     retiredRows.forEach(row => {
+//         if (showRetiredLots) {
+//             row.classList.add('show');
+//         } else {
+//             row.classList.remove('show');
+//         }
+//     });
+    
+//     // Toggle active state on icon
+//     if (showRetiredLots) {
+//         filterIcon.classList.add('active');
+//         filterIcon.title = 'Hide retired lots';
+//     } else {
+//         filterIcon.classList.remove('active');
+//         filterIcon.title = 'Show retired lots';
+//     }
+// }
+
+// // Initialize retired lot filtering on page load
+// function initializeRetiredLotFilter() {
+//     // Add 'retired-lot' class to rows with retired status
+//     const lotsTable = document.querySelector('.lots-table tbody');
+//     if (lotsTable) {
+//         const rows = lotsTable.querySelectorAll('tr');
+//         rows.forEach(row => {
+//             const statusCell = row.querySelector('.lot-status');
+//             if (statusCell && statusCell.classList.contains('retired')) {
+//                 row.classList.add('retired-lot');
+//             }
+//         });
+//     }
+//     // Retired lots are hidden by default via CSS
+// }
 
 
 
