@@ -114,6 +114,29 @@
         </div>
     </div>
 
+    <!-- Bulk Confirmation Modal -->
+    <div class="modal" id="bulkModal">
+        <div class="modal-content">
+            <div class="modal-icon bulk-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 7h-9"></path>
+                    <path d="M14 17H5"></path>
+                    <circle cx="17" cy="17" r="3"></circle>
+                    <circle cx="7" cy="7" r="3"></circle>
+                </svg>
+            </div>
+            <h3 class="modal-title">Confirm Bulk Stock on Website</h3>
+            <div class="modal-message">
+                <div>Are you sure you want to mark bulk stock as available on the website for:</div>
+                <div class="modal-variety" id="bulkModalVariety">Loading...</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="bulkModalCancel">Cancel</button>
+                <button class="modal-btn primary" id="bulkModalConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Sales Modal -->
     <div class="sales-modal" id="salesModal">
         <div class="sales-modal-content">
@@ -149,7 +172,8 @@
         window.appUrls = {
             germinationInventoryData: "{% url 'germination_inventory_data' %}",
             createGermSamplePrint: "{% url 'create_germ_sample_print' %}",
-            varietySalesData: "{% url 'variety_sales_data' sku_prefix='PLACEHOLDER' %}"
+            varietySalesData: "{% url 'variety_sales_data' sku_prefix='PLACEHOLDER' %}",
+            updateWebsiteBulk: "{% url 'update_website_bulk' %}"
         };
     </script>
 

@@ -92,4 +92,5 @@ urlpatterns = [
     path('store-returns-data/', get_store_returns_data, name='get_store_returns_data'),
     path('store-sales-data/', get_store_sales_data, name='get_store_sales_data'), 
     path('edit-variety/', edit_variety, name='edit_variety'),
+    path('api/update-website-bulk/', update_website_bulk, name='update_website_bulk'),
 ]

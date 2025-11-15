@@ -1485,51 +1485,6 @@ function initializeRetiredLotFilter() {
     }
 }
 
-// // Filter retired lots functionality
-// let showRetiredLots = false;
-
-// function toggleRetiredLots() {
-//     showRetiredLots = !showRetiredLots;
-//     const retiredRows = document.querySelectorAll('.lots-table tbody tr.retired-lot');
-//     const filterIcon = document.getElementById('statusFilterIcon');
-    
-//     retiredRows.forEach(row => {
-//         if (showRetiredLots) {
-//             row.classList.add('show');
-//         } else {
-//             row.classList.remove('show');
-//         }
-//     });
-    
-//     // Toggle active state on icon
-//     if (showRetiredLots) {
-//         filterIcon.classList.add('active');
-//         filterIcon.title = 'Hide retired lots';
-//     } else {
-//         filterIcon.classList.remove('active');
-//         filterIcon.title = 'Show retired lots';
-//     }
-// }
-
-// // Initialize retired lot filtering on page load
-// function initializeRetiredLotFilter() {
-//     // Add 'retired-lot' class to rows with retired status
-//     const lotsTable = document.querySelector('.lots-table tbody');
-//     if (lotsTable) {
-//         const rows = lotsTable.querySelectorAll('tr');
-//         rows.forEach(row => {
-//             const statusCell = row.querySelector('.lot-status');
-//             if (statusCell && statusCell.classList.contains('retired')) {
-//                 row.classList.add('retired-lot');
-//             }
-//         });
-//     }
-//     // Retired lots are hidden by default via CSS
-// }
-
-
-
-
 
 
 

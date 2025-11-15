@@ -9,7 +9,7 @@ let appData = {
     groups: [],
     vegTypes: []
 };
-
+let currentBulkJob = null; 
 let currentPrintJob = null;
 
 // CSRF helper
@@ -33,6 +33,8 @@ function setupEventListeners() {
     document.getElementById('modalCancel').addEventListener('click', closeModal);
     document.getElementById('modalConfirm').addEventListener('click', confirmPrint);
     document.getElementById('salesModalClose').addEventListener('click', closeSalesModal);
+    document.getElementById('bulkModalCancel').addEventListener('click', closeBulkModal);
+    document.getElementById('bulkModalConfirm').addEventListener('click', confirmBulk);
     
     // Modal backdrop clicks
     document.getElementById('printModal').addEventListener('click', function(e) {
@@ -41,12 +43,16 @@ function setupEventListeners() {
     document.getElementById('salesModal').addEventListener('click', function(e) {
         if (e.target === this) closeSalesModal();
     });
+    document.getElementById('bulkModal').addEventListener('click', function(e) {
+        if (e.target === this) closeBulkModal();
+    });
     
     // Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
             closeSalesModal();
+            closeBulkModal();
         }
     });
 }
@@ -266,28 +272,28 @@ function getGerminationDisplay(lot, year) {
 function renderTable() {
     const tbody = document.getElementById('tableBody');
     const emptyState = document.getElementById('emptyState');
-
+    
+    tbody.innerHTML = '';
+    
     if (appData.filteredLots.length === 0) {
-        tbody.innerHTML = '';
         emptyState.style.display = 'block';
         return;
     }
-
+    
     emptyState.style.display = 'none';
-    tbody.innerHTML = '';
-
+    
     appData.filteredLots.forEach(lot => {
         const row = document.createElement('tr');
         
-        // Variety cell with print icon
+        // Variety cell with print and bulk icons
         const varietyCell = document.createElement('td');
         varietyCell.className = 'variety-cell';
         
-        const container = document.createElement('div');
-        container.className = 'variety-cell-content';
+        const varietyCellContent = document.createElement('div');
+        varietyCellContent.className = 'variety-cell-content';
         
         // Print icon
-        const printIcon = document.createElement('span');
+        const printIcon = document.createElement('div');
         printIcon.className = 'print-icon';
         printIcon.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -296,76 +302,90 @@ function renderTable() {
                 <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
             </svg>
         `;
-        printIcon.title = `Print germ sample label for ${lot.variety_name}`;
-        printIcon.addEventListener('click', () => handlePrint(lot));
+        printIcon.addEventListener('click', () => showPrintModal(lot));
+        
+        // NEW: Bulk icon
+        const bulkIcon = document.createElement('div');
+        bulkIcon.className = lot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
+        bulkIcon.innerHTML = 'B';
+        bulkIcon.addEventListener('click', () => showBulkModal(lot));
         
         // Variety link
-        const varietyLink = document.createElement('span');
+        const varietyLink = document.createElement('a');
         varietyLink.className = 'variety-link';
-        varietyLink.textContent = `${lot.variety_name} (${lot.sku_prefix})`;
+        varietyLink.textContent = lot.variety_name;
         varietyLink.addEventListener('click', () => showSalesData(lot.sku_prefix, lot.variety_name));
         
-        container.appendChild(printIcon);
-        container.appendChild(varietyLink);
-        varietyCell.appendChild(container);
+        varietyCellContent.appendChild(printIcon);
+        varietyCellContent.appendChild(bulkIcon);  // NEW: Add bulk icon
+        varietyCellContent.appendChild(varietyLink);
+        varietyCell.appendChild(varietyCellContent);
         row.appendChild(varietyCell);
-
-        // Lot
+        
+        // Lot cell
         const lotCell = document.createElement('td');
         lotCell.className = 'lot-cell';
         lotCell.textContent = lot.lot_code;
         row.appendChild(lotCell);
-
-        // Current Inventory
+        
+        // Current Inventory cell
         const currentInvCell = document.createElement('td');
         currentInvCell.className = 'inventory-cell';
-        if (lot.current_inventory_weight && lot.current_inventory_date) {
-            currentInvCell.textContent = `${lot.current_inventory_weight} lbs (${lot.current_inventory_date})`;
+        if (lot.current_inventory_weight !== null) {
+            currentInvCell.textContent = `${lot.current_inventory_weight.toFixed(2)} lbs`;
+            if (lot.current_inventory_date) {
+                currentInvCell.title = `As of ${lot.current_inventory_date}`;
+            }
         } else {
             currentInvCell.textContent = '-';
         }
         row.appendChild(currentInvCell);
-
-        // Previous Inventory
-        const previousInvCell = document.createElement('td');
-        previousInvCell.className = 'inventory-cell';
-        if (lot.previous_inventory_weight && lot.previous_inventory_date) {
-            previousInvCell.textContent = `${lot.previous_inventory_weight} lbs (${lot.previous_inventory_date})`;
+        
+        // Previous Inventory cell
+        const prevInvCell = document.createElement('td');
+        prevInvCell.className = 'inventory-cell';
+        if (lot.previous_inventory_weight !== null) {
+            prevInvCell.textContent = `${lot.previous_inventory_weight.toFixed(2)} lbs`;
+            if (lot.previous_inventory_date) {
+                prevInvCell.title = `As of ${lot.previous_inventory_date}`;
+            }
         } else {
-            previousInvCell.textContent = '-';
+            prevInvCell.textContent = '-';
         }
-        row.appendChild(previousInvCell);
-
-        // Difference
+        row.appendChild(prevInvCell);
+        
+        // Difference cell
         const diffCell = document.createElement('td');
-        diffCell.className = 'inventory-cell';
         if (lot.inventory_difference !== null) {
-            const diff = parseFloat(lot.inventory_difference);
-            diffCell.textContent = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} lbs`;
+            const sign = lot.inventory_difference > 0 ? '+' : '';
+            diffCell.textContent = `${sign}${lot.inventory_difference.toFixed(2)}`;
             
-            if (diff > 0) diffCell.className += ' positive-diff';
-            else if (diff < 0) diffCell.className += ' negative-diff';
-            else diffCell.className += ' neutral-diff';
+            if (lot.inventory_difference > 0) {
+                diffCell.className = 'positive-diff';
+            } else if (lot.inventory_difference < 0) {
+                diffCell.className = 'negative-diff';
+            } else {
+                diffCell.className = 'neutral-diff';
+            }
         } else {
             diffCell.textContent = '-';
-            diffCell.className += ' neutral-diff';
+            diffCell.className = 'neutral-diff';
         }
         row.appendChild(diffCell);
-
-        // Germination columns
+        
+        // Germination cells
         appData.germYears.forEach(year => {
             const germCell = document.createElement('td');
-            const displayInfo = getGerminationDisplay(lot, year);
-            
-            germCell.className = displayInfo.className;
-            germCell.textContent = displayInfo.text;
-            
+            const display = getGerminationDisplay(lot, year);
+            germCell.textContent = display.text;
+            germCell.className = display.className;
             row.appendChild(germCell);
         });
-
+        
         tbody.appendChild(row);
     });
 }
+
 
 function showMessage(text, type = 'error') {
     // Create message container if it doesn't exist
@@ -777,4 +797,123 @@ function showError(message) {
             </td>
         </tr>
     `;
+}
+
+// NEW: Show bulk modal
+function showBulkModal(lot) {
+    currentBulkJob = {
+        sku_prefix: lot.sku_prefix,
+        variety_name: lot.variety_name,
+        current_status: lot.website_bulk  // NEW: Track current status
+    };
+    
+    const modalTitle = document.querySelector('#bulkModal .modal-title');
+    const modalMessage = document.querySelector('#bulkModal .modal-message > div:first-child');
+    const confirmBtn = document.getElementById('bulkModalConfirm');
+    
+    if (lot.website_bulk) {
+        // Currently green - offer to remove
+        modalTitle.textContent = 'Remove Bulk Stock from Website';
+        modalMessage.textContent = 'Are you sure you want to mark bulk stock as NOT available on the website for:';
+        confirmBtn.textContent = 'Remove';
+    } else {
+        // Currently red - offer to add
+        modalTitle.textContent = 'Confirm Bulk Stock on Website';
+        modalMessage.textContent = 'Are you sure you want to mark bulk stock as available on the website for:';
+        confirmBtn.textContent = 'Confirm';
+    }
+    
+    document.getElementById('bulkModalVariety').textContent = lot.variety_name;
+    document.getElementById('bulkModal').style.display = 'block';
+}
+
+// NEW: Close bulk modal
+function closeBulkModal() {
+    document.getElementById('bulkModal').style.display = 'none';
+    currentBulkJob = null;
+}
+
+// NEW: Confirm bulk update
+function confirmBulk() {
+    if (!currentBulkJob) return;
+    
+    const skuPrefix = currentBulkJob.sku_prefix;
+    const newStatus = !currentBulkJob.current_status;  // Toggle the status
+    console.log('Updating bulk status to:', newStatus, 'for:', skuPrefix);
+    
+    closeBulkModal();
+    
+    // Update all lots with this sku_prefix in the data
+    appData.allLots.forEach(lot => {
+        if (lot.sku_prefix === skuPrefix) {
+            lot.website_bulk = newStatus;
+        }
+    });
+    
+    appData.filteredLots.forEach(lot => {
+        if (lot.sku_prefix === skuPrefix) {
+            lot.website_bulk = newStatus;
+        }
+    });
+    
+    // Re-render the table
+    renderTable();
+    console.log('UI updated - B should be', newStatus ? 'green' : 'red', 'now');
+    
+    // Clear cache since data changed
+    clearCache();
+    
+    // Post to backend
+    fetch(window.appUrls.updateWebsiteBulk, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+            sku_prefix: skuPrefix,
+            website_bulk: newStatus  // Send the new status
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Bulk update response:', data);
+        
+        if (!data.success) {
+            alert('Error updating bulk status: ' + (data.error || 'Unknown error'));
+            // Revert the change
+            appData.allLots.forEach(lot => {
+                if (lot.sku_prefix === skuPrefix) {
+                    lot.website_bulk = !newStatus;
+                }
+            });
+            appData.filteredLots.forEach(lot => {
+                if (lot.sku_prefix === skuPrefix) {
+                    lot.website_bulk = !newStatus;
+                }
+            });
+            renderTable();
+        } else {
+            console.log('Backend update successful!');
+        }
+    })
+    .catch(error => {
+        console.error('Bulk update error:', error);
+        alert('Error updating bulk status: Network error');
+        // Revert the change
+        appData.allLots.forEach(lot => {
+            if (lot.sku_prefix === skuPrefix) {
+                lot.website_bulk = !newStatus;
+            }
+        });
+        appData.filteredLots.forEach(lot => {
+            if (lot.sku_prefix === skuPrefix) {
+                lot.website_bulk = !newStatus;
+            }
+        });
+        renderTable();
+    });
 }

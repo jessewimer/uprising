@@ -1,4 +1,3 @@
-# from tkinter import Image
 from PIL import Image
 from django.conf import settings
 import os
@@ -25,490 +24,87 @@ django.setup()
 from products.models import Product, Variety, Sales, MiscProduct, MiscSales, LabelPrint
 from django.db import transaction
 
-def print_product_table():
-    products = Product.objects.all().order_by('item_number').values('item_number', 'sku', 'variety')
 
-    table = PrettyTable()
-    table.field_names = ["Item Number", "SKU", "Variety"]
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
 
-    for p in products:
-        table.add_row([p['item_number'], p['sku'], p['variety']])
+def clear_screen():
+    """Clear the terminal screen"""
+    os.system('clear' if os.name != 'nt' else 'cls')
 
-    print(table)
+def pause():
+    """Pause and wait for user input"""
+    input("\nPress Enter to continue...")
 
-
-def check_duplicate_item_numbers():
-    # Get all item_numbers from products
-    item_numbers = Product.objects.values_list('item_number', flat=True)
-
-    # Count occurrences of each item_number
-    counts = Counter(item_numbers)
-
-    # Find duplicates
-    duplicates = {num: count for num, count in counts.items() if count > 1}
-
-    if duplicates:
-        print("Duplicate item_numbers found:")
-        for item_num, count in duplicates.items():
-            print(f"Item Number: {item_num} - Count: {count}")
-    else:
-        print("No duplicate item_numbers found.")
+def get_choice(prompt, valid_choices):
+    """Get validated user choice"""
+    while True:
+        choice = input(prompt).strip()
+        if choice in valid_choices:
+            return choice
+        print(f"Invalid choice. Please select from: {', '.join(valid_choices)}")
 
 
-def update_notes_with_csv():
+# ============================================================================
+# VARIETY MANAGEMENT
+# ============================================================================
 
-    with open('notes.csv', 'r') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            item_num = row[0]
-            note = row[1]
-            product = Product.objects.get(item_number=item_num)
-
-            if note == "B":
-                product.notes = "Best Seller"
-            elif note == "NR":
-                product.notes = "New/Returning"
-            elif note == "L":
-                product.notes = "Limited Availability"
-            else:
-                product.notes = "-"
-
-            product.save()
-            print(f"{product.item_number} -- {product.notes}")
-
-
-def check_categories():
-    products = Product.objects.all()
-    for product in products:
-        if product.category == "":
-            print(product.variety)
-
-
-# Sets all variety 'photo' attributes to the correct file (webp or jpg)
-def update_all_variety_photos():
+def view_all_varieties():
+    """View all varieties with key details"""
+    varieties = Variety.objects.all().order_by('sku_prefix')
     
-    varieties = Variety.objects.all()
-    for variety in varieties:
-        # if not variety.photo_path or variety.photo_path.strip() == "":
-            # Look for new photos
-        sku_prefix = variety.sku_prefix
-        webp_file = os.path.join(settings.BASE_DIR, 'products', 'static', 'products', 'photos', f'{sku_prefix}.webp')
-        jpg_file = os.path.join(settings.BASE_DIR, 'products', 'static', 'products', 'photos', f'{sku_prefix}.jpg')
-        
-        if os.path.exists(webp_file):
-            variety.photo_path = f'products/photos/{sku_prefix}.webp'
-            print(f"Set webp photo for {sku_prefix}")
-            variety.save()
-        elif os.path.exists(jpg_file):
-            variety.photo_path = f'products/photos/{sku_prefix}.jpg'
-            print(f"Set jpg photo for {sku_prefix}")
-            variety.save()
-        # else:
-            # Fix existing paths with backslashes
-        #     if '\\' in variety.photo_path:
-        #         variety.photo_path = variety.photo_path.replace('\\', '/')
-        #         print(f"Fixed path for {variety.sku_prefix}: {variety.photo_path}")
-        #         variety.save()
-        # # else:
-            # print(f"skipping {variety.sku_prefix}, already has photo_path")
-
-
-# # Function to change all backslashes to forward slashes in the photo attribute
-def fix_slashes():
-    products = Product.objects.all()
-    for product in products:
-        product.photo = product.photo.replace('\\', '/')
-        product.save()
-
-    print("slashes fixed")
-
-
-def view_product_varieties():
-    products = Product.objects.all()
-    with open("ws_item_nums.csv", mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["item_number", "sku"])  # Write header row
-
-        for product in products:
-            cleaned_sku = product.sku.rstrip("w")  # Remove trailing 'w' if present
-            writer.writerow([product.item_number, cleaned_sku])
-
-    print("CSV file 'ws_item_nums.csv' created successfully.")
-    return
-    # Extract headers
-    headers = ["Variety", "Category", "Super Type", "Veg Type", "Sub Type"]
-
-    # Get all data and calculate the maximum width for each column
-    data = [
-        [product.variety, product.category, product.super_type, product.veg_type, product.sub_type]
-        for product in products
-    ]
-    column_widths = [max(len(str(row[i])) for row in data + [headers]) for i in range(len(headers))]
-
-    # Print the headers
-    header_row = " | ".join(f"{headers[i]:<{column_widths[i]}}" for i in range(len(headers)))
-    print(header_row)
-    print("-" * len(header_row))  # Separator line
-
-    # Print each product's details
-    for row in data:
-        print(" | ".join(f"{str(row[i]):<{column_widths[i]}}" for i in range(len(row))))
-
-    # for product in products:
-
-    #     print(product.variety, product.category, product.super_type, product.veg_type, product.sub_type)
-
-def delete_duplicate_products():
-    original_products = []
-    products = Product.objects.all()
-    for product in products:
-        if product.item_number in original_products:
-            print(product.variety, " deleted")
-            product.delete()
-        else:
-            original_products.append(product.item_number)
-
-
-def update_product_description(item_num, description):
-   product = Product.objects.get(item_number=item_num)
-   product.description = description
-   product.save()
-   print(f"The description for item number {product.item_number} has been updated to '{description}'")
-
-
-def update_product_notes(item_num, notes):
-   product = Product.objects.get(item_number=item_num)
-   product.notes = notes
-   product.save()
-   print(f"The notes for item number {product.item_number} has been updated to '{notes}'")
-
-def update_product_sub_type(item_num, sub_type):
-   product = Product.objects.get(item_number=item_num)
-   product.sub_type = sub_type
-   product.save()
-   print(f"The sub_type for item number {product.item_number} has been updated to '{product.sub_type}'")
-
-def update_product_photo(item_num, photo):
-    product = Product.objects.get(item_number=item_num)
-    product.photo = photo
-    product.save()
-    print(f"The photo for item number {product.item_number} has been updated to '{product.photo}'")
-
-
-def create_product_object(item_num,
-                          sku,
-                          notes,
-                          category,
-                          super_type,
-                          veg_type,
-                          sub_type,
-                          variety,
-                          description,
-                          photo):
-
-    product = Product.objects.create(
-        item_number = item_num,
-        sku = sku,
-        notes = notes,
-        active = '',
-        category = category,
-        super_type = super_type,
-        veg_type = veg_type,
-        sub_type = sub_type,
-        variety = variety,
-        description = description,
-        quickbooks_code = '',
-        photo = photo
-    )
-
-    product.save()
-    print(f"{product.variety} added successfully")
-
-
-def get_photo_path(sku_prefix):
-    """
-    Look in products/static/products/photos/ for an image file that matches sku_prefix.
-    Priority: .webp, then .jpg, then .jpeg.
-    Returns relative path (e.g. 'products/photos/LET001.webp') or '' if not found.
-    """
-    photos_dir = os.path.join("products", "static", "products", "photos")
-    extensions = [".webp", ".jpg", ".jpeg"]
-
-    for ext in extensions:
-        filename = f"{sku_prefix}{ext}"
-        filepath = os.path.join(photos_dir, filename)
-        if os.path.exists(filepath):
-            # Store relative to static/products (so it works with your static setup)
-            return f"products/photos/{filename}"
-
-    return ""
-
-
-def import_varieties_from_csv(csv_file_path):
-    with open(csv_file_path, newline='', encoding="utf-8-sig") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        for row in reader:
-            sku_prefix = row.get("SKU Prefix", "").strip()
-            if not sku_prefix:
-                continue  # skip empty rows
-
-            photo_path = get_photo_path(sku_prefix)
-
-            variety, created = Variety.objects.update_or_create(
-                sku_prefix=sku_prefix,
-                defaults={
-                    "crop": row.get("Crop", "").strip(),
-                    "common_name": row.get("Common Name", "").strip(),
-                    "var_name": row.get("Variety", "").strip(),
-                    "desc_line1": row.get("Description Line 1", "").strip(),
-                    "desc_line2": row.get("Description Line 2", "").strip(),
-                    "desc_line3": row.get("Description Line 3", "").strip(),
-                    "group": row.get("Group", "").strip(),
-                    "back1": row.get("BACK 1", "").strip(),
-                    "back2": row.get("BACK 2", "").strip(),
-                    "back3": row.get("BACK 3", "").strip(),
-                    "back4": row.get("BACK 4", "").strip(),
-                    "back5": row.get("BACK 5", "").strip(),
-                    "back6": row.get("BACK 6", "").strip(),
-                    "back7": row.get("BACK 7", "").strip(),
-                    "days": row.get("Days", "").strip(),
-                    "species": row.get("Species", "").strip(),
-                    "veg_type": row.get("Radicchio Type", "").strip(),
-                    "photo_path": photo_path,
-                }
-            )
-
-            action = "Created" if created else "Updated"
-            print(f"{action} variety {sku_prefix} (photo: {photo_path or 'none'})")
-
-
-def update_varieties_from_csv(csv_path):
-    import csv
-    import unicodedata
-    from django.db import transaction
-
-    """
-    Updates Variety objects from a comma-delimited CSV.
-    Handles common encoding issues (utf-8-sig or latin-1 fallback).
-    Prints debug info for rows that don't match.
-    """
-    updated = 0
-    not_found = []
-
-    encodings_to_try = ["utf-8-sig", "latin-1"]
-
-    for enc in encodings_to_try:
-        try:
-            with open(csv_path, newline='', encoding=enc) as csvfile:
-                reader = csv.DictReader(csvfile)  # comma-delimited
-                print("CSV headers:", reader.fieldnames)  # debug: confirm headers
-
-                with transaction.atomic():
-                    for row in reader:
-                        raw_sku = row.get("SKU", "")
-                        sku_prefix = unicodedata.normalize("NFKC", raw_sku[:6]).strip().upper()
-
-                        if not sku_prefix:
-                            print(f"⚠️ Empty SKU in row: {row}")
-                            continue
-
-                        try:
-                            variety = Variety.objects.get(sku_prefix=sku_prefix)
-                            variety.ws_notes = row.get("WS Notes", "").strip() or None
-                            variety.category = row.get("Category", "").strip() or None
-                            variety.supergroup = row.get("Supertype", "").strip() or None
-                            variety.veg_type = row.get("Vegtype", "").strip() or None
-                            variety.subtype = row.get("Subtype", "").strip() or None
-                            variety.ws_description = row.get("WS Description", "").strip() or None
-                            variety.save()
-                            updated += 1
-                            print(f"✅ Updated: {sku_prefix}")
-                        except Variety.DoesNotExist:
-                            not_found.append(sku_prefix)
-                            print(f"❌ Not found in DB: {sku_prefix}")
-
-            break  # successfully read, exit encoding loop
-        except UnicodeDecodeError:
-            print(f"⚠️ Failed to read with encoding {enc}, trying next...")
-
-    print(f"\n✅ Total updated: {updated}")
-    if not_found:
-        print(f"⚠️ No match for {len(not_found)} SKUs: {', '.join(not_found[:10])}...")
-
-
-
-from django.db import transaction
-@transaction.atomic
-def import_products_from_csv(filepath):
-    with open(filepath, newline="", encoding="utf-8-sig") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        for row in reader:
-            sku_prefix = row.get("SKU Prefix", "").strip()
-            if not sku_prefix:
-                continue  # skip rows with no prefix
-
-            try:
-                variety = Variety.objects.get(sku_prefix=sku_prefix)
-            except Variety.DoesNotExist:
-                print(f"⚠️ Variety with prefix {sku_prefix} not found, skipping row.")
-                continue
-
-            product, created = Product.objects.update_or_create(
-                variety=variety,
-                sku_suffix=row.get("SKU Suffix", "").strip(),
-                defaults={
-                    "pkg_size": row.get("Pkg Size", "").strip(),
-                    "label": row.get("Label", "").strip(),
-                    "env_type": row.get("ENV", "").strip(),
-                    "print_back": str(row.get("Print Back", "")).strip().lower() in ["1", "true", "yes", "y"],
-                    "env_multiplier": (
-                        int(row["Multiplier"]) if row.get("Multiplier") and row["Multiplier"].isdigit() else None
-                    ),
-                    "alt_sku": row.get("ALT SKU", "").strip(),
-                    "rack_location": row.get("Rack locations", "").strip(),
-                    "bulk_pre_pack": (
-                        int(row["Bulk Pre Pack"]) if row.get("Bulk Pre Pack") and row["Bulk Pre Pack"].isdigit() else None
-                    ),
-                },
-            )
-
-            print(f"{'✅ Created' if created else '🔄 Updated'} product for {sku_prefix} - {product.pkg_size}")
-
-def mark_wholesale_based_on_photo():
-    varieties = Variety.objects.all()
+    if not varieties:
+        print("\n❌ No varieties found.")
+        return
+    
+    print("\n" + "="*120)
+    print("ALL VARIETIES")
+    print("="*120)
+    print(f"{'SKU Prefix':<15} {'Variety Name':<30} {'Category':<20} {'Active':<8} {'Photo':<10}")
+    print("-"*120)
+    
     for var in varieties:
-        if var.photo_path:  # non-empty string evaluates as True
-            if not var.wholesale:  # only update if needed
-                var.wholesale = True
-                var.save(update_fields=['wholesale'])
-                print(f"Updated {var.sku_prefix}: set wholesale=True")
-        else:
-            print(f"Skipped {var.sku_prefix}: no photo_path")
+        photo_status = "✓" if var.photo_path else "✗"
+        active_status = "✓" if var.active else "✗"
+        print(f"{var.sku_prefix:<15} {(var.var_name or '--'):<30} {(var.category or '--'):<20} {active_status:<8} {photo_status:<10}")
+    
+    print(f"\nTotal: {varieties.count()} varieties")
 
-
-
-
-def import_sales(csv_file, dry_run=False):
-    """
-    Import sales data from a CSV file with headers:
-    sku_prefix, sku_suffix, quantity, year, wholesale
-
-    Args:
-        csv_file (str): Path to the CSV file
-        dry_run (bool): If True, simulate import without saving
-    """
-    print(f"Starting import from {csv_file} (dry_run={dry_run})...")
-
-    created_count = 0
-    error_count = 0
-
+def view_variety_details():
+    """View detailed information for a specific variety"""
+    sku_prefix = input("\nEnter SKU prefix (e.g., BEA-RN): ").strip().upper()
+    
     try:
-        with open(csv_file, newline="", encoding="utf-8-sig") as f:
-            sample = f.read(1024)
-            f.seek(0)
-            dialect = csv.Sniffer().sniff(sample)
-            reader = csv.DictReader(f, dialect=dialect)
-            required_headers = ["sku_prefix", "sku_suffix", "quantity", "year", "wholesale"]
-
-            if not all(h in reader.fieldnames for h in required_headers):
-                print(f"❌ CSV must contain headers: {', '.join(required_headers)}")
-                return
-
-            # Use a transaction so dry_run can rollback automatically
-            with transaction.atomic():
-                for row in reader:
-                    sku_prefix = row["sku_prefix"].strip()
-                    sku_suffix = row["sku_suffix"].strip()
-
-                    try:
-                        product = Product.objects.get(
-                            variety=sku_prefix, sku_suffix=sku_suffix
-                        )
-                    except Product.DoesNotExist:
-                        print(f"❌ Product not found (prefix={sku_prefix}, suffix={sku_suffix})")
-                        error_count += 1
-                        continue
-
-                    try:
-                        quantity = int(row["quantity"])
-                        year = int(row["year"])
-                        wholesale = row["wholesale"].strip().lower() in ("1", "true", "yes")
-                    except Exception as e:
-                        print(f"❌ Error parsing row {row}: {e}")
-                        error_count += 1
-                        continue
-
-                    sale = Sales(
-                        product=product,
-                        quantity=quantity,
-                        year=year,
-                        wholesale=wholesale,
-                    )
-
-                    if not dry_run:
-                        sale.save()
-
-                    print(
-                        f"✅ Imported {quantity} units "
-                        f"({'Wholesale' if wholesale else 'Retail'}) "
-                        f"for {sku_prefix}-{sku_suffix} ({year})"
-                    )
-                    created_count += 1
-
-                if dry_run:
-                    print("⚠️ Dry run enabled: rolling back transaction")
-                    raise transaction.TransactionManagementError("Dry run rollback")
-
-    except FileNotFoundError:
-        print(f"❌ File not found: {csv_file}")
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+    except Variety.DoesNotExist:
+        print(f"\n❌ No variety found with SKU prefix '{sku_prefix}'")
         return
-    except Exception as e:
-        print(f"❌ Unexpected error: {e}")
-        return
-
-    print(f"🎉 Import complete. Created {created_count} sales records, {error_count} errors.")
-
-def export_variety_csv(filepath="varieties_export.csv"):
-    """
-    Export all Variety records into a CSV file with sku_prefix and category.
-    """
-    varieties = Variety.objects.values_list("sku_prefix", "category")
-    with open(filepath, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["sku_prefix", "category"])  # header row
-        for sku_prefix, category in varieties:
-            writer.writerow([sku_prefix, category])
-    print(f"✅ Exported {varieties.count()} varieties to {filepath}")
-
-
-def import_variety_csv(filepath="varieties_export.csv"):
-    """
-    Import a CSV of sku_prefix and category into the Variety table.
-    - Updates category if sku_prefix already exists.
-    - Creates new Variety if sku_prefix does not exist.
-    """
-    with open(filepath, mode="r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        count_new, count_updated = 0, 0
-        for row in reader:
-            sku_prefix = row["sku_prefix"].strip()
-            category = row["category"].strip() if row["category"] else None
-
-            variety, created = Variety.objects.update_or_create(
-                sku_prefix=sku_prefix,
-                defaults={"category": category},
-            )
-            if created:
-                count_new += 1
-            else:
-                count_updated += 1
-
-    print(f"✅ Import complete: {count_new} new, {count_updated} updated")
-
+    
+    print("\n" + "="*80)
+    print(f"VARIETY DETAILS: {variety.sku_prefix}")
+    print("="*80)
+    print(f"Name: {variety.var_name or '--'}")
+    print(f"Crop: {variety.crop or '--'}")
+    print(f"Common Name: {variety.common_name or '--'}")
+    print(f"Common Spelling: {variety.common_spelling or '--'}")
+    print(f"Category: {variety.category or '--'}")
+    print(f"Group: {variety.group or '--'}")
+    print(f"Veg Type: {variety.veg_type or '--'}")
+    print(f"Species: {variety.species or '--'}")
+    print(f"Days to Maturity: {variety.days or '--'}")
+    print(f"Active: {'Yes' if variety.active else 'No'}")
+    print(f"Wholesale: {'Yes' if variety.wholesale else 'No'}")
+    print(f"Photo Path: {variety.photo_path or 'No photo'}")
+    
+    # Show products
+    products = variety.products.all()
+    print(f"\n--- Products ({products.count()}) ---")
+    for p in products:
+        print(f"  {p.sku_suffix or '--'}: {p.pkg_size or '--'}")
 
 def print_var_sku_prefixes_and_categories():
+    """Print table of SKU prefixes and categories"""
     varieties = Variety.objects.all().order_by('sku_prefix').values('sku_prefix', 'category')
 
     table = PrettyTable()
@@ -519,120 +115,188 @@ def print_var_sku_prefixes_and_categories():
 
     print(table)
 
-def delete_print_label_table_contents():
-    from products.models import LabelPrint
-    count, _ = LabelPrint.objects.all().delete()
-    print(f"Deleted {count} records from LabelPrint table.")
+def print_varieties_with_no_photo_path():
+    """List varieties missing photos"""
+    varieties = Variety.objects.filter(photo_path="")
+    
+    if not varieties:
+        print("\n✅ All varieties have photos!")
+        return
+    
+    print("\n" + "="*60)
+    print(f"VARIETIES WITHOUT PHOTOS ({varieties.count()})")
+    print("="*60)
+    for var in varieties:
+        print(f"{var.sku_prefix:<15} {var.var_name or '--'}")
 
-@transaction.atomic
-def add_variety_and_product():
-    from products.models import Variety, Product
+def update_all_variety_photos():
+    """Sets all variety 'photo' attributes to the correct file (webp or jpg)"""
+    varieties = Variety.objects.all()
+    updated_count = 0
+    
+    for variety in varieties:
+        sku_prefix = variety.sku_prefix
+        webp_file = os.path.join(settings.BASE_DIR, 'products', 'static', 'products', 'photos', f'{sku_prefix}.webp')
+        jpg_file = os.path.join(settings.BASE_DIR, 'products', 'static', 'products', 'photos', f'{sku_prefix}.jpg')
+        
+        if os.path.exists(webp_file):
+            variety.photo_path = f'products/photos/{sku_prefix}.webp'
+            print(f"✓ Set webp photo for {sku_prefix}")
+            variety.save()
+            updated_count += 1
+        elif os.path.exists(jpg_file):
+            variety.photo_path = f'products/photos/{sku_prefix}.jpg'
+            print(f"✓ Set jpg photo for {sku_prefix}")
+            variety.save()
+            updated_count += 1
+    
+    print(f"\n✅ Updated {updated_count} variety photos")
 
-    variety, created = Variety.objects.get_or_create(
-        sku_prefix="SMA-BR",
-        crop="RADICCHIO",
-        common_name="",
-        common_spelling="Bandarossa",
-        var_name="Bandarossa",
-        group="Greens",
-        veg_type="Radicchio",
-        species="Cichorium intybus",
-        supergroup="Vegtable",
-        days="110 Days",
-        desc_line1="Late cycle Verona type with",
-        desc_line2="striking blushed-red midribs.",
-    )
-    if created:
-        print("Created new Variety: Bandarossa")
-    else:
-        print("Variety Bandarossa already exists")
-    sku_suffixes = ["pkt", "500s", "1Ms"]
-    pkg_sizes = ["Approx. 100 seeds", "Approx. 500 seeds", "Approx. 1000 seeds"]
-    line_item_names = ["Bandarossa - pkt", "", ""]
-    rack_locations = [6.2, 0, 0]
-    index = 0
-    for suffix in sku_suffixes:
-        product, created = Product.objects.get_or_create(
-            variety=variety,
-            sku_suffix=suffix,
-            env_type="Smarties Rad",
-            env_multiplier=1,
-            pkg_size=pkg_sizes[index],
-            lineitem_name=line_item_names[index],
-            rack_location=rack_locations[index]
-        )
-        index += 1
-
-
-
-        if created:
-            print("Created new Product for Bandrossa:", suffix)
-        else:
-            print("Product for BANDAR already exists")
-
-@transaction.atomic
-def import_misc_products(csv_file):
-    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        for row in reader:
-            sku = row["sku"].strip()
-            lineitem_name = row["lineitem_name"].strip()
-            category = row["category"].strip()
-            
-            # create misc product object
-
-            misc_product, created = MiscProduct.objects.update_or_create(
-                sku=sku,
-                lineitem_name=lineitem_name,
-                category=category,
-            )
-
-def set_all_bulk_pre_pack_to_zero():
-    products = Product.objects.all()
-    for product in products:
-        if product.bulk_pre_pack is None:
-            product.bulk_pre_pack = 0
-            product.save()      
-
-def set_all_bulk_pre_pack_to_1():
-    products = Product.objects.all()
-    for product in products:
-        if product.bulk_pre_pack is None or product.bulk_pre_pack == 0:
-            product.bulk_pre_pack = 2
-            product.save()
-
-
-def import_lineitem_names_from_csv(csv_file):
-    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        for row in reader:
-            sku_prefix = row["sku_prefix"].strip()
-            sku_suffix = row["sku_suffix"].strip()
-            lineitem_name = row["lineitem_name"].strip()
-            
-            try:
-                product = Product.objects.get(
-                    variety__sku_prefix=sku_prefix,
-                    sku_suffix=sku_suffix
-                )
-                product.lineitem_name = lineitem_name
-                product.save()
-                print(f"Updated {sku_prefix}-{sku_suffix} with lineitem name '{lineitem_name}'")
-            except Product.DoesNotExist:
-                print(f"Product not found for {sku_prefix}-{sku_suffix}, skipping.")
-
-
-def delete_variety(sku_prefix):
+def delete_variety_by_sku():
+    """Delete a variety"""
+    sku_prefix = input("\nEnter SKU prefix to delete: ").strip().upper()
+    
     try:
         variety = Variety.objects.get(sku_prefix=sku_prefix)
-        variety.delete()
-        print(f"Deleted variety with SKU prefix {sku_prefix}")
+        print(f"\n⚠️  You are about to delete: {variety.sku_prefix} - {variety.var_name}")
+        confirm = input("Type 'DELETE' to confirm: ").strip()
+        
+        if confirm == 'DELETE':
+            variety.delete()
+            print(f"✅ Deleted variety {sku_prefix}")
+        else:
+            print("Deletion cancelled")
     except Variety.DoesNotExist:
-        print(f"No variety found with SKU prefix {sku_prefix}")
+        print(f"\n❌ No variety found with SKU prefix {sku_prefix}")
 
-def view_lineitems(): 
+def add_variety():
+    """Add a new variety - PLACEHOLDER"""
+    print("\n⚠️  ADD VARIETY - Function placeholder")
+    print("This would allow you to:")
+    print("  - Enter SKU prefix")
+    print("  - Enter variety name and details")
+    print("  - Set category and type")
+    print("  - Upload photo")
+
+def edit_variety():
+    """Edit variety details - PLACEHOLDER"""
+    print("\n⚠️  EDIT VARIETY - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select variety by SKU prefix")
+    print("  - Update any field")
+    print("  - Change active status")
+    print("  - Update photo path")
+
+def variety_menu():
+    """Variety management submenu"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("VARIETY MANAGEMENT")
+        print("="*50)
+        print("1.  View all varieties")
+        print("2.  View variety details")
+        print("3.  View SKU prefixes and categories (table)")
+        print("4.  View varieties without photos")
+        print("5.  Update all variety photos")
+        print("6.  Add new variety")
+        print("7.  Edit variety")
+        print("8.  Delete variety")
+        print("0.  Back to main menu")
+        
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8'])
+        
+        if choice == '0':
+            break
+        elif choice == '1':
+            view_all_varieties()
+            pause()
+        elif choice == '2':
+            view_variety_details()
+            pause()
+        elif choice == '3':
+            print_var_sku_prefixes_and_categories()
+            pause()
+        elif choice == '4':
+            print_varieties_with_no_photo_path()
+            pause()
+        elif choice == '5':
+            update_all_variety_photos()
+            pause()
+        elif choice == '6':
+            add_variety()
+            pause()
+        elif choice == '7':
+            edit_variety()
+            pause()
+        elif choice == '8':
+            delete_variety_by_sku()
+            pause()
+
+
+# ============================================================================
+# PRODUCT MANAGEMENT
+# ============================================================================
+
+def view_all_products():
+    """View all products"""
+    products = Product.objects.all().select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+    
+    if not products:
+        print("\n❌ No products found.")
+        return
+    
+    print("\n" + "="*120)
+    print("ALL PRODUCTS")
+    print("="*120)
+    print(f"{'SKU Prefix':<15} {'Suffix':<10} {'Pkg Size':<12} {'Lineitem Name':<35} {'Print Back':<12} {'Lot':<15}")
+    print("-"*120)
+    
+    for prod in products:
+        lot_display = prod.lot.build_lot_code() if prod.lot else '--'
+        print_back = "✓" if prod.print_back else "✗"
+        print(f"{prod.variety.sku_prefix:<15} {(prod.sku_suffix or '--'):<10} {(prod.pkg_size or '--'):<12} "
+              f"{(prod.lineitem_name or '--'):<35} {print_back:<12} {lot_display:<15}")
+    
+    print(f"\nTotal: {products.count()} products")
+
+def view_product_details():
+    """View detailed information for a specific product"""
+    print("\nEnter product identifier:")
+    sku_prefix = input("  SKU Prefix (e.g., BEA-RN): ").strip().upper()
+    sku_suffix = input("  SKU Suffix (e.g., pkt): ").strip()
+    
+    try:
+        product = Product.objects.get(variety__sku_prefix=sku_prefix, sku_suffix=sku_suffix)
+    except Product.DoesNotExist:
+        print(f"\n❌ No product found with {sku_prefix}-{sku_suffix}")
+        return
+    
+    print("\n" + "="*80)
+    print(f"PRODUCT DETAILS: {product.variety.sku_prefix}-{product.sku_suffix}")
+    print("="*80)
+    print(f"Variety: {product.variety.var_name or '--'}")
+    print(f"Package Size: {product.pkg_size or '--'}")
+    print(f"Alt SKU: {product.alt_sku or '--'}")
+    print(f"Lineitem Name: {product.lineitem_name or '--'}")
+    print(f"Rack Location: {product.rack_location or '--'}")
+    print(f"Envelope Type: {product.env_type or '--'}")
+    print(f"Envelope Multiplier: {product.env_multiplier or '--'}")
+    print(f"Scoop Size: {product.scoop_size or '--'}")
+    print(f"Print Back: {'Yes' if product.print_back else 'No'}")
+    print(f"Is Sub Product: {'Yes' if product.is_sub_product else 'No'}")
+    print(f"Bulk Pre-Pack: {product.bulk_pre_pack or 0}")
+    print(f"Current Lot: {product.lot.build_lot_code() if product.lot else 'None assigned'}")
+    
+    # Show sales
+    sales = product.sales.all().order_by('-year')
+    print(f"\n--- Sales History ({sales.count()}) ---")
+    for sale in sales:
+        ws_label = " (Wholesale)" if sale.wholesale else ""
+        print(f"  20{sale.year}: {sale.quantity} units{ws_label}")
+
+def view_lineitems():
+    """View all products with lineitem names"""
     import pandas as pd
 
     products = Product.objects.all().order_by(
@@ -640,214 +304,484 @@ def view_lineitems():
     ).values('variety__sku_prefix', 'sku_suffix', 'lineitem_name')
 
     df = pd.DataFrame(list(products))
+    print("\n")
     print(df)
-def delete_varieties(sku_prefixes):
-    for sku_prefix in sku_prefixes:
-        try:
-            variety = Variety.objects.get(sku_prefix=sku_prefix)
-            variety.delete()
-            print(f"Deleted variety with SKU prefix {sku_prefix}")
-        except Variety.DoesNotExist:
-            print(f"No variety found with SKU prefix {sku_prefix}")
 
-
-@transaction.atomic
-def import_misc_sales(csv_file):
-    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        created = 0
-        skipped = 0
-
-        for row in reader:
-            sku = row["sku"].strip()
-            year = int(row["year"])
-            quantity = int(row["qty"])
-
-            try:
-                product = MiscProduct.objects.get(sku=sku)
-            except MiscProduct.DoesNotExist:
-                print(f"❌ SKU '{sku}' not found. Skipping.")
-                skipped += 1
-                continue
-
-            # Optional: prevent duplicate year entries
-            existing = MiscSales.objects.filter(product=product, year=year).first()
-            if existing:
-                print(f"ℹ️ Sale for SKU '{sku}' in year {year} already exists. Skipping.")
-                skipped += 1
-                continue
-
-            MiscSales.objects.create(
-                product=product,
-                quantity=quantity,
-                year=year
-            )
-            created += 1
-
-        print(f"✅ Imported {created} sales records. Skipped {skipped}.")
-
-
-def import_2025_store_sales(csv_file, dry_run=True):
-    with open(csv_file, newline='', encoding="utf-8-sig") as csvfile:
-        reader = csv.DictReader(csvfile)
-
-        created = 0
-        skipped = 0
-
-        for row in reader:
-            sku_prefix = row["sku"].strip()[:6]
-            sku_suffix = 'pkt'
-            quantity = int(row["qty"])
-
-            try:
-                product = Product.objects.get(
-                    variety__sku_prefix=sku_prefix,
-                    sku_suffix=sku_suffix
-                )
-            except Product.DoesNotExist:
-                print(f"❌ Product not found for {sku_prefix}-{sku_suffix}. Skipping.")
-                skipped += 1
-                continue
-
-            existing = Sales.objects.filter(product=product, year=2025, wholesale=False).first()
-            if existing:
-                print(f"ℹ️ Sale for {sku_prefix}-{sku_suffix} in 2025 already exists. Skipping.")
-                skipped += 1
-                continue
-
-            if dry_run:
-                print(f"🔍 [Dry Run] Would create sale: {sku_prefix}-{sku_suffix} | Qty: {quantity}")
-            else:
-                Sales.objects.create(
-                    product=product,
-                    quantity=quantity,
-                    year=25,
-                    wholesale=True
-                )
-                print(f"✅ Created sale: {sku_prefix}-{sku_suffix} | Qty: {quantity}")
-                created += 1
-
-        print(f"\n🎯 Summary — Created: {created}, Skipped: {skipped}, Dry Run: {dry_run}")
-
-def clear_print_label_table():
-    count, _ = LabelPrint.objects.all().delete()
-    print(f"Deleted {count} records from LabelPrint table.")
-
-def print_varieties_with_no_photo_path():
-    varieties = Variety.objects.filter(photo_path="")
-    for var in varieties:
-        print(var.sku_prefix, var.var_name)
-
-def export_rack_locations(filepath="rack_locations.csv"):
-    """
-    Export all Product records with their rack locations to CSV.
-    Columns: sku_prefix, sku_suffix, rack_location
-    """
-    products = Product.objects.select_related('variety').all().order_by(
-        'variety__sku_prefix', 'sku_suffix'
-    )
+def reset_bulk_pre_pack_to_zero():
+    """Reset all NULL bulk_pre_pack values to 0"""
+    products = Product.objects.filter(bulk_pre_pack__isnull=True)
+    count = products.count()
     
-    with open(filepath, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["sku_prefix", "sku_suffix", "rack_location"])  # header row
+    if count == 0:
+        print("\n✅ All products already have bulk_pre_pack set")
+        return
+    
+    confirm = input(f"\nReset {count} products to bulk_pre_pack=0? (y/n): ").strip().lower()
+    if confirm == 'y':
+        products.update(bulk_pre_pack=0)
+        print(f"✅ Reset {count} products to bulk_pre_pack=0")
+    else:
+        print("Cancelled")
+
+def add_product():
+    """Add a new product - PLACEHOLDER"""
+    print("\n⚠️  ADD PRODUCT - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select variety")
+    print("  - Enter SKU suffix and package size")
+    print("  - Set envelope type and multiplier")
+    print("  - Configure print settings")
+
+def edit_product():
+    """Edit product details - PLACEHOLDER"""
+    print("\n⚠️  EDIT PRODUCT - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select product")
+    print("  - Update any field")
+    print("  - Change lot assignment")
+    print("  - Toggle print_back flag")
+
+def delete_product():
+    """Delete a product - PLACEHOLDER"""
+    print("\n⚠️  DELETE PRODUCT - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select product by SKU")
+    print("  - Confirm deletion")
+    print("  - Handle cascading deletes")
+
+def product_menu():
+    """Product management submenu"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("PRODUCT MANAGEMENT")
+        print("="*50)
+        print("1.  View all products")
+        print("2.  View product details")
+        print("3.  View lineitem names")
+        print("4.  Reset bulk pre-pack to zero")
+        print("5.  Add new product")
+        print("6.  Edit product")
+        print("7.  Delete product")
+        print("0.  Back to main menu")
         
-        for product in products:
-            writer.writerow([
-                product.variety.sku_prefix,
-                product.sku_suffix,
-                product.rack_location or ''  # handle None values
-            ])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7'])
+        
+        if choice == '0':
+            break
+        elif choice == '1':
+            view_all_products()
+            pause()
+        elif choice == '2':
+            view_product_details()
+            pause()
+        elif choice == '3':
+            view_lineitems()
+            pause()
+        elif choice == '4':
+            reset_bulk_pre_pack_to_zero()
+            pause()
+        elif choice == '5':
+            add_product()
+            pause()
+        elif choice == '6':
+            edit_product()
+            pause()
+        elif choice == '7':
+            delete_product()
+            pause()
+
+
+# ============================================================================
+# SALES MANAGEMENT
+# ============================================================================
+
+def view_all_sales():
+    """View all sales records"""
+    year = input("\nEnter year (2-digit, e.g., 25 for 2025) or press Enter for all: ").strip()
     
-    print(f"✅ Exported {products.count()} products to {filepath}")
+    if year:
+        sales = Sales.objects.filter(year=int(year)).select_related('product__variety').order_by('-quantity')
+    else:
+        sales = Sales.objects.all().select_related('product__variety').order_by('-year', '-quantity')
+    
+    if not sales:
+        print("\n❌ No sales records found.")
+        return
+    
+    print("\n" + "="*100)
+    print("SALES RECORDS")
+    print("="*100)
+    print(f"{'SKU':<20} {'Year':<8} {'Quantity':<12} {'Wholesale':<12}")
+    print("-"*100)
+    
+    total_qty = 0
+    for sale in sales:
+        sku = f"{sale.product.variety.sku_prefix}-{sale.product.sku_suffix}"
+        ws_label = "Yes" if sale.wholesale else "No"
+        print(f"{sku:<20} 20{sale.year:<6} {sale.quantity:<12} {ws_label:<12}")
+        total_qty += sale.quantity
+    
+    print(f"\nTotal: {sales.count()} records | Total Quantity: {total_qty:,}")
+
+def view_sales_by_product():
+    """View sales for a specific product"""
+    print("\nEnter product identifier:")
+    sku_prefix = input("  SKU Prefix (e.g., BEA-RN): ").strip().upper()
+    sku_suffix = input("  SKU Suffix (e.g., pkt): ").strip()
+    
+    try:
+        product = Product.objects.get(variety__sku_prefix=sku_prefix, sku_suffix=sku_suffix)
+    except Product.DoesNotExist:
+        print(f"\n❌ No product found with {sku_prefix}-{sku_suffix}")
+        return
+    
+    sales = product.sales.all().order_by('-year')
+    
+    if not sales:
+        print(f"\n❌ No sales records for {sku_prefix}-{sku_suffix}")
+        return
+    
+    print("\n" + "="*80)
+    print(f"SALES FOR {sku_prefix}-{sku_suffix}")
+    print("="*80)
+    print(f"{'Year':<10} {'Quantity':<15} {'Wholesale':<12}")
+    print("-"*80)
+    
+    for sale in sales:
+        ws_label = "Yes" if sale.wholesale else "No"
+        print(f"20{sale.year:<8} {sale.quantity:<15} {ws_label:<12}")
+
+def import_sales_csv():
+    """Import sales from CSV - PLACEHOLDER"""
+    print("\n⚠️  IMPORT SALES CSV - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select CSV file")
+    print("  - Map columns")
+    print("  - Preview before import")
+    print("  - Import with dry-run option")
+
+def edit_sales_record():
+    """Edit a sales record - PLACEHOLDER"""
+    print("\n⚠️  EDIT SALES RECORD - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select sales record")
+    print("  - Update quantity")
+    print("  - Change wholesale flag")
+
+def delete_sales_record():
+    """Delete a sales record - PLACEHOLDER"""
+    print("\n⚠️  DELETE SALES RECORD - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select sales record")
+    print("  - Confirm deletion")
+
+def generate_sales_report():
+    """Generate sales report - PLACEHOLDER"""
+    print("\n⚠️  GENERATE SALES REPORT - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select date range")
+    print("  - Filter by wholesale/retail")
+    print("  - Export to CSV/PDF")
+    print("  - Show top sellers")
+
+def sales_menu():
+    """Sales management submenu"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("SALES MANAGEMENT")
+        print("="*50)
+        print("1.  View all sales")
+        print("2.  View sales by product")
+        print("3.  Import sales from CSV")
+        print("4.  Edit sales record")
+        print("5.  Delete sales record")
+        print("6.  Generate sales report")
+        print("0.  Back to main menu")
+        
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6'])
+        
+        if choice == '0':
+            break
+        elif choice == '1':
+            view_all_sales()
+            pause()
+        elif choice == '2':
+            view_sales_by_product()
+            pause()
+        elif choice == '3':
+            import_sales_csv()
+            pause()
+        elif choice == '4':
+            edit_sales_record()
+            pause()
+        elif choice == '5':
+            delete_sales_record()
+            pause()
+        elif choice == '6':
+            generate_sales_report()
+            pause()
+
+
+# ============================================================================
+# MISC PRODUCTS & SALES MANAGEMENT
+# ============================================================================
+
+def view_all_misc_products():
+    """View all misc products"""
+    misc_products = MiscProduct.objects.all().order_by('sku')
+    
+    if not misc_products:
+        print("\n❌ No misc products found.")
+        return
+    
+    print("\n" + "="*100)
+    print("MISC PRODUCTS")
+    print("="*100)
+    print(f"{'SKU':<20} {'Lineitem Name':<40} {'Category':<20}")
+    print("-"*100)
+    
+    for mp in misc_products:
+        print(f"{mp.sku:<20} {mp.lineitem_name:<40} {(mp.category or '--'):<20}")
+    
+    print(f"\nTotal: {misc_products.count()} misc products")
+
+def view_all_misc_sales():
+    """View all misc sales records"""
+    year = input("\nEnter year (2-digit, e.g., 25 for 2025) or press Enter for all: ").strip()
+    
+    if year:
+        misc_sales = MiscSales.objects.filter(year=int(year)).select_related('product').order_by('-quantity')
+    else:
+        misc_sales = MiscSales.objects.all().select_related('product').order_by('-year', '-quantity')
+    
+    if not misc_sales:
+        print("\n❌ No misc sales records found.")
+        return
+    
+    print("\n" + "="*100)
+    print("MISC SALES RECORDS")
+    print("="*100)
+    print(f"{'SKU':<20} {'Lineitem Name':<40} {'Year':<8} {'Quantity':<12}")
+    print("-"*100)
+    
+    total_qty = 0
+    for sale in misc_sales:
+        print(f"{sale.product.sku:<20} {sale.product.lineitem_name:<40} 20{sale.year:<6} {sale.quantity:<12}")
+        total_qty += sale.quantity
+    
+    print(f"\nTotal: {misc_sales.count()} records | Total Quantity: {total_qty:,}")
+
+def clear_misc_sales_table():
+    """Clear all misc sales records"""
+    count = MiscSales.objects.count()
+    
+    if count == 0:
+        print("\n✅ Misc sales table is already empty")
+        return
+    
+    print(f"\n⚠️  You are about to delete {count} misc sales records")
+    confirm = input("Type 'DELETE' to confirm: ").strip()
+    
+    if confirm == 'DELETE':
+        deleted_count, _ = MiscSales.objects.all().delete()
+        print(f"✅ Deleted {deleted_count} records from MiscSales table")
+    else:
+        print("Deletion cancelled")
+
+def add_misc_product():
+    """Add misc product - PLACEHOLDER"""
+    print("\n⚠️  ADD MISC PRODUCT - Function placeholder")
+    print("This would allow you to:")
+    print("  - Enter SKU")
+    print("  - Enter lineitem name")
+    print("  - Set category")
+    print("  - Add description")
+
+def misc_menu():
+    """Misc products/sales management submenu"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("MISC PRODUCTS & SALES MANAGEMENT")
+        print("="*50)
+        print("1.  View all misc products")
+        print("2.  View all misc sales")
+        print("3.  Add misc product")
+        print("4.  Clear all misc sales")
+        print("0.  Back to main menu")
+        
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
+        
+        if choice == '0':
+            break
+        elif choice == '1':
+            view_all_misc_products()
+            pause()
+        elif choice == '2':
+            view_all_misc_sales()
+            pause()
+        elif choice == '3':
+            add_misc_product()
+            pause()
+        elif choice == '4':
+            clear_misc_sales_table()
+            pause()
+
+
+# ============================================================================
+# LABEL PRINT MANAGEMENT
+# ============================================================================
+
+def view_all_label_prints():
+    """View all label print records"""
+    year = input("\nEnter year (2-digit, e.g., 25 for 2025) or press Enter for all: ").strip()
+    
+    if year:
+        prints = LabelPrint.objects.filter(for_year=int(year)).select_related('product__variety', 'lot').order_by('-date')
+    else:
+        prints = LabelPrint.objects.all().select_related('product__variety', 'lot').order_by('-date')
+    
+    if not prints:
+        print("\n❌ No label print records found.")
+        return
+    
+    print("\n" + "="*120)
+    print("LABEL PRINT RECORDS")
+    print("="*120)
+    print(f"{'Date':<12} {'SKU':<20} {'Lot':<15} {'Qty':<8} {'For Year':<10}")
+    print("-"*120)
+    
+    total_qty = 0
+    for lp in prints:
+        sku = f"{lp.product.variety.sku_prefix}-{lp.product.sku_suffix}"
+        lot_display = lp.lot.build_lot_code() if lp.lot else '--'
+        print(f"{lp.date.strftime('%Y-%m-%d'):<12} {sku:<20} {lot_display:<15} {lp.qty:<8} 20{lp.for_year:<8}")
+        total_qty += lp.qty
+    
+    print(f"\nTotal: {prints.count()} records | Total Labels Printed: {total_qty:,}")
+
+def view_prints_by_product():
+    """View label prints for a specific product"""
+    print("\nEnter product identifier:")
+    sku_prefix = input("  SKU Prefix (e.g., BEA-RN): ").strip().upper()
+    sku_suffix = input("  SKU Suffix (e.g., pkt): ").strip()
+    
+    try:
+        product = Product.objects.get(variety__sku_prefix=sku_prefix, sku_suffix=sku_suffix)
+    except Product.DoesNotExist:
+        print(f"\n❌ No product found with {sku_prefix}-{sku_suffix}")
+        return
+    
+    prints = product.label_prints.all().order_by('-date')
+    
+    if not prints:
+        print(f"\n❌ No label print records for {sku_prefix}-{sku_suffix}")
+        return
+    
+    print("\n" + "="*80)
+    print(f"LABEL PRINTS FOR {sku_prefix}-{sku_suffix}")
+    print("="*80)
+    print(f"{'Date':<12} {'Lot':<15} {'Qty':<8} {'For Year':<10}")
+    print("-"*80)
+    
+    for lp in prints:
+        lot_display = lp.lot.build_lot_code() if lp.lot else '--'
+        print(f"{lp.date.strftime('%Y-%m-%d'):<12} {lot_display:<15} {lp.qty:<8} 20{lp.for_year:<8}")
+
+def delete_print_label_table_contents():
+    """Clear all label print records"""
+    count = LabelPrint.objects.count()
+    
+    if count == 0:
+        print("\n✅ Label print table is already empty")
+        return
+    
+    print(f"\n⚠️  You are about to delete {count} label print records")
+    confirm = input("Type 'DELETE' to confirm: ").strip()
+    
+    if confirm == 'DELETE':
+        deleted_count, _ = LabelPrint.objects.all().delete()
+        print(f"✅ Deleted {deleted_count} records from LabelPrint table")
+    else:
+        print("Deletion cancelled")
+
+def print_summary_by_year():
+    """Print summary by year - PLACEHOLDER"""
+    print("\n⚠️  PRINT SUMMARY BY YEAR - Function placeholder")
+    print("This would allow you to:")
+    print("  - Select year")
+    print("  - Show total labels printed")
+    print("  - Break down by product")
+    print("  - Export to CSV")
+
+def label_print_menu():
+    """Label print management submenu"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("LABEL PRINT MANAGEMENT")
+        print("="*50)
+        print("1.  View all label prints")
+        print("2.  View prints by product")
+        print("3.  Print summary by year")
+        print("4.  Clear all label print records")
+        print("0.  Back to main menu")
+        
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
+        
+        if choice == '0':
+            break
+        elif choice == '1':
+            view_all_label_prints()
+            pause()
+        elif choice == '2':
+            view_prints_by_product()
+            pause()
+        elif choice == '3':
+            print_summary_by_year()
+            pause()
+        elif choice == '4':
+            delete_print_label_table_contents()
+            pause()
+
+
+# ============================================================================
+# MAIN MENU
+# ============================================================================
+
+def main_menu():
+    """Main menu for products management"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("🌱 PRODUCTS MANAGEMENT SYSTEM")
+        print("="*50)
+        print("1.  Variety Management")
+        print("2.  Product Management")
+        print("3.  Sales Management")
+        print("4.  Misc Products & Sales")
+        print("5.  Label Print Management")
+        print("0.  Exit")
+        
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5'])
+        
+        if choice == '0':
+            print("\n👋 Goodbye!")
+            break
+        elif choice == '1':
+            variety_menu()
+        elif choice == '2':
+            product_menu()
+        elif choice == '3':
+            sales_menu()
+        elif choice == '4':
+            misc_menu()
+        elif choice == '5':
+            label_print_menu()
+
 
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #
 if __name__ == "__main__":
-    export_rack_locations()
-
-# print_varieties_with_no_photo_path()
-# update_all_variety_photos()
-
-
-# clear_print_label_table()
-# delete_varieties(["MAL-PL", "GRS-BT", "TOM-YP", "FAV-FI", "CHI-BO", "TOM-GZ", "KAL-BL", "COL-CH"])
-# view_lineitems()
-# delete_variety("TOM-XX")
-# set_all_bulk_pre_pack_to_zero()
-# set_all_bulk_pre_pack_to_1()
-# add_variety_and_product()
-# misc_products_csv = os.path.join(os.path.dirname(__file__), "misc_products_export.csv")
-# import_misc_products(misc_products_csv)
-
-# import_lineitem_names_csv = os.path.join(os.path.dirname(__file__), "lineitem_names.csv")
-# import_lineitem_names_from_csv(import_lineitem_names_csv)
-
-
-# delete_print_label_table_contents()l
-# export_variety_csv()
-# import_variety_csv()
-# print_var_sku_prefixes_and_categories()
-# full_file_path = os.path.join(os.path.dirname(__file__), "ws_vars_new.csv")
-# prev_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
-# import_sales_csv = os.path.join(os.path.dirname(__file__), "prev_sales_export.csv")
-# misc_sales_csv = os.path.join(os.path.dirname(__file__), "misc_product_sales.csv")
-# import_misc_sales(misc_sales_csv)
-# store_sales_2025_csv = os.path.join(os.path.dirname(__file__), "2025_store_sales.csv")
-# import_2025_store_sales(store_sales_2025_csv, dry_run=False)
-
-
-# import_sales(import_sales_csv)
-
-# update_varieties_from_csv(full_file_path)
-# import_products_from_csv(full_file_path)
-# import_varieties_from_csv(full_file_path)
-# mark_wholesale_based_on_photo()
-
-
-# print_product_table()
-# check_duplicate_item_numbers()
-
-# update_notes_with_csv()
-# check_categories()
-
-# fix_slashes()
-# view_product_varieties()
-# delete_duplicate_products()
-# update_product_description(item_num, description)
-# update_product_notes(item_num, notes)
-# update_product_notes(383, '-')
-# update_product_sub_type(341, 'PEONY')
-# update_product_photo(item_num, photo)
-# update_product_photo(203, "products/photos/203.jpg")
-
-# create_product_object(440,
-#                       "LET-SU-pktw",
-#                       '-',
-#                       'Vegetables',
-#                       'LETTUCE',
-#                       'LETTUCE',
-#                       'CRISPHEAD',
-#                       'Summertime',
-#                       'Insanely crunchy iceberg variety that is the pinnacle of summer eating! Very slow to bolt.',
-#                       'products/photos/443.jpg')
-
-
-
-# EXAMPLE FOR CREATING PRODUCT OBJECT USING FUNCTION CALL ABOVE
-# create_product_object(item_num,
-                        # sku,
-                        # notes,
-                        # category,
-                        # super_type,
-                        # vegtype,
-                        # sub_type,
-                        # variety,
-                        # description,
-                        # photo)
-# Examples:
-    # category = 'VEGETABLES', 'FLOWERS', 'HERBS'
-    # super_type = 'BEAN', 'BEET', 'BRASSICA', 'MISC', 'CARROT',
-        # 'CORN & GRAIN', 'FLOWERS', 'TOMATO', 'PEPPER & EGGPLANT',
-        # 'GREENS', 'SQUASH', 'CUKE & MELON', 'HERBS', 'PEA', 'ALLIUMS', 'LETTUCE'
-    # veg_type = 'CABBAGE', 'SWEET PEA', 'FOUR O’CLOCK', 'TOMATO', 'LETTUCE', 'STRAWFLOWER', ETC
-    # sub_type = 'DRY/BUSH', 'FAVA', 'NAPA', 'LOOSELEAF', ETC
+    main_menu()

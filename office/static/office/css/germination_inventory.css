@@ -251,6 +251,49 @@ body {
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
+/* NEW: Bulk icon styles */
+.bulk-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.bulk-icon-inactive {
+    background: #dc3545;
+    color: white;
+}
+
+.bulk-icon-inactive:hover {
+    background: #c82333;
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.bulk-icon-active {
+    background: #28a745;
+    color: white;
+    cursor: pointer;
+}
+
+.bulk-icon-active:hover {
+    background: #218838;  /* CHANGE - add hover effect */
+    transform: translateY(-1px) scale(1.05);  /* CHANGE - add transform */
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);  /* CHANGE - add shadow */
+}
+
+/* Add this to the existing .modal-icon rule */
+.modal-icon.bulk-icon {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
 .variety-link {
     color: #667eea;
     cursor: pointer;

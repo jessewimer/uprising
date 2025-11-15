@@ -1469,6 +1469,7 @@ def germination_inventory_data(request):
                 'veg_type': variety.veg_type,
                 'species': variety.species,
                 'lot_code': lot_code,
+                'website_bulk': variety.website_bulk,
                 'current_inventory_weight': current_inventory_weight,
                 'current_inventory_date': current_inventory_date,
                 'previous_inventory_weight': previous_inventory_weight,
@@ -1502,6 +1503,37 @@ def germination_inventory_data(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
     
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_website_bulk(request):
+    """API endpoint to update website_bulk status for a variety"""
+    try:
+        import json
+        data = json.loads(request.body)
+        sku_prefix = data.get('sku_prefix')
+        new_status = data.get('website_bulk')  # ADD THIS LINE
+        
+        if not sku_prefix:
+            return JsonResponse({'error': 'sku_prefix is required'}, status=400)
+        
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+        variety.website_bulk = new_status  # CHANGE THIS LINE
+        variety.save()
+        
+        return JsonResponse({
+            'success': True,
+            'sku_prefix': sku_prefix,
+            'website_bulk': new_status  # CHANGE THIS LINE
+        })
+        
+    except Variety.DoesNotExist:
+        return JsonResponse({'error': 'Variety not found'}, status=404)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 @user_passes_test(is_employee)
