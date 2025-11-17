@@ -512,11 +512,6 @@ function proceedWithEditProduct(productId) {
 }
 
 
-
-
-
-
-
 // Edit Variety Functions
 function openEditVarietyPopup() {
     console.log('openEditVarietyPopup called');
@@ -578,39 +573,6 @@ function saveVarietyChanges() {
     hideEditVarietyPopup();
 }
 
-
-
-// function editProduct(productId) {
-//     hideProductActionsPopup();
-    
-//     currentProductId = productId || currentProductId;
-//     // Get product data from the row
-//     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
-    
-//     if (!productRow) {
-//         showMessage('Could not find product data', 'error');
-//         return;
-//     }
-    
-//     // Pre-fill all the form fields
-//     document.getElementById('editProductVariety').value = productRow.dataset.varietyName || '';
-//     document.getElementById('editProductSkuSuffix').value = productRow.dataset.skuSuffix || '';
-//     document.getElementById('editProductPkgSize').value = productRow.dataset.pkgSize || '';
-//     document.getElementById('editProductAltSku').value = productRow.dataset.altSku || '';
-//     document.getElementById('editProductLineitemName').value = productRow.dataset.lineitemName || '';
-//     document.getElementById('editProductRackLocation').value = productRow.dataset.rackLocation || '';
-//     document.getElementById('editProductEnvType').value = productRow.dataset.envType || '';
-//     document.getElementById('editProductEnvMultiplier').value = productRow.dataset.envMultiplier || '1';
-//     document.getElementById('editProductScoopSize').value = productRow.dataset.scoopSize || '';
-    
-//     // Handle checkboxes - convert string to boolean
-//     document.getElementById('editProductPrintBack').checked = productRow.dataset.printBack === 'true';
-//     document.getElementById('editProductIsSubProduct').checked = productRow.dataset.isSubProduct === 'true';
-    
-//     // Show the popup
-//     document.getElementById('editProductPopup').classList.add('show');
-//     document.body.classList.add('modal-open');
-// }
 
 function hideEditProductPopup() {
     document.getElementById('editProductPopup').classList.remove('show');
@@ -836,8 +798,6 @@ function populateProductPackingHistoryRecords(packingHistory) {
 }
 
 
-
-
 // Edit Packing Record Functions
 function showEditPackingRecordPopup(recordId, currentQty, date, lotCode) {
     currentPackingRecordId = recordId;
@@ -952,9 +912,6 @@ function confirmDeletePackingRecord() {
         hideDeletePackingRecordPopup();
     });
 }
-
-
-
 
 
 function getLotStatus(lotCode) {
@@ -1419,9 +1376,6 @@ function submitEditBackLabels(event) {
 }
 
 
-
-
-
 // Filter retired lots functionality
 let showRetiredLots = false;
 
@@ -1712,8 +1666,6 @@ function setupPrintHandlers() {
         }
     });
 }
-
-
 
 
 // Updated Lot History Functions
@@ -2490,13 +2442,6 @@ function reprintStockSeedLabel() {
 }
 
 
-
-
-
-
-
-
-
 function hideStockSeedPopup() {
     document.getElementById('stockSeedPopup').classList.remove('show');
     document.getElementById('stockSeedForm').reset();
@@ -2955,12 +2900,10 @@ function viewLotUsage(lotId) {
 }
 
 
-
 function deleteLot(lotId) {
     hideLotActionsPopup();
     showPasswordPopup(proceedWithDeleteLot, lotId);
 }
-
 
 
 function proceedWithDeleteLot(lotId) {
@@ -3065,11 +3008,11 @@ function submitAddProduct(event) {
     formData.append('lineitem_name', document.getElementById('productLineitemName').value);
     formData.append('rack_location', document.getElementById('productRackLocation').value);
     formData.append('env_multiplier', document.getElementById('productEnvMultiplier').value);
-    formData.append('label', document.getElementById('productLabel').value);
-    formData.append('num_printed', document.getElementById('productNumPrinted').value);
-    formData.append('num_printed_next_year', document.getElementById('productNumPrintedNextYear').value);
+    // formData.append('label', document.getElementById('productLabel').value);
+    // formData.append('num_printed', document.getElementById('productNumPrinted').value);
+    // formData.append('num_printed_next_year', document.getElementById('productNumPrintedNextYear').value);
     formData.append('scoop_size', document.getElementById('productScoopSize').value);
-    formData.append('bulk_pre_pack', document.getElementById('productBulkPrePack').value);
+    // formData.append('bulk_pre_pack', document.getElementById('productBulkPrePack').value);
     formData.append('print_back', document.getElementById('productPrintBack').checked);
     formData.append('is_sub_product', document.getElementById('productIsSubProduct').checked);
     formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
@@ -3079,8 +3022,11 @@ function submitAddProduct(event) {
         body: formData
     })
     .then(response => response.json())
+    
+    
     .then(data => {
         if (data.success) {
+            hideAddProductPopup();
             showMessage('Product added successfully', 'success');
             setTimeout(() => {
                 window.location.href = window.location.pathname;
@@ -3098,8 +3044,7 @@ function submitAddProduct(event) {
         console.error('Error:', error);
         showMessage('Network error occurred', 'error');
     });
-    
-    hideAddProductPopup();
+        
 }
 
 // Get CSRF token
