@@ -438,6 +438,24 @@
         </div>
     </div>
 
+    <!-- Bulk Pre-Pack Prompt -->
+    <div class="print-popup-overlay" id="bulkPrePackPrompt">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Record as Bulk Pre-Pack?</h3>
+            </div>
+            <p style="text-align: center; margin: 20px 0; color: #374151; font-size: 1rem; line-height: 1.6;">
+                You're printing <strong><span id="bulkPrePackQty"></span> bulk labels</strong>.<br><br>
+                Would you like to add these to the <strong>bulk pre-pack inventory</strong>?
+            </p>
+            <div class="print-actions">
+                <button class="print-action-btn cancel-btn" onclick="cancelBulkPrePackPrompt()">Cancel Print</button>
+                <button class="print-action-btn secondary-btn" onclick="continueWithoutBulkPrePack()">No, Don't Record</button>
+                <button class="print-action-btn print-btn" onclick="continueWithBulkPrePack()">Yes, Record It</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Low Inventory Warning Popup -->
     <div class="print-popup-overlay" id="lowInventoryWarning">
         <div class="print-popup">

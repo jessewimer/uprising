@@ -426,6 +426,34 @@ def view_products_with_bullet_in_pkg_size():
     else:
         print("Update cancelled")
 
+def find_pkt_products_with_wrong_print_back_setting():
+    """Find 'pkt' products with print_back=True but env_type not in Herb/Veg/Flower"""
+    products = Product.objects.filter(
+        sku_suffix='pkt',
+        print_back=True
+    ).exclude(
+        env_type__in=['Herb', 'Veg', 'Flower']
+    ).select_related('variety').order_by('variety__sku_prefix')
+    
+    if not products:
+        print("\n✅ No pkt products found with incorrect env_type!")
+        return
+    
+    print("\n" + "="*120)
+    print(f"PKT PRODUCTS WITH PRINT_BACK=TRUE AND ENV_TYPE NOT IN [Herb, Veg, Flower] ({products.count()})")
+    print("="*120)
+    print(f"{'SKU Prefix':<15} {'Suffix':<10} {'Env Type':<15} {'Lineitem Name':<40} {'Print Back':<12}")
+    print("-"*120)
+    
+    for prod in products:
+        env_type_display = prod.env_type or '--'
+        print_back = "✓" if prod.print_back else "✗"
+        print(f"{prod.variety.sku_prefix:<15} {(prod.sku_suffix or '--'):<10} "
+              f"{env_type_display:<15} {(prod.lineitem_name or '--'):<40} {print_back:<12}")
+    
+    print(f"\nTotal: {products.count()} products found")
+
+
 def add_product():
     """Add a new product - PLACEHOLDER"""
     print("\n⚠️  ADD PRODUCT - Function placeholder")
@@ -467,12 +495,13 @@ def product_menu():
         print("6.  Reset all website_bulk to False")  # NEW
         print("7.  Reset all wholesale to False") 
         print("8.  View products with bullet in pkg_size")  # NEW
-        print("9.  Add new product")
-        print("10. Edit product")
-        print("11. Delete product")
+        print("9.  Find pkt products with wrong print_back setting") 
+        print("10. Add new product")
+        print("11. Edit product")
+        print("12. Delete product")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'])
 
         if choice == '0':
             break
@@ -501,12 +530,15 @@ def product_menu():
             view_products_with_bullet_in_pkg_size()  # NEW
             pause()
         elif choice == '9':
-            add_product()
+            find_pkt_products_with_wrong_print_back_setting()
             pause()
         elif choice == '10':
-            edit_product()
+            add_product()
             pause()
         elif choice == '11':
+            edit_product()
+            pause()
+        elif choice == '12':
             delete_product()
             pause()
 

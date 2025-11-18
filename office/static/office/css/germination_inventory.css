@@ -251,6 +251,15 @@ body {
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
+/* Secondary button style for bulk pre-pack "No" option */
+.print-action-btn.secondary-btn {
+    background: #6b7280;
+}
+
+.print-action-btn.secondary-btn:hover {
+    background: #4b5563;
+}
+
 /* NEW: Bulk icon styles */
 .bulk-icon {
     display: inline-flex;

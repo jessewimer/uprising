@@ -337,10 +337,6 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
 @login_required
 @user_passes_test(is_employee)
 def print_product_labels(request):
-    # from datetime import date
-    # from django.utils import timezone
-
-    
     if request.method == 'POST':
         if request.user.username not in ["office", "admin"]:
             return JsonResponse({'error': 'You are not allowed to print labels'}, status=403)
@@ -351,8 +347,21 @@ def print_product_labels(request):
             print_type = data.get('print_type')
             quantity = int(data.get('quantity', 1))
             packed_for_year = int(data.get('packed_for_year', 1))
+            add_to_bulk_pre_pack = data.get('add_to_bulk_pre_pack', False)
+            bulk_pre_pack_qty = int(data.get('bulk_pre_pack_qty', 0))
+            
             print(f"Packed for year: {packed_for_year}")
+            print(f"Add to bulk pre-pack: {add_to_bulk_pre_pack}, Qty: {bulk_pre_pack_qty}")
+            
             product = Product.objects.get(pk=product_id)
+            
+            # Update bulk_pre_pack if requested
+            if add_to_bulk_pre_pack and bulk_pre_pack_qty > 0:
+                if product.bulk_pre_pack is None:
+                    product.bulk_pre_pack = 0
+                product.bulk_pre_pack += bulk_pre_pack_qty
+                product.save()
+                print(f"Updated bulk_pre_pack: added {bulk_pre_pack_qty}, new total: {product.bulk_pre_pack}")
             
             # Only log if not printing back-only labels
             if print_type not in ['back_single', 'back_sheet']:
@@ -403,6 +412,77 @@ def print_product_labels(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+# @login_required
+# @user_passes_test(is_employee)
+# def print_product_labels(request):
+#     # from datetime import date
+#     # from django.utils import timezone
+
+    
+#     if request.method == 'POST':
+#         if request.user.username not in ["office", "admin"]:
+#             return JsonResponse({'error': 'You are not allowed to print labels'}, status=403)
+        
+#         try:
+#             data = json.loads(request.body)
+#             product_id = data.get('product_id')
+#             print_type = data.get('print_type')
+#             quantity = int(data.get('quantity', 1))
+#             packed_for_year = int(data.get('packed_for_year', 1))
+#             print(f"Packed for year: {packed_for_year}")
+#             product = Product.objects.get(pk=product_id)
+            
+#             # Only log if not printing back-only labels
+#             if print_type not in ['back_single', 'back_sheet']:
+#                 # Calculate actual label quantity
+#                 if print_type in ['front_sheet', 'front_back_sheet']:
+#                     actual_qty = quantity * 30  # 30 labels per sheet
+#                 else:
+#                     actual_qty = quantity  # Singles and front_back_single
+                
+#                 # Get today's date in PST/PDT
+#                 pst = pytz.timezone('America/Los_Angeles')
+#                 today_pst = timezone.now().astimezone(pst).date()
+                
+#                 # Check if there's already a print job for this product today with same for_year
+#                 existing_print = LabelPrint.objects.filter(
+#                     product=product,
+#                     lot=product.lot,
+#                     date=today_pst,
+#                     for_year=packed_for_year
+#                 ).first()
+                
+#                 if existing_print:
+#                     # Add to existing quantity
+#                     existing_print.qty += actual_qty
+#                     existing_print.save()
+#                     print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
+#                 else:
+#                     # Create new print job
+#                     LabelPrint.objects.create(
+#                         product=product,
+#                         lot=product.lot,
+#                         date=today_pst,
+#                         qty=actual_qty,
+#                         for_year=packed_for_year,
+#                     )
+#                     print(f"Created new print job for {actual_qty} labels")
+            
+#             print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
+            
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': f"Printing {quantity} {print_type} labels for {product.variety}."
+#             })
+            
+#         except Product.DoesNotExist:
+#             return JsonResponse({'error': 'Product not found'}, status=404)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+    
+#     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 @login_required
