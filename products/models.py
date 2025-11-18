@@ -23,6 +23,7 @@ class Variety(models.Model):
     stock_qty = models.CharField(max_length=50, blank=True, null=True)
     photo_path = models.CharField(max_length=255, blank=True, null=True)
     wholesale = models.BooleanField(default=False)
+    wholesale_rack_designation = models.CharField(max_length=1, blank=True, null=True)
     website_bulk = models.BooleanField(default=False)
 
     desc_line1 = models.TextField(blank=True, null=True)
