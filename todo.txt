@@ -18,3 +18,8 @@ in settings.py:
 == wholesale finalize order ==
 factor in store credit for pkts returned when finalizing an order
 =============================
+
+On the manage_products:
+    create function to reset wholesale availability to FALSE    
+    create function to reset website_bulk to FALSE
+    

@@ -179,7 +179,7 @@ TRANSITION = False  # whether we are in the transition period between years (Jul
 PKG_SIZES = ["Net wt. 1/8 oz", "Net wt. 1/4 oz", "Net wt. 1/2 oz", "Net wt. 1 oz", "Net wt. 2 oz", "Net wt. 1/4 lb", "Net wt. 1/2 lb", 
              "Net wt. 1 lb", "Net wt. 2½ lb", "Net wt. 5 lb", "Approx. 10 seeds", "Approx. 15 seeds", "Approx. 20 seeds", "Approx. 20-25 seeds", "Approx. 25 seeds", 
              "Approx. 25-30 seeds", "Approx. 30 seeds", "Approx. 30-35 seeds", "Approx. 35 seeds", "Approx. 40 seeds", "Approx. 50 seeds", 
-             "Approx. 75 seeds", "Approx. 75-100 seeds", "Approx. 100 seeds", "Approx. 150 seeds", "Approx. 200 seeds", "Approx. 300 seeds", 
+             "Approx. 75 seeds", "Approx. 75-100 seeds", "Approx. 100 seeds", "Approx. 150 seeds", "Approx. 200 seeds", "Approx. 250 seeds", "Approx. 300 seeds", 
              "Approx. 500 seeds", "Approx. 1000 seeds", "Approx. 5k seeds", "Approx. 10k seeds", "Approx. 25k seeds", "Net wt. 1/4 g", "Net wt. 1/3 g", 
              "Net wt. 1/2 g", "Net wt. 1 g", "Net wt. 2 g"]
 
