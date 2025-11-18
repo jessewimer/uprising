@@ -453,6 +453,28 @@ def find_pkt_products_with_wrong_print_back_setting():
     
     print(f"\nTotal: {products.count()} products found")
 
+def view_products_with_bulk_pre_pack():
+    """Display all products with bulk_pre_pack > 0"""
+    products = Product.objects.filter(
+        bulk_pre_pack__gt=0
+    ).select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+    
+    if not products:
+        print("\n✅ No products have bulk_pre_pack set!")
+        return
+    
+    print("\n" + "="*100)
+    print(f"PRODUCTS WITH BULK PRE-PACK ({products.count()})")
+    print("="*100)
+    print(f"{'SKU Prefix':<15} {'Variety Name':<40} {'Suffix':<10} {'Bulk Pre-Pack':<15}")
+    print("-"*100)
+    
+    for prod in products:
+        variety_name = prod.variety.var_name or '--'
+        suffix = prod.sku_suffix or '--'
+        print(f"{prod.variety.sku_prefix:<15} {variety_name:<40} {suffix:<10} {prod.bulk_pre_pack:<15}")
+    
+    print(f"\nTotal: {products.count()} products with bulk pre-pack")
 
 def add_product():
     """Add a new product - PLACEHOLDER"""
@@ -490,11 +512,11 @@ def product_menu():
         print("1.  View all products")
         print("2.  View product details")
         print("3.  View lineitem names")
-        print("4.  View products without lineitem names")  # NEW
+        print("4.  View products without lineitem names")  
         print("5.  Reset bulk pre-pack to zero")
-        print("6.  Reset all website_bulk to False")  # NEW
+        print("6.  Reset all website_bulk to False") 
         print("7.  Reset all wholesale to False") 
-        print("8.  View products with bullet in pkg_size")  # NEW
+        print("8.  View products with bulk pre-pack")
         print("9.  Find pkt products with wrong print_back setting") 
         print("10. Add new product")
         print("11. Edit product")
@@ -526,8 +548,11 @@ def product_menu():
         elif choice == '7':
             reset_all_wholesale()  # NEW
             pause()
+        # elif choice == '8':
+        #     view_products_with_bullet_in_pkg_size()  # NEW
+        #     pause()
         elif choice == '8':
-            view_products_with_bullet_in_pkg_size()  # NEW
+            view_products_with_bulk_pre_pack()  # NEW
             pause()
         elif choice == '9':
             find_pkt_products_with_wrong_print_back_setting()
