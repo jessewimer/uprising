@@ -307,6 +307,72 @@ def view_lineitems():
     print("\n")
     print(df)
 
+def view_products_without_lineitem():
+    """Display all products that do not have a lineitem name"""
+    products = Product.objects.filter(
+        is_sub_product=False
+    ).filter(
+        lineitem_name__isnull=True
+    ) | Product.objects.filter(
+        is_sub_product=False
+    ).filter(
+        lineitem_name=""
+    )
+    products = products.select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+    
+    if not products:
+        print("\n✅ All products have lineitem names assigned!")
+        return
+    
+    print("\n" + "="*100)
+    print(f"PRODUCTS WITHOUT LINEITEM NAMES ({products.count()})")
+    print("="*100)
+    print(f"{'SKU Prefix':<15} {'Suffix':<10} {'Pkg Size':<15} {'Variety Name':<40}")
+    print("-"*100)
+    
+    for prod in products:
+        variety_name = prod.variety.var_name or '--'
+        print(f"{prod.variety.sku_prefix:<15} {(prod.sku_suffix or '--'):<10} "
+              f"{(prod.pkg_size or '--'):<15} {variety_name:<40}")
+    
+    print(f"\nTotal: {products.count()} products without lineitem names")
+
+def reset_all_website_bulk():
+    """Reset website_bulk to False for all varieties"""
+    varieties = Variety.objects.filter(website_bulk=True)
+    count = varieties.count()
+    
+    if count == 0:
+        print("\n✅ All varieties already have website_bulk=False")
+        return
+    
+    print(f"\n⚠️  You are about to reset website_bulk to False for {count} varieties")
+    confirm = input("Type 'RESET' to confirm: ").strip()
+    
+    if confirm == 'RESET':
+        varieties.update(website_bulk=False)
+        print(f"✅ Reset website_bulk to False for {count} varieties")
+    else:
+        print("Reset cancelled")
+
+def reset_all_wholesale():
+    """Reset wholesale to False for all varieties"""
+    varieties = Variety.objects.filter(wholesale=True)
+    count = varieties.count()
+    
+    if count == 0:
+        print("\n✅ All varieties already have wholesale=False")
+        return
+    
+    print(f"\n⚠️  You are about to reset wholesale to False for {count} varieties")
+    confirm = input("Type 'RESET' to confirm: ").strip()
+    
+    if confirm == 'RESET':
+        varieties.update(wholesale=False)
+        print(f"✅ Reset wholesale to False for {count} varieties")
+    else:
+        print("Reset cancelled")
+
 def reset_bulk_pre_pack_to_zero():
     """Reset all NULL bulk_pre_pack values to 0"""
     products = Product.objects.filter(bulk_pre_pack__isnull=True)
@@ -359,14 +425,17 @@ def product_menu():
         print("1.  View all products")
         print("2.  View product details")
         print("3.  View lineitem names")
-        print("4.  Reset bulk pre-pack to zero")
-        print("5.  Add new product")
-        print("6.  Edit product")
-        print("7.  Delete product")
+        print("4.  View products without lineitem names")  # NEW
+        print("5.  Reset bulk pre-pack to zero")
+        print("6.  Reset all website_bulk to False")  # NEW
+        print("7.  Reset all wholesale to False")  # NEW
+        print("8.  Add new product")
+        print("9.  Edit product")
+        print("10. Delete product")
         print("0.  Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7'])
-        
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+
         if choice == '0':
             break
         elif choice == '1':
@@ -379,15 +448,24 @@ def product_menu():
             view_lineitems()
             pause()
         elif choice == '4':
-            reset_bulk_pre_pack_to_zero()
+            view_products_without_lineitem()  # NEW
             pause()
         elif choice == '5':
-            add_product()
+            reset_bulk_pre_pack_to_zero()
             pause()
         elif choice == '6':
-            edit_product()
+            reset_all_website_bulk()  # NEW
             pause()
         elif choice == '7':
+            reset_all_wholesale()  # NEW
+            pause()
+        elif choice == '8':
+            add_product()
+            pause()
+        elif choice == '9':
+            edit_product()
+            pause()
+        elif choice == '10':
             delete_product()
             pause()
 

@@ -22,4 +22,4 @@ factor in store credit for pkts returned when finalizing an order
 On the manage_products:
     create function to reset wholesale availability to FALSE    
     create function to reset website_bulk to FALSE
-    
+    add function to scan for items with no lineitem name
