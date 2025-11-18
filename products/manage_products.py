@@ -389,6 +389,43 @@ def reset_bulk_pre_pack_to_zero():
     else:
         print("Cancelled")
 
+def view_products_with_bullet_in_pkg_size():
+    """Display all products that have a bullet (•) in their pkg_size and remove them"""
+    products = Product.objects.filter(
+        pkg_size__contains="•"
+    ).select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+    
+    if not products:
+        print("\n✅ No products have bullets in pkg_size!")
+        return
+    
+    print("\n" + "="*100)
+    print(f"PRODUCTS WITH BULLET (•) IN PKG_SIZE ({products.count()})")
+    print("="*100)
+    print(f"{'SKU Prefix':<15} {'Suffix':<10} {'Old Pkg Size':<25} {'New Pkg Size':<25}")
+    print("-"*100)
+    
+    changes = []
+    for prod in products:
+        old_pkg_size = prod.pkg_size
+        new_pkg_size = prod.pkg_size.replace("•", "").strip()
+        changes.append((prod, old_pkg_size, new_pkg_size))
+        print(f"{prod.variety.sku_prefix:<15} {(prod.sku_suffix or '--'):<10} "
+              f"{old_pkg_size:<25} {new_pkg_size:<25}")
+    
+    print(f"\nTotal: {len(changes)} products to update")
+    confirm = input("\nRemove bullets and save changes? (y/n): ").strip().lower()
+    
+    if confirm == 'y':
+        updated_count = 0
+        for prod, old, new in changes:
+            prod.pkg_size = new
+            prod.save()
+            updated_count += 1
+        print(f"✅ Updated {updated_count} products")
+    else:
+        print("Update cancelled")
+
 def add_product():
     """Add a new product - PLACEHOLDER"""
     print("\n⚠️  ADD PRODUCT - Function placeholder")
@@ -428,13 +465,14 @@ def product_menu():
         print("4.  View products without lineitem names")  # NEW
         print("5.  Reset bulk pre-pack to zero")
         print("6.  Reset all website_bulk to False")  # NEW
-        print("7.  Reset all wholesale to False")  # NEW
-        print("8.  Add new product")
-        print("9.  Edit product")
-        print("10. Delete product")
+        print("7.  Reset all wholesale to False") 
+        print("8.  View products with bullet in pkg_size")  # NEW
+        print("9.  Add new product")
+        print("10. Edit product")
+        print("11. Delete product")
         print("0.  Back to main menu")
-        
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'])
 
         if choice == '0':
             break
@@ -460,12 +498,15 @@ def product_menu():
             reset_all_wholesale()  # NEW
             pause()
         elif choice == '8':
-            add_product()
+            view_products_with_bullet_in_pkg_size()  # NEW
             pause()
         elif choice == '9':
-            edit_product()
+            add_product()
             pause()
         elif choice == '10':
+            edit_product()
+            pause()
+        elif choice == '11':
             delete_product()
             pause()
 
