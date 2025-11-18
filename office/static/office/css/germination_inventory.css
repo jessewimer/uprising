@@ -695,6 +695,28 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 15px;  /* REDUCE from 20px to 15px */
+    width: 100%;
+    padding: 15px 20px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 12px;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    flex-wrap: wrap;  /* ADD THIS - allows wrapping if needed */
+}
+
+
+.wholesale-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+}
+/* .wholesale-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 15px 20px;
     background: rgba(102, 126, 234, 0.05);
     border-radius: 12px;
@@ -707,7 +729,7 @@ body {
     gap: 12px;
     cursor: pointer;
     user-select: none;
-}
+} */
 
 .wholesale-checkbox-input {
     display: none;
@@ -756,6 +778,8 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    flex-shrink: 0; 
+    min-width: fit-content; 
 }
 
 .wholesale-save-btn:hover {
@@ -803,6 +827,56 @@ body {
     color: #666;
     cursor: pointer;
     margin-left: 10px;
+}
+
+.rack-type-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 auto;  /* CHANGE from "flex: 1" - allows shrinking if needed */
+    margin: 0;
+    min-width: 0;  /* ADD THIS - allows flexbox to shrink below content size */
+}
+
+.rack-type-options {
+    display: flex;
+    gap: 12px;
+}
+
+.rack-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.rack-option:hover {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.rack-option input[type="radio"] {
+    display: none;
+}
+
+.rack-option input[type="radio"]:checked + .rack-label {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.rack-option:has(input[type="radio"]:checked) {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.rack-label {
+    font-size: 14px;
+    color: #374151;
+    transition: all 0.2s;
 }
 
 

@@ -1709,7 +1709,9 @@ def variety_sales_data(request, sku_prefix):
             'display_year': display_year,  # Add 4-digit year for display
             'variety_name': variety.var_name,
             'sku_prefix': variety.sku_prefix,
-            'wholesale': variety.wholesale
+            'wholesale': variety.wholesale, 
+            'wholesale_rack_designation': variety.wholesale_rack_designation
+
         })
         
     except Exception as e:
@@ -3178,18 +3180,40 @@ def edit_variety(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
+# @login_required
+# @user_passes_test(is_employee)
+# @require_http_methods(["POST"])
+# def update_variety_wholesale(request):
+#     """Update variety wholesale status"""
+#     try:
+#         data = json.loads(request.body)
+#         sku_prefix = data.get('sku_prefix')
+#         wholesale = data.get('wholesale')
+        
+#         variety = Variety.objects.get(sku_prefix=sku_prefix)
+#         variety.wholesale = wholesale
+#         variety.save()
+        
+#         return JsonResponse({'success': True})
+#     except Variety.DoesNotExist:
+#         return JsonResponse({'success': False, 'error': 'Variety not found'}, status=404)
+#     except Exception as e:
+#         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def update_variety_wholesale(request):
-    """Update variety wholesale status"""
+    """Update variety wholesale status and rack designation"""
     try:
         data = json.loads(request.body)
         sku_prefix = data.get('sku_prefix')
         wholesale = data.get('wholesale')
+        rack_designation = data.get('wholesale_rack_designation')
         
         variety = Variety.objects.get(sku_prefix=sku_prefix)
         variety.wholesale = wholesale
+        variety.wholesale_rack_designation = rack_designation if wholesale else None
         variety.save()
         
         return JsonResponse({'success': True})

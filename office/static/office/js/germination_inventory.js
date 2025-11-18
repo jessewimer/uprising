@@ -59,6 +59,31 @@ function setupEventListeners() {
     });
 }
 
+// Add wholesale checkbox change handler
+// document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
+//     const rackTypeContainer = document.getElementById('rackTypeContainer');
+//     if (this.checked) {
+//         rackTypeContainer.style.display = 'block';
+//     } else {
+//         rackTypeContainer.style.display = 'none';
+//         // Clear rack selection when unchecking wholesale
+//         document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+//             radio.checked = false;
+//         });
+//     }
+// });
+
+// Add wholesale checkbox change handler
+document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
+    const rackTypeContainer = document.getElementById('rackTypeContainer');
+    if (this.checked) {
+        rackTypeContainer.style.display = 'block';
+    } else {
+        rackTypeContainer.style.display = 'none';
+        // DON'T clear the selection - just hide it
+    }
+});
+
 // Cache configuration
 const CACHE_KEY = 'germination_inventory_data';
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
@@ -724,6 +749,11 @@ function showSalesData(sku_prefix, variety_name) {
     document.getElementById('salesModalTitle').textContent = `Sales Data - ${variety_name}`;
     document.getElementById('salesModal').style.display = 'flex';
     
+    // Clear all rack selections from previous modal opens
+    document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+        radio.checked = false;
+    });
+
     document.getElementById('salesLoading').style.display = 'block';
     document.getElementById('salesTable').style.display = 'none';
     document.getElementById('salesEmpty').style.display = 'none';
@@ -742,12 +772,67 @@ function showSalesData(sku_prefix, variety_name) {
 
             // ADD AFTER line 730 (after the if/else for sales data display)
             // Show wholesale section
+            // const wholesaleSection = document.getElementById('wholesaleSection');
+            // const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
+            // wholesaleSection.style.display = 'block';
+            // wholesaleCheckbox.checked = data.wholesale || false;
+            // wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
+            // wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
+            // Show wholesale section
             const wholesaleSection = document.getElementById('wholesaleSection');
             const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
             wholesaleSection.style.display = 'block';
             wholesaleCheckbox.checked = data.wholesale || false;
             wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
             wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
+
+            wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
+
+            // NEW: Show/hide and set rack type based on wholesale status
+            const rackTypeContainer = document.getElementById('rackTypeContainer');
+            if (data.wholesale) {
+                rackTypeContainer.style.display = 'block';
+                // Set the current rack designation
+                console.log('Wholesale is true, rack designation from DB:', data.wholesale_rack_designation); // DEBUG
+                if (data.wholesale_rack_designation) {
+                    const rackValue = String(data.wholesale_rack_designation).trim(); // Convert to string and trim
+                    console.log('Looking for rack with value:', rackValue); // DEBUG
+                    const rackRadio = document.querySelector(`input[name="rackType"][value="${rackValue}"]`);
+                    console.log('Found radio element:', rackRadio); // DEBUG
+                    if (rackRadio) {
+                        rackRadio.checked = true;
+                        console.log('Set radio to checked'); // DEBUG
+                    } else {
+                        console.log('Radio element not found!'); // DEBUG
+                    }
+                }
+            } else {
+                rackTypeContainer.style.display = 'none';
+                // Clear all rack selections
+                document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+                    radio.checked = false;
+                });
+            }
+            // wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
+
+            // // NEW: Show/hide and set rack type based on wholesale status
+            // const rackTypeContainer = document.getElementById('rackTypeContainer');
+            // if (data.wholesale) {
+            //     rackTypeContainer.style.display = 'block';
+            //     // Set the current rack designation
+            //     if (data.wholesale_rack_designation) {
+            //         const rackRadio = document.querySelector(`input[name="rackType"][value="${data.wholesale_rack_designation}"]`);
+            //         if (rackRadio) {
+            //             rackRadio.checked = true;
+            //         }
+            //     }
+            // } else {
+            //     rackTypeContainer.style.display = 'none';
+            //     // Clear all rack selections
+            //     document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+            //         radio.checked = false;
+            //     });
+            // }
         })
         .catch(error => {
             console.error('Sales error:', error);
@@ -965,8 +1050,20 @@ document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function(
     const newValue = checkbox.checked;
     const originalValue = checkbox.dataset.originalValue === 'true';
     
-    if (newValue === originalValue) {
-        showMessage('No changes to save', 'error'); // CHANGED
+    // Get rack type selection
+    const selectedRack = document.querySelector('input[name="rackType"]:checked');
+    const rackDesignation = selectedRack ? selectedRack.value : null;
+    const originalRack = checkbox.dataset.rackDesignation || null;
+    
+    // Validation: if wholesale is checked, rack type must be selected
+    if (newValue && !rackDesignation) {
+        showMessage('Please select a rack type before saving', 'error');
+        return;
+    }
+    
+    // Check if anything changed
+    if (newValue === originalValue && rackDesignation === originalRack) {
+        showMessage('No changes to save', 'error');
         return;
     }
     
@@ -978,22 +1075,63 @@ document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function(
         },
         body: JSON.stringify({
             sku_prefix: skuPrefix,
-            wholesale: newValue
+            wholesale: newValue,
+            wholesale_rack_designation: newValue ? rackDesignation : null
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             checkbox.dataset.originalValue = newValue;
-            showMessage('Wholesale status updated successfully', 'success'); // CHANGED
+            checkbox.dataset.rackDesignation = newValue ? rackDesignation : '';
+            showMessage('Wholesale status updated successfully', 'success');
         } else {
-            showMessage('Error: ' + (data.error || 'Unknown error'), 'error'); // CHANGED
+            showMessage('Error: ' + (data.error || 'Unknown error'), 'error');
             checkbox.checked = originalValue;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showMessage('Network error occurred', 'error'); // CHANGED
+        showMessage('Network error occurred', 'error');
         checkbox.checked = originalValue;
     });
 });
+// // Wholesale save handler
+// document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function() {
+//     const checkbox = document.getElementById('wholesaleCheckbox');
+//     const skuPrefix = checkbox.dataset.skuPrefix;
+//     const newValue = checkbox.checked;
+//     const originalValue = checkbox.dataset.originalValue === 'true';
+    
+//     if (newValue === originalValue) {
+//         showMessage('No changes to save', 'error'); // CHANGED
+//         return;
+//     }
+    
+//     fetch('/office/update-variety-wholesale/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCSRFToken()
+//         },
+//         body: JSON.stringify({
+//             sku_prefix: skuPrefix,
+//             wholesale: newValue
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             checkbox.dataset.originalValue = newValue;
+//             showMessage('Wholesale status updated successfully', 'success'); // CHANGED
+//         } else {
+//             showMessage('Error: ' + (data.error || 'Unknown error'), 'error'); // CHANGED
+//             checkbox.checked = originalValue;
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//         showMessage('Network error occurred', 'error'); // CHANGED
+//         checkbox.checked = originalValue;
+//     });
+// });
