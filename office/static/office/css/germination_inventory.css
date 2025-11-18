@@ -680,6 +680,89 @@ body {
     opacity: 0.5;
 }
 
+/* Wholesale Section */
+.wholesale-section {
+    margin-top: 25px;
+}
+
+.wholesale-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.3), transparent);
+    margin-bottom: 20px;
+}
+
+.wholesale-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 12px;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.wholesale-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.wholesale-checkbox-input {
+    display: none;
+}
+
+.wholesale-checkbox-custom {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #667eea;
+    border-radius: 6px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.wholesale-checkbox-input:checked + .wholesale-checkbox-custom {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: #667eea;
+}
+
+.wholesale-checkbox-input:checked + .wholesale-checkbox-custom::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.wholesale-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.wholesale-save-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.wholesale-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
 
 /* Message System */
 .messages-container {
@@ -708,6 +791,11 @@ body {
     background: #fef2f2;
 }
 
+.message-success {
+    border-left-color: #28a745;
+    background: #f0fdf4;
+}
+
 .message-close {
     background: none;
     border: none;
@@ -717,32 +805,6 @@ body {
     margin-left: 10px;
 }
 
-/* @keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-} */
 
 /* Responsive Design */
 @media (max-width: 1400px) {

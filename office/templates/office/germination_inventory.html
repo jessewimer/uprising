@@ -13,6 +13,9 @@
 </head>
 
 <body>
+    <!-- Message System Container -->
+    <div class="messages-container" id="messagesContainer"></div>
+
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -43,6 +46,16 @@
                         <label class="filter-label">Veg Type:</label>
                         <select class="filter-select" id="vegTypeFilter">
                             <option value="">All Veg Types</option>
+                        </select>
+                    </div>
+
+                    <!-- ADD THIS NEW FILTER -->
+                    <div class="filter-group">
+                        <label class="filter-label">Website:</label>
+                        <select class="filter-select website-filter" id="websiteFilter">
+                            <option value="">All</option>
+                            <option value="true">🟢 Complete</option>
+                            <option value="false">🔴 Incomplete</option>
                         </select>
                     </div>
 
@@ -162,6 +175,19 @@
                 <div class="sales-empty" id="salesEmpty" style="display: none;">
                     <div class="sales-empty-icon">📊</div>
                     <div>No sales data found for this variety</div>
+                </div>
+
+                <!-- Wholesale Section -->
+                <div class="wholesale-section" id="wholesaleSection" style="display: none;">
+                    <div class="wholesale-divider"></div>
+                    <div class="wholesale-container">
+                        <label class="wholesale-checkbox-wrapper">
+                            <input type="checkbox" id="wholesaleCheckbox" class="wholesale-checkbox-input">
+                            <span class="wholesale-checkbox-custom"></span>
+                            <span class="wholesale-label">Available for Wholesale</span>
+                        </label>
+                        <button class="wholesale-save-btn" id="wholesaleSaveBtn">Save</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -29,12 +29,14 @@ function setupEventListeners() {
     document.getElementById('categoryFilter').addEventListener('change', applyFilters);
     document.getElementById('groupFilter').addEventListener('change', applyFilters);
     document.getElementById('vegTypeFilter').addEventListener('change', applyFilters);
+    document.getElementById('websiteFilter').addEventListener('change', applyFilters);
     document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
     document.getElementById('modalCancel').addEventListener('click', closeModal);
     document.getElementById('modalConfirm').addEventListener('click', confirmPrint);
     document.getElementById('salesModalClose').addEventListener('click', closeSalesModal);
     document.getElementById('bulkModalCancel').addEventListener('click', closeBulkModal);
     document.getElementById('bulkModalConfirm').addEventListener('click', confirmBulk);
+    
     
     // Modal backdrop clicks
     document.getElementById('printModal').addEventListener('click', function(e) {
@@ -213,11 +215,19 @@ function applyFilters() {
     const categoryFilter = document.getElementById('categoryFilter').value;
     const groupFilter = document.getElementById('groupFilter').value;
     const vegTypeFilter = document.getElementById('vegTypeFilter').value;
+    const websiteFilter = document.getElementById('websiteFilter').value; // ADD THIS
 
     appData.filteredLots = appData.allLots.filter(lot => {
+        // Website filter check - ADD THIS BLOCK
+        let websiteMatch = true;
+        if (websiteFilter !== '') {
+            websiteMatch = lot.website_bulk === (websiteFilter === 'true');
+        }
+        
         return (!categoryFilter || lot.category === categoryFilter) &&
                 (!groupFilter || lot.group === groupFilter) &&
-                (!vegTypeFilter || lot.veg_type === vegTypeFilter);
+                (!vegTypeFilter || lot.veg_type === vegTypeFilter) &&
+                websiteMatch; // ADD THIS
     });
 
     renderTable();
@@ -228,6 +238,7 @@ function clearFilters() {
     document.getElementById('categoryFilter').value = '';
     document.getElementById('groupFilter').value = '';
     document.getElementById('vegTypeFilter').value = '';
+    document.getElementById('websiteFilter').value = '';
     appData.filteredLots = [...appData.allLots];
     renderTable();
 }
@@ -728,6 +739,15 @@ function showSalesData(sku_prefix, variety_name) {
             } else {
                 document.getElementById('salesEmpty').style.display = 'block';
             }
+
+            // ADD AFTER line 730 (after the if/else for sales data display)
+            // Show wholesale section
+            const wholesaleSection = document.getElementById('wholesaleSection');
+            const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
+            wholesaleSection.style.display = 'block';
+            wholesaleCheckbox.checked = data.wholesale || false;
+            wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
+            wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
         })
         .catch(error => {
             console.error('Sales error:', error);
@@ -781,6 +801,26 @@ function populateSalesTable(salesData, displayYear) {
 
 function closeSalesModal() {
     document.getElementById('salesModal').style.display = 'none';
+}
+
+
+// Show message notification
+function showMessage(text, type = 'success') {
+    const container = document.getElementById('messagesContainer');
+    const message = document.createElement('div');
+    message.className = `message message-${type}`;
+    message.innerHTML = `
+        <span class="message-text">${text}</span>
+        <button class="message-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(message);
+    
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        message.style.animation = 'slideOutRight 0.3s ease-out forwards';
+        setTimeout(() => message.remove(), 300);
+    }, 3000);
 }
 
 // Utils
@@ -917,3 +957,43 @@ function confirmBulk() {
         renderTable();
     });
 }
+
+// Wholesale save handler
+document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function() {
+    const checkbox = document.getElementById('wholesaleCheckbox');
+    const skuPrefix = checkbox.dataset.skuPrefix;
+    const newValue = checkbox.checked;
+    const originalValue = checkbox.dataset.originalValue === 'true';
+    
+    if (newValue === originalValue) {
+        showMessage('No changes to save', 'error'); // CHANGED
+        return;
+    }
+    
+    fetch('/office/update-variety-wholesale/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+            sku_prefix: skuPrefix,
+            wholesale: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            checkbox.dataset.originalValue = newValue;
+            showMessage('Wholesale status updated successfully', 'success'); // CHANGED
+        } else {
+            showMessage('Error: ' + (data.error || 'Unknown error'), 'error'); // CHANGED
+            checkbox.checked = originalValue;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Network error occurred', 'error'); // CHANGED
+        checkbox.checked = originalValue;
+    });
+});

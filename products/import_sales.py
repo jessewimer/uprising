@@ -4,7 +4,7 @@ import csv
 import sys
 from django.db import transaction
 from datetime import datetime
-import time
+# import time
 from django.utils import timezone
 
 # Get the current directory path
@@ -22,7 +22,7 @@ from products.models import Product, Sales, MiscProduct, MiscSales
 # Define prefixes that indicate misc products
 MISC_PRODUCT_PREFIXES = ["TOO", "BEA-MF", "GIF", "TOM-CH-pkts", "gift", "SFA", "MER", "SGB", "PEA-SP-pkts"]
 
-def import_sales_2025(csv_file, year=25, wholesale=False, dry_run=True):
+def import_sales_2025(csv_file, year=25, wholesale=False, dry_run=False):
     """
     Import sales data from CSV file.
     
@@ -50,7 +50,7 @@ def import_sales_2025(csv_file, year=25, wholesale=False, dry_run=True):
         for row_num, row in enumerate(reader, start=2):  # Start at 2 to account for header row
             # sleep for 1 second
             
-            time.sleep(1)
+            # time.sleep(1)
             
             sku = row.get("SKU", "").strip()
             qty_str = row.get("QTY", "").strip()
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     print()
     
     # Run with dry_run=True first to preview
-    import_sales_2025(csv_file_path, year=25, wholesale=False, dry_run=True)
+    import_sales_2025(csv_file_path, year=25, wholesale=False, dry_run=False)
     
     # Uncomment below to actually import (after reviewing dry run)
     # import_sales_2025(csv_file_path, year=2025, wholesale=False, dry_run=False)

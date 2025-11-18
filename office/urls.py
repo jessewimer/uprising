@@ -81,7 +81,6 @@ urlpatterns = [
     path('edit-front-labels/', edit_front_labels, name='edit_front_labels'),
     path('edit-back-labels/', edit_back_labels, name='edit_back_labels'),
 
-    # path('check-stock-seed-exists/', check_stock_seed_exists, name='check_stock_seed_exists'),
     path('get-stock-seed-data/', get_stock_seed_data, name='get_stock_seed_data'),
 
     path('check-pick-list-printed/<int:order_id>/', check_pick_list_printed, name='check_pick_list_printed'),
@@ -93,4 +92,5 @@ urlpatterns = [
     path('store-sales-data/', get_store_sales_data, name='get_store_sales_data'), 
     path('edit-variety/', edit_variety, name='edit_variety'),
     path('api/update-website-bulk/', update_website_bulk, name='update_website_bulk'),
+    path('update-variety-wholesale/', update_variety_wholesale, name='update_variety_wholesale'),
 ]
