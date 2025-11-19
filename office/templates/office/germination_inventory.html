@@ -177,6 +177,55 @@
                     <div>No sales data found for this variety</div>
                 </div>
 
+                <!-- Usage Section -->
+                <div class="usage-section" id="usageSection" style="display: none;">
+                    <div class="usage-divider"></div>
+                    <h3 class="usage-title">Variety Usage</h3>
+                    <div class="usage-container">
+                        <div class="usage-loading" id="usageLoading">
+                            <div class="usage-loading-spinner"></div>
+                            <div>Calculating usage...</div>
+                        </div>
+                        
+                        <div class="usage-content" id="usageContent" style="display: none;">
+                            <div class="usage-summary">
+                                <div class="usage-stat">
+                                    <span class="usage-label">Season:</span>
+                                    <span class="usage-value" id="usageSeasonRange">--</span>
+                                </div>
+                                <div class="usage-stat">
+                                    <span class="usage-label">Total Used:</span>
+                                    <span class="usage-value usage-highlight" id="usageTotalLbs">--</span>
+                                </div>
+                                <div class="usage-stat">
+                                    <span class="usage-label">Lots Tracked:</span>
+                                    <span class="usage-value" id="usageLotCount">--</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Lot details table (optional, can be collapsed) -->
+                            <details class="usage-details">
+                                <summary>View lot details</summary>
+                                <table class="usage-lot-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Lot</th>
+                                            <th>Start (lbs)</th>
+                                            <th>End (lbs)</th>
+                                            <th>Used (lbs)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usageLotTableBody"></tbody>
+                                </table>
+                            </details>
+                        </div>
+                        
+                        <div class="usage-empty" id="usageEmpty" style="display: none;">
+                            <div>No usage data available for this variety</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Wholesale Section -->
                 <div class="wholesale-section" id="wholesaleSection" style="display: none;">
                     <div class="wholesale-divider"></div>

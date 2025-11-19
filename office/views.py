@@ -205,134 +205,6 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'has_pending_germ': has_pending_germ,
     }
     return render(request, 'office/view_variety.html', context)
-# @login_required
-# @user_passes_test(is_employee)
-# def view_variety(request):
-#     """
-#     View all varieties, last selected variety, products, lots, and all_vars dictionary.
-#     Handles POSTs for selecting variety, printing, editing, and adding records.
-#     """
-#     user = request.user
-   
-#     # --- Get the user's last selected variety (if any), else default to AST-HP ---
-#     last_selected_entry = LastSelected.objects.filter(user=user).last()
-#     last_selected_variety = (
-#         last_selected_entry.variety if last_selected_entry else Variety.objects.get(pk="BEA-CA")
-#     )
-   
-#     packed_for_year = settings.CURRENT_ORDER_YEAR
-    
-#     # --- All varieties ---
-#     varieties = Variety.objects.all().order_by('veg_type', 'sku_prefix')
-   
-#     # --- Build all_vars dict for front-end dropdown (JS-friendly) ---
-#     all_vars = {
-#         v.sku_prefix: {
-#             'common_spelling': v.common_spelling,
-#             'var_name': v.var_name,
-#             'veg_type': v.veg_type,
-#         }
-#         for v in varieties
-#     }
-#     # Add this line to convert to JSON
-#     all_vars_json = json.dumps(all_vars)
-   
-#     # --- Initialize objects to pass to template ---
-#     variety_obj = last_selected_variety  # Default to last selected
-#     products = None
-#     lots = None
-#     lots_json = '[]'  # Default empty JSON
-#     lots_extra_data = '[]'  # Default empty JSON
-#     growers = Grower.objects.none()  # Default empty queryset
-   
-#     # --- Handle POST actions ---
-#     if request.method == 'POST':
-#         action = request.POST.get('action')
-       
-#         # Handle variety selection (this changes the current variety)
-#         if action == 'select_variety':
-#             selected_variety_pk = request.POST.get('variety_sku')
-#             if selected_variety_pk:
-#                 variety_obj = get_object_or_404(Variety, pk=selected_variety_pk)
-#                 # Save as last selected for this user
-#                 LastSelected.objects.update_or_create(
-#                     user=user,
-#                     defaults={'variety': variety_obj}
-#                 )
-#                 return redirect('view_variety')
-    
-#     # --- Get associated products and lots for the current variety ---
-#     if variety_obj:
-#         products = Product.objects.filter(variety=variety_obj)
-#         # sort products based on SKU_SUFFIXES
-#         products = Product.objects.filter(variety=variety_obj).order_by(
-#             Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
-#                 output_field=IntegerField())
-#         )
-#         lots = Lot.objects.filter(variety=variety_obj).order_by("year")
-#         has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
-#         growers = Grower.objects.all().order_by('code')
-
-#         # Build lots JSON data
-#         lots_json = json.dumps([
-#             {
-#                 'id': lot.id,
-#                 'grower': str(lot.grower) if lot.grower else '',
-#                 'year': lot.year,
-#                 'harvest': lot.harvest or '',
-#                 'is_retired': hasattr(lot, 'retired_info'),
-#                 'low_inv': lot.low_inv,
-#             }
-#             for lot in lots
-#         ])
-
-#         # Build lots extra data for next-year-only detection and recent inventory
-#         lots_extra_data_list = []
-#         six_months_ago = timezone.now().date() - timedelta(days=180)
-
-#         for lot in lots:
-#             extra_data = {
-#                 'id': lot.id,
-#                 'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
-#             }
-            
-#             # Check for recent inventory
-#             recent_inv = lot.inventory.order_by('-inv_date').first()
-#             if recent_inv and recent_inv.inv_date >= six_months_ago:
-#                 extra_data['recent_inventory'] = {
-#                     'id': recent_inv.id,
-#                     'weight': str(recent_inv.weight),
-#                     'date': recent_inv.inv_date.strftime('%m/%Y'),
-#                     'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
-#                 }
-            
-#             lots_extra_data_list.append(extra_data)
-
-#         lots_extra_data = json.dumps(lots_extra_data_list)
-
-#     context = {
-#         'last_selected': last_selected_variety,
-#         'variety': variety_obj,
-#         'products': products,
-#         'lots': lots,
-#         'lots_json': lots_json,
-#         'lots_extra_data': lots_extra_data,  # Add this new context variable
-#         'all_vars_json': all_vars_json,
-#         'growers': growers,
-#         'env_types': settings.ENV_TYPES,
-#         'sku_suffixes': settings.SKU_SUFFIXES,
-#         'pkg_sizes': settings.PKG_SIZES,
-#         'groups': settings.GROUPS,
-#         'categories': settings.CATEGORIES,
-#         'crops': settings.CROPS,
-#         'subtypes': settings.SUBTYPES,
-#         'supergroups': settings.SUPERGROUPS,
-#         'veg_types': settings.VEG_TYPES,
-#         'packed_for_year': packed_for_year,
-#         'transition': settings.TRANSITION,
-#         'has_pending_germ': has_pending_germ,
-#     }
-#     return render(request, 'office/view_variety.html', context)
 
 @login_required
 @user_passes_test(is_employee)
@@ -413,76 +285,6 @@ def print_product_labels(request):
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
-
-# @login_required
-# @user_passes_test(is_employee)
-# def print_product_labels(request):
-#     # from datetime import date
-#     # from django.utils import timezone
-
-    
-#     if request.method == 'POST':
-#         if request.user.username not in ["office", "admin"]:
-#             return JsonResponse({'error': 'You are not allowed to print labels'}, status=403)
-        
-#         try:
-#             data = json.loads(request.body)
-#             product_id = data.get('product_id')
-#             print_type = data.get('print_type')
-#             quantity = int(data.get('quantity', 1))
-#             packed_for_year = int(data.get('packed_for_year', 1))
-#             print(f"Packed for year: {packed_for_year}")
-#             product = Product.objects.get(pk=product_id)
-            
-#             # Only log if not printing back-only labels
-#             if print_type not in ['back_single', 'back_sheet']:
-#                 # Calculate actual label quantity
-#                 if print_type in ['front_sheet', 'front_back_sheet']:
-#                     actual_qty = quantity * 30  # 30 labels per sheet
-#                 else:
-#                     actual_qty = quantity  # Singles and front_back_single
-                
-#                 # Get today's date in PST/PDT
-#                 pst = pytz.timezone('America/Los_Angeles')
-#                 today_pst = timezone.now().astimezone(pst).date()
-                
-#                 # Check if there's already a print job for this product today with same for_year
-#                 existing_print = LabelPrint.objects.filter(
-#                     product=product,
-#                     lot=product.lot,
-#                     date=today_pst,
-#                     for_year=packed_for_year
-#                 ).first()
-                
-#                 if existing_print:
-#                     # Add to existing quantity
-#                     existing_print.qty += actual_qty
-#                     existing_print.save()
-#                     print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
-#                 else:
-#                     # Create new print job
-#                     LabelPrint.objects.create(
-#                         product=product,
-#                         lot=product.lot,
-#                         date=today_pst,
-#                         qty=actual_qty,
-#                         for_year=packed_for_year,
-#                     )
-#                     print(f"Created new print job for {actual_qty} labels")
-            
-#             print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
-            
-#             return JsonResponse({
-#                 'success': True,
-#                 'message': f"Printing {quantity} {print_type} labels for {product.variety}."
-#             })
-            
-#         except Product.DoesNotExist:
-#             return JsonResponse({'error': 'Product not found'}, status=404)
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)
-    
-#     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 @login_required
@@ -1672,6 +1474,104 @@ def create_germ_sample_print(request):
 
 
 
+
+
+
+
+
+
+def calculate_variety_usage(variety, sales_year):
+    """
+    Calculate how many lbs of a variety were used during a sales year.
+    Sales year runs from September (previous calendar year) to August (current calendar year).
+    For example: sales year 25 = Sept 2024 - Aug 2025
+    """
+    from datetime import datetime
+    from decimal import Decimal
+    
+    # Calculate the date range for this sales year
+    # Sales year 25 = Sept 2024 to Aug 2025
+    start_year = 2000 + sales_year - 1  # For year 25: 2024
+    end_year = 2000 + sales_year  # For year 25: 2025
+    
+    season_start = datetime(start_year, 9, 1).date()  # Sept 1, 2024
+    season_end = datetime(end_year, 8, 31).date()  # Aug 31, 2025
+    
+    # Find all lots for this variety that had active status for this sales year
+    active_lots = Lot.objects.filter(
+        variety=variety,
+        germinations__status='active',
+        germinations__for_year=sales_year
+    ).distinct()
+    
+    total_usage = Decimal('0.00')
+    lot_details = []
+    
+    for lot in active_lots:
+        # Get inventory at start of season (closest before or on season_start)
+        start_inventory = lot.inventory.filter(
+            inv_date__lte=season_start
+        ).order_by('-inv_date').first()
+        
+        # Get inventory at end of season (closest before or on season_end)
+        end_inventory = lot.inventory.filter(
+            inv_date__lte=season_end
+        ).order_by('-inv_date').first()
+        
+        # If no start inventory, check if there's any inventory after season start
+        if not start_inventory:
+            start_inventory = lot.inventory.order_by('inv_date').first()
+        
+        # Calculate usage for this lot
+        if start_inventory:
+            start_weight = start_inventory.weight
+            
+            # Check if lot was retired
+            if hasattr(lot, 'retired_info'):
+                # Lot was retired - check if retired during this season
+                retired_info = lot.retired_info
+                if retired_info.retired_date <= season_end:
+                    # Use lbs_remaining from retirement
+                    end_weight = retired_info.lbs_remaining
+                else:
+                    # Retired after season, use end_inventory
+                    end_weight = end_inventory.weight if end_inventory else start_weight
+            else:
+                # Lot not retired - use current/end inventory
+                if end_inventory:
+                    end_weight = end_inventory.weight
+                else:
+                    # No end inventory means we use start inventory
+                    end_weight = start_weight
+            
+            lot_usage = start_weight - end_weight
+            
+            # Only count positive usage
+            if lot_usage > 0:
+                total_usage += lot_usage
+                lot_details.append({
+                    'lot_code': lot.build_lot_code(),
+                    'start_weight': float(start_weight),
+                    'end_weight': float(end_weight),
+                    'usage': float(lot_usage),
+                    'retired': hasattr(lot, 'retired_info')
+                })
+    
+    return {
+        'total_lbs': float(total_usage),
+        'lot_count': len(lot_details),
+        'lots': lot_details,
+        'sales_year': sales_year,
+        'season_range': f"Sept {start_year} - Aug {end_year}"
+    }
+
+
+
+
+
+
+
+
 @login_required
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
@@ -1782,7 +1682,7 @@ def variety_sales_data(request, sku_prefix):
         formatted_sales.sort(key=lambda x: (not x['is_packet'], -x['quantity']))
         
         # print(f"Returning {len(formatted_sales)} sales records for {sku_prefix}")
-        
+        usage_data = calculate_variety_usage(variety, most_recent_year)
         return JsonResponse({
             'sales_data': formatted_sales,
             'year': most_recent_year,
@@ -1790,7 +1690,8 @@ def variety_sales_data(request, sku_prefix):
             'variety_name': variety.var_name,
             'sku_prefix': variety.sku_prefix,
             'wholesale': variety.wholesale, 
-            'wholesale_rack_designation': variety.wholesale_rack_designation
+            'wholesale_rack_designation': variety.wholesale_rack_designation,
+            'usage_data': usage_data
 
         })
         
@@ -2016,112 +1917,6 @@ def save_order_changes(request):
         print(f"ERROR in save_order_changes: {e}")
         return JsonResponse({'error': str(e)}, status=400)
 
-
-# @login_required
-# @user_passes_test(is_employee)
-# @require_http_methods(["POST"])
-# def finalize_order(request):
-#     try:
-#         data = json.loads(request.body)
-#         order_id = data.get('order_id')
-#         items = data.get('items', [])
-#         shipping = data.get('shipping', 0) 
-#         # Get the order
-#         order = StoreOrder.objects.get(id=order_id)
-
-#         # calculate credit if it is their first order for the year
-#         credit = 0
-       
-#         # Set fulfilled_date to current timezone-aware datetime
-#         from django.utils import timezone
-#         order.fulfilled_date = timezone.now()
-#         order.shipping = shipping
-#         order.save()
-#         pkt_price = settings.PACKET_PRICE  
-        
-#         # Validate all products exist first (safer approach)
-#         new_so_includes = []
-#         for item in items:
-#             try:
-#                 # Get Variety by sku_prefix
-#                 variety = Variety.objects.get(sku_prefix=item['sku_prefix'])
-               
-#                 # Find the associated Product with sku_suffix == "pkt"
-#                 product = Product.objects.get(
-#                     variety=variety,
-#                     sku_suffix="pkt"
-#                 )
-               
-#                 new_so_includes.append({
-#                     'product': product,
-#                     'variety': variety,  # Keep variety reference for response
-#                     'quantity': item['quantity'],
-#                     'photo': item.get('has_photo', False),
-#                     'price': pkt_price
-#                 })
-               
-#             except Variety.DoesNotExist:
-#                 return JsonResponse({'error': f'Variety with sku_prefix {item["sku_prefix"]} not found'}, status=400)
-#             except Product.DoesNotExist:
-#                 return JsonResponse({'error': f'Packet product not found for variety {item["sku_prefix"]}'}, status=400)
-       
-#         # Only delete existing ones after validating all new ones can be created
-#         SOIncludes.objects.filter(store_order=order).delete()
-       
-#         # Create new SOIncludes
-#         for include_data in new_so_includes:
-#             SOIncludes.objects.create(
-#                 store_order=order,
-#                 product=include_data['product'],
-#                 quantity=include_data['quantity'],
-#                 price=pkt_price,
-#                 photo=include_data['photo']
-#             )
-       
-#         # Get store and return response
-#         store = order.store
-#         so_includes = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
-       
-#         return JsonResponse({
-#             'success': True,
-#             'order': {
-#                 'id': order.id,
-#                 'order_number': order.order_number,
-#                 'date': order.date.isoformat() if order.date else None,  # ADDED
-#                 'fulfilled_date': order.fulfilled_date.isoformat(),  # Changed to isoformat
-#                 'notes': order.notes or '',
-#                 'shipping': float(order.shipping), 
-#                 'credit': credit 
-#             },
-#             'store': {
-#                 'store_name': store.store_name,  # FIXED: was 'name'
-#                 'store_contact_name': store.store_contact_name or '',  # ADDED
-#                 'store_contact_phone': store.store_contact_phone or '',  # ADDED
-#                 'store_contact_email': store.store_contact_email or '',  # ADDED
-#                 'store_address': store.store_address or '',  # ADDED
-#                 'store_address2': store.store_address2 or '',  # ADDED
-#                 'store_city': store.store_city or '',  # ADDED
-#                 'store_state': store.store_state or '',  # ADDED
-#                 'store_zip': store.store_zip or ''  # ADDED
-#             },
-#             'items': [
-#                 {
-#                     'sku_prefix': include.product.variety.sku_prefix,
-#                     'var_name': include.product.variety.var_name,
-#                     'veg_type': include.product.variety.veg_type,  # ADDED
-#                     'quantity': include.quantity,
-#                     'has_photo': include.photo,
-#                     'price': float(include.price)  # ADDED
-#                 }
-#                 for include in so_includes
-#             ]
-#         })
-       
-#     except Exception as e:
-#         print(f"Error in finalize_order: {str(e)}")
-#         import traceback
-#         traceback.print_exc()  # ADDED for better debugging
-#         return JsonResponse({'error': str(e)}, status=500)
     
 @login_required
 @user_passes_test(is_employee)
@@ -2416,49 +2211,12 @@ def add_product(request):
                 'errors': {'env_multiplier': ['Enter a valid number']}
             }, status=400)
 
-        # try:
-        #     num_printed = request.POST.get('num_printed', '').strip()
-        #     if num_printed:
-        #         data['num_printed'] = int(num_printed)
-        # except (ValueError, TypeError):
-        #     return JsonResponse({
-        #         'success': False,
-        #         'errors': {'num_printed': ['Enter a valid number']}
-        #     }, status=400)
-
-        # try:
-        #     num_printed_next_year = request.POST.get('num_printed_next_year', '0').strip()
-        #     if num_printed_next_year:
-        #         data['num_printed_next_year'] = int(num_printed_next_year)
-        # except (ValueError, TypeError):
-        #     return JsonResponse({
-        #         'success': False,
-        #         'errors': {'num_printed_next_year': ['Enter a valid number']}
-        #     }, status=400)
-
-        # try:
-        #     bulk_pre_pack = request.POST.get('bulk_pre_pack', '0').strip()
-        #     if bulk_pre_pack:
-        #         data['bulk_pre_pack'] = int(bulk_pre_pack)
-        # except (ValueError, TypeError):
-        #     return JsonResponse({
-        #         'success': False,
-        #         'errors': {'bulk_pre_pack': ['Enter a valid number']}
-        #     }, status=400)
-
         # Validate required fields
         if not data['sku_suffix']:
             return JsonResponse({
                 'success': False,
                 'errors': {'sku_suffix': ['SKU Suffix is required']}
             }, status=400)
-
-        # Validate label length (max 1 character)
-        # if data['label'] and len(data['label']) > 1:
-        #     return JsonResponse({
-        #         'success': False,
-        #         'errors': {'label': ['Label must be 1 character or less']}
-        #     }, status=400)
 
         # Create the product
         product = Product.objects.create(**data)
@@ -3260,25 +3018,6 @@ def edit_variety(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
-# @login_required
-# @user_passes_test(is_employee)
-# @require_http_methods(["POST"])
-# def update_variety_wholesale(request):
-#     """Update variety wholesale status"""
-#     try:
-#         data = json.loads(request.body)
-#         sku_prefix = data.get('sku_prefix')
-#         wholesale = data.get('wholesale')
-        
-#         variety = Variety.objects.get(sku_prefix=sku_prefix)
-#         variety.wholesale = wholesale
-#         variety.save()
-        
-#         return JsonResponse({'success': True})
-#     except Variety.DoesNotExist:
-#         return JsonResponse({'success': False, 'error': 'Variety not found'}, status=404)
-#     except Exception as e:
-#         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 @user_passes_test(is_employee)

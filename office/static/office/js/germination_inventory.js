@@ -754,9 +754,16 @@ function showSalesData(sku_prefix, variety_name) {
         radio.checked = false;
     });
 
+    // Reset sales section
     document.getElementById('salesLoading').style.display = 'block';
     document.getElementById('salesTable').style.display = 'none';
     document.getElementById('salesEmpty').style.display = 'none';
+    
+    // ADD THIS: Reset usage section
+    document.getElementById('usageSection').style.display = 'none';
+    document.getElementById('usageLoading').style.display = 'block';
+    document.getElementById('usageContent').style.display = 'none';
+    document.getElementById('usageEmpty').style.display = 'none';
     
     fetch(window.appUrls.varietySalesData.replace('PLACEHOLDER', sku_prefix))
         .then(response => response.json())
@@ -770,14 +777,6 @@ function showSalesData(sku_prefix, variety_name) {
                 document.getElementById('salesEmpty').style.display = 'block';
             }
 
-            // ADD AFTER line 730 (after the if/else for sales data display)
-            // Show wholesale section
-            // const wholesaleSection = document.getElementById('wholesaleSection');
-            // const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
-            // wholesaleSection.style.display = 'block';
-            // wholesaleCheckbox.checked = data.wholesale || false;
-            // wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
-            // wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
             // Show wholesale section
             const wholesaleSection = document.getElementById('wholesaleSection');
             const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
@@ -785,54 +784,36 @@ function showSalesData(sku_prefix, variety_name) {
             wholesaleCheckbox.checked = data.wholesale || false;
             wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
             wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
-
             wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
 
-            // NEW: Show/hide and set rack type based on wholesale status
+            // Show/hide and set rack type based on wholesale status
             const rackTypeContainer = document.getElementById('rackTypeContainer');
             if (data.wholesale) {
                 rackTypeContainer.style.display = 'block';
-                // Set the current rack designation
-                console.log('Wholesale is true, rack designation from DB:', data.wholesale_rack_designation); // DEBUG
                 if (data.wholesale_rack_designation) {
-                    const rackValue = String(data.wholesale_rack_designation).trim(); // Convert to string and trim
-                    console.log('Looking for rack with value:', rackValue); // DEBUG
+                    const rackValue = String(data.wholesale_rack_designation).trim();
                     const rackRadio = document.querySelector(`input[name="rackType"][value="${rackValue}"]`);
-                    console.log('Found radio element:', rackRadio); // DEBUG
                     if (rackRadio) {
                         rackRadio.checked = true;
-                        console.log('Set radio to checked'); // DEBUG
-                    } else {
-                        console.log('Radio element not found!'); // DEBUG
                     }
                 }
             } else {
                 rackTypeContainer.style.display = 'none';
-                // Clear all rack selections
                 document.querySelectorAll('input[name="rackType"]').forEach(radio => {
                     radio.checked = false;
                 });
             }
-            // wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
-
-            // // NEW: Show/hide and set rack type based on wholesale status
-            // const rackTypeContainer = document.getElementById('rackTypeContainer');
-            // if (data.wholesale) {
-            //     rackTypeContainer.style.display = 'block';
-            //     // Set the current rack designation
-            //     if (data.wholesale_rack_designation) {
-            //         const rackRadio = document.querySelector(`input[name="rackType"][value="${data.wholesale_rack_designation}"]`);
-            //         if (rackRadio) {
-            //             rackRadio.checked = true;
-            //         }
-            //     }
-            // } else {
-            //     rackTypeContainer.style.display = 'none';
-            //     // Clear all rack selections
-            //     document.querySelectorAll('input[name="rackType"]').forEach(radio => {
-            //         radio.checked = false;
-            //     });
-            // }
+            
+            // Show usage section
+            const usageSection = document.getElementById('usageSection');
+            usageSection.style.display = 'block';
+            
+            if (data.usage_data && data.usage_data.total_lbs > 0) {
+                populateUsageData(data.usage_data);
+            } else {
+                document.getElementById('usageLoading').style.display = 'none';
+                document.getElementById('usageEmpty').style.display = 'block';
+            }
         })
         .catch(error => {
             console.error('Sales error:', error);
@@ -840,6 +821,92 @@ function showSalesData(sku_prefix, variety_name) {
             document.getElementById('salesEmpty').style.display = 'block';
         });
 }
+// function showSalesData(sku_prefix, variety_name) {
+//     document.getElementById('salesModalTitle').textContent = `Sales Data - ${variety_name}`;
+//     document.getElementById('salesModal').style.display = 'flex';
+    
+//     // Clear all rack selections from previous modal opens
+//     document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+//         radio.checked = false;
+//     });
+
+//     document.getElementById('salesLoading').style.display = 'block';
+//     document.getElementById('salesTable').style.display = 'none';
+//     document.getElementById('salesEmpty').style.display = 'none';
+    
+//     fetch(window.appUrls.varietySalesData.replace('PLACEHOLDER', sku_prefix))
+//         .then(response => response.json())
+//         .then(data => {
+//             document.getElementById('salesLoading').style.display = 'none';
+            
+//             if (data.sales_data && data.sales_data.length > 0) {
+//                 populateSalesTable(data.sales_data, data.display_year);
+//                 document.getElementById('salesTable').style.display = 'table';
+//             } else {
+//                 document.getElementById('salesEmpty').style.display = 'block';
+//             }
+
+//             // Show usage section
+//             const usageSection = document.getElementById('usageSection');
+//             usageSection.style.display = 'block';
+            
+//             if (data.usage_data && data.usage_data.total_lbs > 0) {
+//                 populateUsageData(data.usage_data);
+//             } else {
+//                 document.getElementById('usageLoading').style.display = 'none';
+//                 document.getElementById('usageEmpty').style.display = 'block';
+//             }
+//             // ADD AFTER line 730 (after the if/else for sales data display)
+//             // Show wholesale section
+//             // const wholesaleSection = document.getElementById('wholesaleSection');
+//             // const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
+//             // wholesaleSection.style.display = 'block';
+//             // wholesaleCheckbox.checked = data.wholesale || false;
+//             // wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
+//             // wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
+//             // Show wholesale section
+//             const wholesaleSection = document.getElementById('wholesaleSection');
+//             const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
+//             wholesaleSection.style.display = 'block';
+//             wholesaleCheckbox.checked = data.wholesale || false;
+//             wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
+//             wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
+
+//             wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
+
+//             // NEW: Show/hide and set rack type based on wholesale status
+//             const rackTypeContainer = document.getElementById('rackTypeContainer');
+//             if (data.wholesale) {
+//                 rackTypeContainer.style.display = 'block';
+//                 // Set the current rack designation
+//                 console.log('Wholesale is true, rack designation from DB:', data.wholesale_rack_designation); // DEBUG
+//                 if (data.wholesale_rack_designation) {
+//                     const rackValue = String(data.wholesale_rack_designation).trim(); // Convert to string and trim
+//                     console.log('Looking for rack with value:', rackValue); // DEBUG
+//                     const rackRadio = document.querySelector(`input[name="rackType"][value="${rackValue}"]`);
+//                     console.log('Found radio element:', rackRadio); // DEBUG
+//                     if (rackRadio) {
+//                         rackRadio.checked = true;
+//                         console.log('Set radio to checked'); // DEBUG
+//                     } else {
+//                         console.log('Radio element not found!'); // DEBUG
+//                     }
+//                 }
+//             } else {
+//                 rackTypeContainer.style.display = 'none';
+//                 // Clear all rack selections
+//                 document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+//                     radio.checked = false;
+//                 });
+//             }
+            
+//         })
+//         .catch(error => {
+//             console.error('Sales error:', error);
+//             document.getElementById('salesLoading').style.display = 'none';
+//             document.getElementById('salesEmpty').style.display = 'block';
+//         });
+// }
 
 function populateSalesTable(salesData, displayYear) {
     const tbody = document.getElementById('salesTableBody');
@@ -883,6 +950,38 @@ function populateSalesTable(salesData, displayYear) {
         tbody.appendChild(row);
     });
 }
+
+
+function populateUsageData(usageData) {
+    document.getElementById('usageLoading').style.display = 'none';
+    document.getElementById('usageContent').style.display = 'block';
+    
+    // Populate summary stats
+    document.getElementById('usageSeasonRange').textContent = usageData.season_range;
+    document.getElementById('usageTotalLbs').textContent = `${usageData.total_lbs.toFixed(2)} lbs`;
+    document.getElementById('usageLotCount').textContent = usageData.lot_count;
+    
+    // Populate lot details table
+    const tbody = document.getElementById('usageLotTableBody');
+    tbody.innerHTML = '';
+    
+    usageData.lots.forEach(lot => {
+        const row = document.createElement('tr');
+        if (lot.retired) {
+            row.className = 'usage-retired-row';
+        }
+        
+        row.innerHTML = `
+            <td>${lot.lot_code}${lot.retired ? ' (retired)' : ''}</td>
+            <td>${lot.start_weight.toFixed(2)}</td>
+            <td>${lot.end_weight.toFixed(2)}</td>
+            <td class="usage-amount">${lot.usage.toFixed(2)}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
 
 function closeSalesModal() {
     document.getElementById('salesModal').style.display = 'none';
