@@ -957,7 +957,7 @@ function populateUsageData(usageData) {
     document.getElementById('usageContent').style.display = 'block';
     
     // Populate summary stats
-    document.getElementById('usageSeasonRange').textContent = usageData.season_range;
+    document.getElementById('usageSeasonRange').textContent = usageData.display_year;
     document.getElementById('usageTotalLbs').textContent = `${usageData.total_lbs.toFixed(2)} lbs`;
     document.getElementById('usageLotCount').textContent = usageData.lot_count;
     

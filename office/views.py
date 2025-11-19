@@ -1483,19 +1483,11 @@ def create_germ_sample_print(request):
 def calculate_variety_usage(variety, sales_year):
     """
     Calculate how many lbs of a variety were used during a sales year.
-    Sales year runs from September (previous calendar year) to August (current calendar year).
-    For example: sales year 25 = Sept 2024 - Aug 2025
+    Finds lots with active germination for the sales year, then:
+    - If retired: uses lbs_remaining from retirement
+    - If not retired: uses difference between last two inventory records
     """
-    from datetime import datetime
     from decimal import Decimal
-    
-    # Calculate the date range for this sales year
-    # Sales year 25 = Sept 2024 to Aug 2025
-    start_year = 2000 + sales_year - 1  # For year 25: 2024
-    end_year = 2000 + sales_year  # For year 25: 2025
-    
-    season_start = datetime(start_year, 9, 1).date()  # Sept 1, 2024
-    season_end = datetime(end_year, 8, 31).date()  # Aug 31, 2025
     
     # Find all lots for this variety that had active status for this sales year
     active_lots = Lot.objects.filter(
@@ -1508,61 +1500,47 @@ def calculate_variety_usage(variety, sales_year):
     lot_details = []
     
     for lot in active_lots:
-        # Get inventory at start of season (closest before or on season_start)
-        start_inventory = lot.inventory.filter(
-            inv_date__lte=season_start
-        ).order_by('-inv_date').first()
+        # Get all inventory records for this lot, ordered by date
+        inventory_records = lot.inventory.all().order_by('inv_date')
         
-        # Get inventory at end of season (closest before or on season_end)
-        end_inventory = lot.inventory.filter(
-            inv_date__lte=season_end
-        ).order_by('-inv_date').first()
+        if inventory_records.count() < 2:
+            # Not enough inventory records to calculate usage
+            continue
         
-        # If no start inventory, check if there's any inventory after season start
-        if not start_inventory:
-            start_inventory = lot.inventory.order_by('inv_date').first()
+        # Get the last two inventory records
+        last_two = inventory_records[inventory_records.count()-2:]
+        start_inventory = last_two[0]
+        end_inventory = last_two[1]
         
-        # Calculate usage for this lot
-        if start_inventory:
-            start_weight = start_inventory.weight
-            
-            # Check if lot was retired
-            if hasattr(lot, 'retired_info'):
-                # Lot was retired - check if retired during this season
-                retired_info = lot.retired_info
-                if retired_info.retired_date <= season_end:
-                    # Use lbs_remaining from retirement
-                    end_weight = retired_info.lbs_remaining
-                else:
-                    # Retired after season, use end_inventory
-                    end_weight = end_inventory.weight if end_inventory else start_weight
-            else:
-                # Lot not retired - use current/end inventory
-                if end_inventory:
-                    end_weight = end_inventory.weight
-                else:
-                    # No end inventory means we use start inventory
-                    end_weight = start_weight
-            
-            lot_usage = start_weight - end_weight
-            
-            # Only count positive usage
-            if lot_usage > 0:
-                total_usage += lot_usage
-                lot_details.append({
-                    'lot_code': lot.build_lot_code(),
-                    'start_weight': float(start_weight),
-                    'end_weight': float(end_weight),
-                    'usage': float(lot_usage),
-                    'retired': hasattr(lot, 'retired_info')
-                })
+        start_weight = start_inventory.weight
+        
+        # Check if lot was retired
+        if hasattr(lot, 'retired_info'):
+            # Lot was retired - use lbs_remaining
+            end_weight = lot.retired_info.lbs_remaining
+        else:
+            # Lot not retired - use most recent inventory
+            end_weight = end_inventory.weight
+        
+        lot_usage = start_weight - end_weight
+        
+        # Only count positive usage
+        if lot_usage > 0:
+            total_usage += lot_usage
+            lot_details.append({
+                'lot_code': lot.build_lot_code(),
+                'start_weight': float(start_weight),
+                'end_weight': float(end_weight),
+                'usage': float(lot_usage),
+                'retired': hasattr(lot, 'retired_info')
+            })
     
     return {
         'total_lbs': float(total_usage),
         'lot_count': len(lot_details),
         'lots': lot_details,
         'sales_year': sales_year,
-        'season_range': f"Sept {start_year} - Aug {end_year}"
+        'display_year': f"20{sales_year}"  # e.g., "2025" for year 25
     }
 
 
