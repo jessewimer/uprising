@@ -1681,8 +1681,10 @@ def variety_sales_data(request, sku_prefix):
         # Sort: packets first, then bulk, then by quantity descending within each group
         formatted_sales.sort(key=lambda x: (not x['is_packet'], -x['quantity']))
         
-        # print(f"Returning {len(formatted_sales)} sales records for {sku_prefix}")
-        usage_data = calculate_variety_usage(variety, most_recent_year)
+        # Calculate usage for previous sales year (CURRENT_ORDER_YEAR - 1)
+        previous_sales_year = settings.CURRENT_ORDER_YEAR - 1
+        usage_data = calculate_variety_usage(variety, previous_sales_year)
+      
         return JsonResponse({
             'sales_data': formatted_sales,
             'year': most_recent_year,
