@@ -2426,29 +2426,62 @@ function setLotLowInv(isLowInv) {
     hideLowInvPopup();
 }
 
-
-
-
 function retireLot(lotId) {
     hideLotActionsPopup();
     
     currentLotId = lotId;
-
+    
     // Find the lot data to display variety and lot info
     const lot = allLotsData.find(l => l.id == lotId);
     let title = "Retire Lot";
     
     if (lot) {
-        // Get variety name from the page (assuming it's available)
         const varietyName = document.getElementById('varietyName').textContent.trim();
         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
         title = `Retiring ${varietyName} ${lotDisplay}`;
     }
     
-    const today = new Date().toISOString().split('T')[0];
+    // Reset the form to clear previous values
+    document.getElementById('retireLotForm').reset();
+    
+    // Update title and show popup
     document.getElementById('retireLotTitle').textContent = title;
     document.getElementById('retireLotPopup').classList.add('show');
+    
+    // Set today's date as default AFTER showing popup
+    setTimeout(() => {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('retireDateInput').value = today;
+    }, 10);
 }
+
+// function retireLot(lotId) {
+//     hideLotActionsPopup();
+    
+//     currentLotId = lotId;
+    
+//     // Find the lot data to display variety and lot info
+//     const lot = allLotsData.find(l => l.id == lotId);
+//     let title = "Retire Lot";
+    
+//     if (lot) {
+//         const varietyName = document.getElementById('varietyName').textContent.trim();
+//         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+//         title = `Retiring ${varietyName} ${lotDisplay}`;
+//     }
+    
+//     // Reset the form to clear previous values
+//     document.getElementById('retireLotForm').reset();
+    
+//     // Set today's date as default
+//     const today = new Date().toISOString().split('T')[0];
+//     document.getElementById('retireDateInput').value = today;
+    
+//     // Update title and show popup
+//     document.getElementById('retireLotTitle').textContent = title;
+//     document.getElementById('retireLotPopup').classList.add('show');
+// }
+
 
 function hideRetireLotPopup() {
     document.getElementById('retireLotPopup').classList.remove('show');
