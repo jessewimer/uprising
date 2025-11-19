@@ -291,7 +291,6 @@ def retire_lot():
     print("  - Enter remaining pounds")
     print("  - Add retirement notes")
 
-
 def find_lots_without_germ_for_year():
     """Find all non-retired lots that don't have a germination entry for a specific year"""
     year_input = input("\nEnter 2-digit year (e.g., 25 for 2025): ").strip()
@@ -311,6 +310,10 @@ def find_lots_without_germ_for_year():
         if hasattr(lot, 'retired_info'):
             continue
         
+        # Skip lots from the previous year (year - 1)
+        if lot.year == (year - 1):
+            continue
+        
         # Check if lot has any germination record for this year
         has_germ_for_year = lot.germinations.filter(for_year=year).exists()
         
@@ -318,11 +321,11 @@ def find_lots_without_germ_for_year():
             lots_without_germ.append(lot)
     
     if not lots_without_germ:
-        print(f"\n✅ All non-retired lots have germination entries for 20{year}")
+        print(f"\n✅ All non-retired lots (excluding 20{year-1} lots) have germination entries for 20{year}")
         return
     
     print("\n" + "="*100)
-    print(f"LOTS WITHOUT GERMINATION ENTRY FOR 20{year}")
+    print(f"LOTS WITHOUT GERMINATION ENTRY FOR 20{year} (excluding 20{year-1} lots)")
     print("="*100)
     print(f"{'Lot Code':<20} {'Variety':<40} {'Lot':<10} {'Status'}")
     print("-"*100)
@@ -333,6 +336,48 @@ def find_lots_without_germ_for_year():
         print(f"{lot.build_lot_code():<20} {lot.variety.var_name[:38]:<40} {lot_short:<10} {status}")
     
     print(f"\nTotal: {len(lots_without_germ)} lots without germ entry for 20{year}")
+
+# def find_lots_without_germ_for_year():
+#     """Find all non-retired lots that don't have a germination entry for a specific year"""
+#     year_input = input("\nEnter 2-digit year (e.g., 25 for 2025): ").strip()
+    
+#     if not year_input.isdigit() or len(year_input) != 2:
+#         print("❌ Invalid year. Must be exactly 2 digits.")
+#         return
+    
+#     year = int(year_input)
+    
+#     # Get all non-retired lots
+#     lots_without_germ = []
+#     all_lots = Lot.objects.all().select_related('variety', 'grower').order_by('variety__sku_prefix', 'year')
+    
+#     for lot in all_lots:
+#         # Skip retired lots
+#         if hasattr(lot, 'retired_info'):
+#             continue
+        
+#         # Check if lot has any germination record for this year
+#         has_germ_for_year = lot.germinations.filter(for_year=year).exists()
+        
+#         if not has_germ_for_year:
+#             lots_without_germ.append(lot)
+    
+#     if not lots_without_germ:
+#         print(f"\n✅ All non-retired lots have germination entries for 20{year}")
+#         return
+    
+#     print("\n" + "="*100)
+#     print(f"LOTS WITHOUT GERMINATION ENTRY FOR 20{year}")
+#     print("="*100)
+#     print(f"{'Lot Code':<20} {'Variety':<40} {'Lot':<10} {'Status'}")
+#     print("-"*100)
+    
+#     for lot in lots_without_germ:
+#         status = lot.get_lot_status()
+#         lot_short = lot.get_four_char_lot_code()
+#         print(f"{lot.build_lot_code():<20} {lot.variety.var_name[:38]:<40} {lot_short:<10} {status}")
+    
+#     print(f"\nTotal: {len(lots_without_germ)} lots without germ entry for 20{year}")
 
 def lot_menu():
     """Lot management submenu"""
