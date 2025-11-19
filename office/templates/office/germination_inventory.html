@@ -177,6 +177,41 @@
                     <div>No sales data found for this variety</div>
                 </div>
 
+                <!-- Current Inventory Section -->
+                <div class="inventory-section" id="inventorySection" style="display: none;">
+                    <div class="inventory-divider"></div>
+                    <h3 class="inventory-title">Current Lot Inventory & Germination</h3>
+                    <div class="inventory-container">
+                        <table class="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Lot</th>
+                                    <th id="germYear1Header">Year</th>
+                                    <th id="germYear2Header">Year</th>
+                                    <th id="germYear3Header">Year</th>
+                                    <th>Inventory (lbs)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody"></tbody>
+                            <tfoot>
+                                <tr class="inventory-total-row">
+                                    <td colspan="4" class="inventory-total-label">
+                                        <div class="inventory-total-label-content">
+                                            <span class="inventory-legend" id="inventoryLegend" style="display: none;"><span class="germ-pending">*</span>Out for germ</span>
+                                            <span class="inventory-total-text">Total Inventory (lbs):</span>
+                                        </div>
+                                    </td>
+                                    <td class="inventory-total-value" id="inventoryTotal"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                 
+                        <div class="inventory-empty" id="inventoryEmpty" style="display: none;">
+                            <div>No active lots found for this variety</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Usage Section -->
                 <div class="usage-section" id="usageSection" style="display: none;">
                     <div class="usage-divider"></div>

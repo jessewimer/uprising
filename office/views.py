@@ -1528,7 +1528,7 @@ def calculate_variety_usage(variety, sales_year):
         if lot_usage > 0:
             total_usage += lot_usage
             lot_details.append({
-                'lot_code': lot.build_lot_code(),
+                'lot_code': lot.get_four_char_lot_code(),  # CHANGED: Use short code
                 'start_weight': float(start_weight),
                 'end_weight': float(end_weight),
                 'usage': float(lot_usage),
@@ -1544,6 +1544,61 @@ def calculate_variety_usage(variety, sales_year):
     }
 
 
+
+def get_variety_lot_inventory(variety, current_order_year):
+    """
+    Get all non-retired lots for a variety with their germination data
+    for current year and two previous years, plus current inventory.
+    """
+    from decimal import Decimal
+    
+    # Get all non-retired lots for this variety
+    lots = Lot.objects.filter(
+        variety=variety
+    ).exclude(
+        retired_info__isnull=False
+    ).order_by('year', 'grower')
+    
+    lot_data = []
+    total_inventory = Decimal('0.00')
+    
+    years_to_check = [
+        current_order_year - 2,
+        current_order_year - 1,
+        current_order_year
+    ]
+    
+    for lot in lots:
+        # Get most recent inventory
+        recent_inv = lot.inventory.order_by('-inv_date').first()
+        inv_weight = recent_inv.weight if recent_inv else Decimal('0.00')
+        total_inventory += inv_weight
+        
+        # Get germination data for each year
+        germ_data = {}
+        for year in years_to_check:
+            germ = lot.germinations.filter(for_year=year).order_by('-test_date').first()
+            if germ:
+                germ_data[year] = {
+                    'rate': germ.germination_rate,
+                    'has_test_date': germ.test_date is not None
+                }
+            else:
+                germ_data[year] = None
+        
+        lot_data.append({
+            'lot_code': lot.get_four_char_lot_code(),  # CHANGED: Use short code
+            'lot_id': lot.id,
+            'germ_data': germ_data,
+            'inventory': float(inv_weight),
+            'inv_date': recent_inv.inv_date.strftime('%m/%Y') if recent_inv else None
+        })
+    
+    return {
+        'lots': lot_data,
+        'total_inventory': float(total_inventory),
+        'years': years_to_check
+    }
 
 
 
@@ -1663,6 +1718,8 @@ def variety_sales_data(request, sku_prefix):
         previous_sales_year = settings.CURRENT_ORDER_YEAR - 1
         usage_data = calculate_variety_usage(variety, previous_sales_year)
       
+        lot_inventory_data = get_variety_lot_inventory(variety, settings.CURRENT_ORDER_YEAR)
+
         return JsonResponse({
             'sales_data': formatted_sales,
             'year': most_recent_year,
@@ -1671,7 +1728,8 @@ def variety_sales_data(request, sku_prefix):
             'sku_prefix': variety.sku_prefix,
             'wholesale': variety.wholesale, 
             'wholesale_rack_designation': variety.wholesale_rack_designation,
-            'usage_data': usage_data
+            'usage_data': usage_data,
+            'lot_inventory_data': lot_inventory_data
 
         })
         

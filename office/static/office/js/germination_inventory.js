@@ -759,7 +759,9 @@ function showSalesData(sku_prefix, variety_name) {
     document.getElementById('salesTable').style.display = 'none';
     document.getElementById('salesEmpty').style.display = 'none';
     
-    // ADD THIS: Reset usage section
+    // Reset inventory section
+    document.getElementById('inventorySection').style.display = 'none';
+    // Reset usage section
     document.getElementById('usageSection').style.display = 'none';
     document.getElementById('usageLoading').style.display = 'block';
     document.getElementById('usageContent').style.display = 'none';
@@ -802,6 +804,11 @@ function showSalesData(sku_prefix, variety_name) {
                 document.querySelectorAll('input[name="rackType"]').forEach(radio => {
                     radio.checked = false;
                 });
+            }
+
+            // Show inventory section
+            if (data.lot_inventory_data) {
+                populateInventoryData(data.lot_inventory_data);
             }
             
             // Show usage section
@@ -980,6 +987,193 @@ function populateUsageData(usageData) {
         
         tbody.appendChild(row);
     });
+}
+
+
+// function populateInventoryData(inventoryData) {
+//     const section = document.getElementById('inventorySection');
+//     const tbody = document.getElementById('inventoryTableBody');
+//     const emptyState = document.getElementById('inventoryEmpty');
+//     const table = document.querySelector('.inventory-table');
+    
+//     section.style.display = 'block';
+    
+//     if (!inventoryData.lots || inventoryData.lots.length === 0) {
+//         table.style.display = 'none';
+//         emptyState.style.display = 'block';
+//         return;
+//     }
+    
+//     table.style.display = 'table';
+//     emptyState.style.display = 'none';
+    
+//     // Update year headers
+//     const years = inventoryData.years;
+//     document.getElementById('germYear1Header').textContent = years[0];
+//     document.getElementById('germYear2Header').textContent = years[1];
+//     document.getElementById('germYear3Header').textContent = years[2];
+    
+//     // Clear tbody
+//     tbody.innerHTML = '';
+    
+//     // Populate rows
+//     inventoryData.lots.forEach(lot => {
+//         const row = document.createElement('tr');
+        
+//         // Lot code cell
+//         const lotCell = document.createElement('td');
+//         lotCell.className = 'inventory-lot-cell';
+//         lotCell.textContent = lot.lot_code;
+//         row.appendChild(lotCell);
+        
+//         // Germination cells for each year
+//         years.forEach(year => {
+//             const germCell = document.createElement('td');
+//             germCell.className = 'inventory-germ-cell';
+            
+//             const germData = lot.germ_data[year];
+//             if (germData) {
+//                 const germRate = germData.rate;
+//                 const status = germData.status;
+//                 const hasTestDate = germData.has_test_date;
+                
+//                 // Create germ display with color
+//                 const germDiv = document.createElement('div');
+//                 germDiv.className = 'germ-display';
+                
+//                 // Get color class based on rate
+//                 let colorClass = 'germ-color-default';
+//                 if (germRate >= 85) colorClass = 'germ-color-high';
+//                 else if (germRate >= 70) colorClass = 'germ-color-medium';
+//                 else if (germRate >= 50) colorClass = 'germ-color-low';
+//                 else colorClass = 'germ-color-very-low';
+                
+//                 germDiv.innerHTML = `
+//                     <span class="germ-rate ${colorClass}">${germRate}%</span>
+//                     <span class="germ-status germ-status-${status}">${status === 'active' ? 'A' : 'P'}</span>
+//                 `;
+                
+//                 germCell.appendChild(germDiv);
+//             } else {
+//                 germCell.textContent = '--';
+//             }
+            
+//             row.appendChild(germCell);
+//         });
+        
+//         // Inventory cell
+//         const invCell = document.createElement('td');
+//         invCell.className = 'inventory-weight-cell';
+//         if (lot.inventory > 0) {
+//             invCell.innerHTML = `
+//                 <span class="inventory-weight">${lot.inventory.toFixed(2)} lbs</span>
+//                 ${lot.inv_date ? `<span class="inventory-date">(${lot.inv_date})</span>` : ''}
+//             `;
+//         } else {
+//             invCell.textContent = '--';
+//         }
+//         row.appendChild(invCell);
+        
+//         tbody.appendChild(row);
+//     });
+    
+//     // Update total
+//     document.getElementById('inventoryTotal').textContent = 
+//         `${inventoryData.total_inventory.toFixed(2)} lbs`;
+// }
+function populateInventoryData(inventoryData) {
+    const section = document.getElementById('inventorySection');
+    const tbody = document.getElementById('inventoryTableBody');
+    const emptyState = document.getElementById('inventoryEmpty');
+    const table = document.querySelector('.inventory-table');
+    const legend = document.getElementById('inventoryLegend');  // CHANGED: use ID selector
+    
+    section.style.display = 'block';
+    
+    if (!inventoryData.lots || inventoryData.lots.length === 0) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        if (legend) legend.style.display = 'none';
+        return;
+    }
+    
+    table.style.display = 'table';
+    emptyState.style.display = 'none';
+    
+    // Update year headers
+    const years = inventoryData.years;
+    document.getElementById('germYear1Header').textContent = years[0];
+    document.getElementById('germYear2Header').textContent = years[1];
+    document.getElementById('germYear3Header').textContent = years[2];
+    
+    // Clear tbody
+    tbody.innerHTML = '';
+    
+    // Track if we have any pending germs
+    let hasPendingGerms = false;
+    
+    // Populate rows
+    inventoryData.lots.forEach(lot => {
+        const row = document.createElement('tr');
+        
+        // Lot code cell
+        const lotCell = document.createElement('td');
+        lotCell.className = 'inventory-lot-cell';
+        lotCell.textContent = lot.lot_code;
+        row.appendChild(lotCell);
+        
+        // Germination cells for each year
+        years.forEach(year => {
+            const germCell = document.createElement('td');
+            germCell.className = 'inventory-germ-cell';
+            
+            const germData = lot.germ_data[year];
+            if (germData) {
+                // Check if test date exists
+                if (!germData.has_test_date) {
+                    // No test date yet - show asterisk
+                    germCell.innerHTML = `<span class="germ-pending">*</span>`;
+                    hasPendingGerms = true;
+                } else {
+                    const germRate = germData.rate;
+                    
+                    // Get color class based on rate
+                    let colorClass = 'germ-color-default';
+                    if (germRate >= 85) colorClass = 'germ-color-high';
+                    else if (germRate >= 70) colorClass = 'germ-color-medium';
+                    else if (germRate >= 50) colorClass = 'germ-color-low';
+                    else colorClass = 'germ-color-very-low';
+                    
+                    germCell.innerHTML = `<span class="germ-rate ${colorClass}">${germRate}%</span>`;
+                }
+            } else {
+                germCell.textContent = '--';
+            }
+            
+            row.appendChild(germCell);
+        });
+        
+        // Inventory cell
+        const invCell = document.createElement('td');
+        invCell.className = 'inventory-weight-cell';
+        if (lot.inventory > 0) {
+            invCell.innerHTML = `<span class="inventory-weight">${lot.inventory.toFixed(2)}</span>`;
+        } else {
+            invCell.textContent = '--';
+        }
+        row.appendChild(invCell);
+        
+        tbody.appendChild(row);
+    });
+    
+    // Update total
+    document.getElementById('inventoryTotal').textContent = 
+        `${inventoryData.total_inventory.toFixed(2)}`;
+    
+    // Show legend only if we have pending germs
+    if (legend) {
+        legend.style.display = hasPendingGerms ? 'inline' : 'none';  // CHANGED: inline instead of block
+    }
 }
 
 

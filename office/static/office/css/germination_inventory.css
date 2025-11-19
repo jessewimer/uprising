@@ -374,6 +374,12 @@ body {
     font-style: italic;
 }
 
+.germ-pending {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffc107;
+}
+
 /* Loading and Empty States */
 .loading-state {
     text-align: center;
@@ -553,7 +559,7 @@ body {
     padding: 40px 30px;
     max-width: 600px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -687,6 +693,186 @@ body {
     font-size: 3rem;
     margin-bottom: 15px;
     opacity: 0.5;
+}
+
+/* Inventory Section Styles */
+.inventory-section {
+    margin-top: 20px;
+}
+
+.inventory-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ddd, transparent);
+    margin: 20px 0;
+}
+
+.inventory-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.inventory-container {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.inventory-table th {
+    background: #34495e;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.inventory-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ecf0f1;
+    text-align: center;
+}
+
+.inventory-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.inventory-lot-cell {
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: left !important;
+}
+
+.inventory-germ-cell {
+    min-width: 80px;
+}
+
+.germ-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.germ-rate {
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.germ-color-high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.germ-color-medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.germ-color-low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.germ-color-very-low {
+    background: #f5c6cb;
+    color: #721c24;
+}
+
+.germ-color-default {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.germ-status-active {
+    background: #28a745;
+    color: white;
+}
+
+.germ-status-pending {
+    background: #ffc107;
+    color: #000;
+}
+
+.inventory-weight {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+
+.inventory-total-row {
+    background: #e9ecef !important;
+    font-weight: 600;
+}
+
+.inventory-total-row td {
+    border-bottom: none;
+    padding: 12px;
+    background: #e9ecef !important;
+}
+
+/* The cell that contains both legend and "Total Inventory:" label */
+.inventory-total-label {
+    text-align: left !important;
+    color: #2c3e50;
+}
+
+/* Create a flex container INSIDE the td */
+.inventory-total-label-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+}
+
+.inventory-total-text {
+    position: absolute;
+    right: 10px;
+    white-space: nowrap;
+}
+
+.inventory-legend {
+    font-size: 13px;
+    color: #666;
+    font-weight: normal;
+}
+
+.inventory-legend .germ-pending {
+    color: #ffc107;
+    font-size: 16px;
+    margin-right: 3px;
+}
+
+.inventory-total-value {
+    color: #27ae60;
+    font-size: 16px;
+    text-align: center !important;
+    font-weight: 600;
+}
+
+.inventory-weight-cell {
+    text-align: center !important;
+}
+
+.inventory-weight {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.inventory-empty {
+    text-align: center;
+    padding: 20px;
+    color: #666;
 }
 
 
