@@ -3078,3 +3078,40 @@ def update_variety_wholesale(request):
         return JsonResponse({'success': False, 'error': 'Variety not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def variety_usage(request, sku_prefix):
+    """Get usage and inventory data for a specific variety"""
+    
+    try:
+        # Get the variety
+        try:
+            variety = Variety.objects.get(sku_prefix=sku_prefix)
+        except Variety.DoesNotExist:
+            return JsonResponse({'error': 'Variety not found'}, status=404)
+        
+        # Calculate usage for previous sales year (CURRENT_ORDER_YEAR - 1)
+        previous_sales_year = settings.CURRENT_ORDER_YEAR - 1
+        usage_data = calculate_variety_usage(variety, previous_sales_year)
+      
+        # Get lot inventory data
+        lot_inventory_data = get_variety_lot_inventory(variety, settings.CURRENT_ORDER_YEAR)
+        
+        return JsonResponse({
+            'success': True,
+            'variety_name': variety.var_name,
+            'sku_prefix': variety.sku_prefix,
+            'usage_data': usage_data,
+            'lot_inventory_data': lot_inventory_data
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

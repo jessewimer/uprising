@@ -48,7 +48,8 @@
                     <div class="variety-name" id="varietyName" style="display: flex; align-items: center; gap: 10px;">
                         {{ variety.var_name|default:"Select a variety to view details" }}
                         {% if variety.var_name %}
-                        <span class="edit-icon" onclick="openEditVarietyPopup()" title="Edit Variety">
+                        <!-- <span class="edit-icon" onclick="openEditVarietyPopup()" title="Edit Variety"> -->
+                        <span class="edit-icon" onclick="showVarietyActionsPopup()" title="Variety Actions">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -747,6 +748,113 @@
         </div>
     </div>
 
+    <!-- Variety Actions Popup -->
+    <div class="print-popup-overlay" id="varietyActionsPopup">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Variety Actions</h3>
+                <button class="print-popup-close" onclick="hideVarietyActionsPopup()">×</button>
+            </div>
+            
+            <div class="lot-actions">
+                <button class="lot-action-btn" onclick="editVarietyWithPassword()">Edit Variety</button>
+                <button class="lot-action-btn" onclick="viewVarietyUsage()">View Usage</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Modal -->
+    <div class="usage-modal" id="usageModal">
+        <div class="usage-modal-content">
+            <button class="usage-modal-close" id="usageModalClose">&times;</button>
+            <h2 class="usage-modal-title" id="usageModalTitle">Variety Usage</h2>
+            
+            <div id="usageModalContent">
+                <!-- Current Inventory Section -->
+                <div class="inventory-section" id="inventorySection" style="display: none;">
+                    <h3 class="inventory-title">Current Lot Inventory & Germination</h3>
+                    <div class="inventory-container">
+                        <table class="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Lot</th>
+                                    <th id="germYear1Header">Year</th>
+                                    <th id="germYear2Header">Year</th>
+                                    <th id="germYear3Header">Year</th>
+                                    <th>Inventory (lbs)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody"></tbody>
+                            <tfoot>
+                                <tr class="inventory-total-row">
+                                    <td colspan="4" class="inventory-total-label">
+                                        <div class="inventory-total-label-content">
+                                            <span class="inventory-legend" id="inventoryLegend" style="display: none;"><span class="germ-pending">*</span>Out for germ</span>
+                                            <span class="inventory-total-text">Total Inventory (lbs):</span>
+                                        </div>
+                                    </td>
+                                    <td class="inventory-total-value" id="inventoryTotal"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                
+                        <div class="inventory-empty" id="inventoryEmpty" style="display: none;">
+                            <div>No active lots found for this variety</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Section -->
+                <div class="usage-section" id="usageSection" style="display: none;">
+                    <div class="usage-divider"></div>
+                    <h3 class="usage-title">Variety Usage</h3>
+                    <div class="usage-container">
+                        <div class="usage-loading" id="usageLoading">
+                            <div class="usage-loading-spinner"></div>
+                            <div>Calculating usage...</div>
+                        </div>
+                        
+                        <div class="usage-content" id="usageContent" style="display: none;">
+                            <div class="usage-summary">
+                                <div class="usage-stat">
+                                    <span class="usage-label">Sales Year:</span>
+                                    <span class="usage-value" id="usageSeasonRange">--</span>
+                                </div>
+                                <div class="usage-stat">
+                                    <span class="usage-label">Total Used (lbs):</span>
+                                    <span class="usage-value usage-highlight" id="usageTotalLbs">--</span>
+                                </div>
+                                <div class="usage-stat">
+                                    <span class="usage-label">Lots Tracked:</span>
+                                    <span class="usage-value" id="usageLotCount">--</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Lot details table (optional, can be collapsed) -->
+                            <details class="usage-details">
+                                <summary>View lot details</summary>
+                                <table class="usage-lot-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Lot</th>
+                                            <th>Start (lbs)</th>
+                                            <th>End (lbs)</th>
+                                            <th>Used (lbs)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usageLotTableBody"></tbody>
+                                </table>
+                            </details>
+                        </div>
+                        
+                        <div class="usage-empty" id="usageEmpty" style="display: none;">
+                            <div>No usage data available for this variety</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Lot Selection Popup -->
     <div class="print-popup-overlay" id="lotSelectionPopup">

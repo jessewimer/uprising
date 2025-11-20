@@ -78,6 +78,20 @@ function verifyPassword() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+
+    const usageModalClose = document.getElementById('usageModalClose');
+    const usageModal = document.getElementById('usageModal');
+    
+    if (usageModalClose) {
+        usageModalClose.addEventListener('click', closeUsageModal);
+    }
+    
+    if (usageModal) {
+        usageModal.addEventListener('click', function(e) {
+            if (e.target === this) closeUsageModal();
+        });
+    }
+
     // Auto-dismiss messages after 4 seconds
     const messages = document.querySelectorAll('.message');
     messages.forEach(function(message) {
@@ -2455,33 +2469,6 @@ function retireLot(lotId) {
     }, 10);
 }
 
-// function retireLot(lotId) {
-//     hideLotActionsPopup();
-    
-//     currentLotId = lotId;
-    
-//     // Find the lot data to display variety and lot info
-//     const lot = allLotsData.find(l => l.id == lotId);
-//     let title = "Retire Lot";
-    
-//     if (lot) {
-//         const varietyName = document.getElementById('varietyName').textContent.trim();
-//         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
-//         title = `Retiring ${varietyName} ${lotDisplay}`;
-//     }
-    
-//     // Reset the form to clear previous values
-//     document.getElementById('retireLotForm').reset();
-    
-//     // Set today's date as default
-//     const today = new Date().toISOString().split('T')[0];
-//     document.getElementById('retireDateInput').value = today;
-    
-//     // Update title and show popup
-//     document.getElementById('retireLotTitle').textContent = title;
-//     document.getElementById('retireLotPopup').classList.add('show');
-// }
-
 
 function hideRetireLotPopup() {
     document.getElementById('retireLotPopup').classList.remove('show');
@@ -3118,11 +3105,268 @@ function setLotStatus(newStatus) {
     hideChangeStatusPopup();
 }
 
-function viewLotUsage(lotId) {
-    hideLotActionsPopup();
-    console.log('View usage for lot:', lotId);
-    showMessage('View Usage functionality coming soon', 'success');
-    // TODO: Implement usage view popup
+// function viewLotUsage(lotId) {
+//     hideLotActionsPopup();
+//     console.log('View usage for lot:', lotId);
+//     showMessage('View Usage functionality coming soon', 'success');
+//     // TODO: Implement usage view popup
+// }
+
+
+// Variety Actions Popup
+function showVarietyActionsPopup() {
+    document.getElementById('varietyActionsPopup').classList.add('show');
+}
+
+function hideVarietyActionsPopup() {
+    document.getElementById('varietyActionsPopup').classList.remove('show');
+}
+
+function editVarietyWithPassword() {
+    hideVarietyActionsPopup();
+    showPasswordPopup(openEditVarietyPopup, null);
+}
+
+
+// Close modal event listeners
+document.getElementById('usageModalClose').addEventListener('click', closeUsageModal);
+document.getElementById('usageModal').addEventListener('click', function(e) {
+    if (e.target === this) closeUsageModal();
+});
+
+function closeUsageModal() {
+    document.getElementById('usageModal').style.display = 'none';
+}
+
+function viewVarietyUsage() {
+    console.log('viewVarietyUsage called');
+    hideVarietyActionsPopup();
+    
+    const varietyName = document.getElementById('varietyName').textContent.trim();
+    console.log('Variety name:', varietyName);
+    
+    const usageModal = document.getElementById('usageModal');
+    console.log('Usage modal element:', usageModal);
+    
+    if (!usageModal) {
+        console.error('Usage modal not found in DOM!');
+        return;
+    }
+    
+    const usageModalTitle = document.getElementById('usageModalTitle');
+    console.log('Usage modal title element:', usageModalTitle);
+    
+    if (usageModalTitle) {
+        usageModalTitle.textContent = `${varietyName}`;
+    }
+    
+    usageModal.style.display = 'flex';
+    console.log('Modal display set to flex, should be visible now');
+    
+    // Reset inventory section
+    const inventorySection = document.getElementById('inventorySection');
+    const usageSection = document.getElementById('usageSection');
+    const usageLoading = document.getElementById('usageLoading');
+    const usageContent = document.getElementById('usageContent');
+    const usageEmpty = document.getElementById('usageEmpty');
+    
+    console.log('Modal elements:', {
+        inventorySection,
+        usageSection,
+        usageLoading,
+        usageContent,
+        usageEmpty
+    });
+    
+    if (inventorySection) inventorySection.style.display = 'none';
+    if (usageSection) usageSection.style.display = 'none';
+    if (usageLoading) usageLoading.style.display = 'block';
+    if (usageContent) usageContent.style.display = 'none';
+    if (usageEmpty) usageEmpty.style.display = 'none';
+    
+    const url = `/office/variety-usage/${VARIETY_SKU_PREFIX}/`;
+    console.log('Fetching from:', url);
+    
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        console.log('Fetch response:', response);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Fetch data:', data);
+        if (data.success) {
+            // Show inventory section
+            if (data.lot_inventory_data) {
+                console.log('Populating inventory data');
+                populateInventoryData(data.lot_inventory_data);
+            }
+            
+            // Show usage section
+            if (usageSection) usageSection.style.display = 'block';
+            
+            if (data.usage_data && data.usage_data.total_lbs > 0) {
+                console.log('Populating usage data');
+                populateUsageData(data.usage_data);
+            } else {
+                console.log('No usage data, showing empty state');
+                if (usageLoading) usageLoading.style.display = 'none';
+                if (usageEmpty) usageEmpty.style.display = 'block';
+            }
+        } else {
+            console.error('Fetch unsuccessful:', data.error);
+            if (usageLoading) usageLoading.style.display = 'none';
+            if (usageEmpty) usageEmpty.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Usage fetch error:', error);
+        if (usageLoading) usageLoading.style.display = 'none';
+        if (usageEmpty) usageEmpty.style.display = 'block';
+    });
+}
+
+
+function populateUsageData(usageData) {
+    document.getElementById('usageLoading').style.display = 'none';
+    document.getElementById('usageContent').style.display = 'block';
+    
+    // Populate summary stats
+    document.getElementById('usageSeasonRange').textContent = usageData.display_year;
+    document.getElementById('usageTotalLbs').textContent = `${usageData.total_lbs.toFixed(2)}`;
+    document.getElementById('usageLotCount').textContent = usageData.lot_count;
+    
+    // Populate lot details table
+    const tbody = document.getElementById('usageLotTableBody');
+    tbody.innerHTML = '';
+    
+    usageData.lots.forEach(lot => {
+        const row = document.createElement('tr');
+        if (lot.retired) {
+            row.className = 'usage-retired-row';
+        }
+        
+        row.innerHTML = `
+            <td>${lot.lot_code}${lot.retired ? ' (retired)' : ''}</td>
+            <td>${lot.start_weight.toFixed(2)}</td>
+            <td>${lot.end_weight.toFixed(2)}</td>
+            <td class="usage-amount">${lot.usage.toFixed(2)}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function populateInventoryData(inventoryData) {
+    const section = document.getElementById('inventorySection');
+    const tbody = document.getElementById('inventoryTableBody');
+    const emptyState = document.getElementById('inventoryEmpty');
+    const table = document.querySelector('.inventory-table');
+    const legend = document.getElementById('inventoryLegend');
+    
+    section.style.display = 'block';
+    
+    if (!inventoryData.lots || inventoryData.lots.length === 0) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        if (legend) legend.style.display = 'none';
+        return;
+    }
+    
+    table.style.display = 'table';
+    emptyState.style.display = 'none';
+    
+    // Update year headers
+    const years = inventoryData.years;
+    document.getElementById('germYear1Header').textContent = years[0];
+    document.getElementById('germYear2Header').textContent = years[1];
+    document.getElementById('germYear3Header').textContent = years[2];
+    
+    // Clear tbody
+    tbody.innerHTML = '';
+    
+    // Track if we have any pending germs
+    let hasPendingGerms = false;
+    
+    // Populate rows
+    inventoryData.lots.forEach(lot => {
+        const row = document.createElement('tr');
+        
+        // Lot code cell
+        const lotCell = document.createElement('td');
+        lotCell.className = 'inventory-lot-cell';
+        lotCell.textContent = lot.lot_code;
+        row.appendChild(lotCell);
+        
+        // Germination cells for each year
+        years.forEach(year => {
+            const germCell = document.createElement('td');
+            germCell.className = 'inventory-germ-cell';
+            
+            const germData = lot.germ_data[year];
+            if (germData) {
+                const germRate = germData.rate;
+                const status = germData.status;
+                const hasTestDate = germData.has_test_date;
+                
+                // Track pending germs
+                if (!hasTestDate) {
+                    hasPendingGerms = true;
+                }
+                
+                // Create germ display with color
+                const germDiv = document.createElement('div');
+                germDiv.className = 'germ-display';
+                
+                // Get color class based on rate
+                let colorClass = 'germ-color-default';
+                if (germRate >= 85) colorClass = 'germ-color-high';
+                else if (germRate >= 70) colorClass = 'germ-color-medium';
+                else if (germRate >= 50) colorClass = 'germ-color-low';
+                else colorClass = 'germ-color-very-low';
+                
+                germDiv.innerHTML = `
+                    <span class="germ-rate ${colorClass}">${germRate}%</span>
+                    ${!hasTestDate ? '<span class="germ-pending">*</span>' : ''}
+                `;
+                
+                germCell.appendChild(germDiv);
+            } else {
+                germCell.textContent = '--';
+            }
+            
+            row.appendChild(germCell);
+        });
+        
+        // Inventory cell
+        const invCell = document.createElement('td');
+        invCell.className = 'inventory-weight-cell';
+        if (lot.inventory > 0) {
+            invCell.innerHTML = `
+                <span class="inventory-weight">${lot.inventory.toFixed(2)}</span>
+   
+            `;
+        } else {
+            invCell.textContent = '--';
+        }
+        row.appendChild(invCell);
+        
+        tbody.appendChild(row);
+    });
+    
+    // Show/hide legend based on whether we have pending germs
+    if (legend) {
+        legend.style.display = hasPendingGerms ? 'inline' : 'none';
+    }
+    
+    // Update total
+    document.getElementById('inventoryTotal').textContent = 
+        `${inventoryData.total_inventory.toFixed(2)}`;
 }
 
 
