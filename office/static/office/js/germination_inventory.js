@@ -958,7 +958,6 @@ function populateSalesTable(salesData, displayYear) {
     });
 }
 
-
 function populateUsageData(usageData) {
     document.getElementById('usageLoading').style.display = 'none';
     document.getElementById('usageContent').style.display = 'block';
@@ -978,22 +977,20 @@ function populateUsageData(usageData) {
     }
     
     // Add warning if they ran out of seed during the season
+    // Place it AFTER summary but BEFORE the details dropdown
     if (usageData.ran_out_of_seed) {
         const warning = document.createElement('div');
         warning.className = 'ran-out-warning';
-        warning.style.cssText = 'margin: 15px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; text-align: center;';
+        warning.style.cssText = 'margin: 20px 0 15px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; text-align: center;';
         warning.innerHTML = `
             <strong style="color: #856404;">⚠️ Note:</strong>
             <span style="color: #856404;"> All lots were depleted during the ${usageData.display_year} sales season. Usage numbers may not reflect actual demand.</span>
         `;
         
-        // Insert warning after the summary but before the details element
-        const usageSummary = usageContent.querySelector('.usage-summary');
+        // Insert warning right before the details element
         const usageDetails = usageContent.querySelector('.usage-details');
-        if (usageSummary && usageDetails) {
-            usageSummary.parentNode.insertBefore(warning, usageDetails);
-        } else if (usageSummary) {
-            usageSummary.after(warning);
+        if (usageDetails) {
+            usageDetails.parentNode.insertBefore(warning, usageDetails);
         } else {
             usageContent.appendChild(warning);
         }
@@ -1019,6 +1016,67 @@ function populateUsageData(usageData) {
         tbody.appendChild(row);
     });
 }
+
+// function populateUsageData(usageData) {
+//     document.getElementById('usageLoading').style.display = 'none';
+//     document.getElementById('usageContent').style.display = 'block';
+    
+//     // Populate summary stats
+//     document.getElementById('usageSeasonRange').textContent = usageData.display_year;
+//     document.getElementById('usageTotalLbs').textContent = `${usageData.total_lbs.toFixed(2)} lbs`;
+//     document.getElementById('usageLotCount').textContent = usageData.lot_count;
+    
+//     // Check if we need to show "ran out of seed" warning
+//     const usageContent = document.getElementById('usageContent');
+//     let existingWarning = usageContent.querySelector('.ran-out-warning');
+    
+//     // Remove existing warning if present
+//     if (existingWarning) {
+//         existingWarning.remove();
+//     }
+    
+//     // Add warning if they ran out of seed during the season
+//     if (usageData.ran_out_of_seed) {
+//         const warning = document.createElement('div');
+//         warning.className = 'ran-out-warning';
+//         warning.style.cssText = 'margin: 15px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; text-align: center;';
+//         warning.innerHTML = `
+//             <strong style="color: #856404;">⚠️ Note:</strong>
+//             <span style="color: #856404;"> All lots were depleted during the ${usageData.display_year} sales season. Usage numbers may not reflect actual demand.</span>
+//         `;
+        
+//         // Insert warning after the summary but before the details element
+//         const usageSummary = usageContent.querySelector('.usage-summary');
+//         const usageDetails = usageContent.querySelector('.usage-details');
+//         if (usageSummary && usageDetails) {
+//             usageSummary.parentNode.insertBefore(warning, usageDetails);
+//         } else if (usageSummary) {
+//             usageSummary.after(warning);
+//         } else {
+//             usageContent.appendChild(warning);
+//         }
+//     }
+    
+//     // Populate lot details table
+//     const tbody = document.getElementById('usageLotTableBody');
+//     tbody.innerHTML = '';
+    
+//     usageData.lots.forEach(lot => {
+//         const row = document.createElement('tr');
+//         if (lot.retired) {
+//             row.className = 'usage-retired-row';
+//         }
+        
+//         row.innerHTML = `
+//             <td>${lot.lot_code}${lot.retired ? ' (retired)' : ''}</td>
+//             <td>${lot.start_weight.toFixed(2)}</td>
+//             <td>${lot.end_weight.toFixed(2)}</td>
+//             <td class="usage-amount">${lot.usage.toFixed(2)}</td>
+//         `;
+        
+//         tbody.appendChild(row);
+//     });
+// }
 
 // function populateUsageData(usageData) {
 //     document.getElementById('usageLoading').style.display = 'none';

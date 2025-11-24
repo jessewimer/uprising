@@ -3251,16 +3251,17 @@ function populateUsageData(usageData) {
     }
     
     // Add warning if they ran out of seed during the season
+    // Place it AFTER summary stats but BEFORE the lot details table
     if (usageData.ran_out_of_seed) {
         const warning = document.createElement('div');
         warning.className = 'ran-out-warning';
-        warning.style.cssText = 'margin: 15px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; text-align: center;';
+        warning.style.cssText = 'margin: 20px 0 15px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; text-align: center;';
         warning.innerHTML = `
             <strong style="color: #856404;">⚠️ Note:</strong>
             <span style="color: #856404;"> All lots were depleted during the ${usageData.display_year} sales season. Usage numbers may not reflect actual demand.</span>
         `;
         
-        // Insert warning after the summary stats but before the table
+        // Insert warning right after usageContent's first child (the summary)
         const lotDetailsTable = usageContent.querySelector('table');
         if (lotDetailsTable) {
             lotDetailsTable.parentNode.insertBefore(warning, lotDetailsTable);
