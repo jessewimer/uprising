@@ -1573,16 +1573,18 @@ def create_germ_sample_print(request):
 #     }
 
 
+
 def calculate_variety_usage(variety, sales_year):
     """
     Calculate how many lbs of a variety were used during a sales year.
-    Finds lots with active germination for the sales year, then:
-    - If retired AFTER Sept/Oct inventory: uses difference between last two inventory records
-    - If retired BEFORE Sept/Oct inventory OR Sept/Oct exists but no post-Sept/Oct inventory: 
-      uses lbs_remaining from retirement (lot was depleted during season)
-    - If not retired: uses difference between last two inventory records
     
-    Tracks if variety ran out of seed during the season (all lots retired before Sept/Oct or depleted during season).
+    Scenarios:
+    1. Not retired: uses last 2 inventory records
+    2. Retired WITH inventory at end of usage year (Sept/Oct/Nov): retired AFTER season, uses last 2 inventory records
+    3. Retired WITHOUT inventory at end of usage year: retired during season (or should have been), uses last inventory - lbs_remaining
+    4. Retired with only 1 inventory record: uses that record - lbs_remaining
+    
+    Tracks if variety ran out of seed during the season (all lots retired/depleted during season).
     """
     from decimal import Decimal
     from datetime import datetime
@@ -1599,64 +1601,82 @@ def calculate_variety_usage(variety, sales_year):
     lots_processed = 0
     retired_during_season_count = 0
     
-    # Define Sept/Oct range for the sales year (e.g., Sept/Oct 2025 for year 25)
+    # Define Sept/Oct/Nov range at END of the sales year (e.g., Sept/Oct/Nov 2025 for year 25)
+    # Define Sept 15 - Oct 15 range at END of the sales year (when inventory is taken)
     year_full = 2000 + int(sales_year)
-    sept_start = datetime(year_full, 9, 1)
-    oct_end = datetime(year_full, 10, 31, 23, 59, 59)
-    
+    end_season_start = datetime(year_full, 9, 15)
+    end_season_end = datetime(year_full, 10, 15, 23, 59, 59)
+        
     for lot in active_lots:
         # Get all inventory records for this lot, ordered by date
         inventory_records = lot.inventory.all().order_by('inv_date')
+        inventory_count = inventory_records.count()
         
-        if inventory_records.count() < 2:
-            # Not enough inventory records to calculate usage
+        # Skip lots with no inventory records
+        if inventory_count == 0:
             continue
         
+        # Handle retired lots with only 1 inventory record
+        if inventory_count == 1:
+            if hasattr(lot, 'retired_info'):
+                # Retired lot with 1 inventory - must have been depleted during season
+                # Use that inventory - lbs_remaining
+                lots_processed += 1
+                start_weight = inventory_records.first().weight
+                end_weight = lot.retired_info.lbs_remaining
+                
+                lot_usage = start_weight - end_weight
+                
+                if lot_usage > 0:
+                    total_usage += lot_usage
+                    lot_details.append({
+                        'lot_code': lot.get_four_char_lot_code(),
+                        'start_weight': float(start_weight),
+                        'end_weight': float(end_weight),
+                        'usage': float(lot_usage),
+                        'retired': True
+                    })
+                    retired_during_season_count += 1
+            # Skip non-retired lots with only 1 inventory
+            continue
+        
+        # Lot has 2+ inventory records
         lots_processed += 1
         
         # Get the last two inventory records
-        last_two = inventory_records[inventory_records.count()-2:]
-        start_inventory = last_two[0]
-        end_inventory = last_two[1]
+        last_two = inventory_records[inventory_count-2:]
+        second_to_last = last_two[0]
+        last_inventory = last_two[1]
         
-        start_weight = start_inventory.weight
+        retired_during_season = False
         
         # Check if lot was retired
-        retired_during_season = False
         if hasattr(lot, 'retired_info'):
-            # Check if there was inventory recorded during Sept/Oct of the sales year
-            sept_oct_inventory_exists = inventory_records.filter(
-                inv_date__gte=sept_start,
-                inv_date__lte=oct_end
+            # Key question: Is there inventory at the END of the usage year (Sept/Oct/Nov)?
+            has_end_season_inventory = inventory_records.filter(
+                inv_date__gte=end_season_start,
+                inv_date__lte=end_season_end
             ).exists()
             
-            if sept_oct_inventory_exists:
-                # Sept/Oct inventory exists - now check if there's ANY inventory AFTER Sept/Oct
-                post_sept_oct_inventory = inventory_records.filter(
-                    inv_date__gt=oct_end
-                ).exists()
-                
-                if post_sept_oct_inventory:
-                    # There's inventory after Sept/Oct - lot was retired AFTER the season
-                    # Calculate usage normally
-                    end_weight = end_inventory.weight
-                    retired_during_season = False
-                else:
-                    # Sept/Oct inventory exists but NO inventory after that
-                    # Lot was likely depleted during season, retirement recorded later
-                    # Use lbs_remaining and treat as retired during season
-                    end_weight = lot.retired_info.lbs_remaining
-                    retired_during_season = True
-                    retired_during_season_count += 1
+            if has_end_season_inventory:
+                # Lot still had inventory at end of season
+                # It was retired AFTER the season
+                # Use normal calculation: last 2 inventories
+                start_weight = second_to_last.weight
+                end_weight = last_inventory.weight
+                retired_during_season = False
             else:
-                # No Sept/Oct inventory - lot was retired DURING the season
-                # Use lbs_remaining
+                # No inventory recorded at end of season
+                # Lot was depleted during season (either properly retired or forgotten)
+                # Use last inventory - lbs_remaining
+                start_weight = last_inventory.weight
                 end_weight = lot.retired_info.lbs_remaining
                 retired_during_season = True
                 retired_during_season_count += 1
         else:
-            # Lot not retired - use most recent inventory
-            end_weight = end_inventory.weight
+            # Not retired - use normal calculation: last 2 inventories
+            start_weight = second_to_last.weight
+            end_weight = last_inventory.weight
         
         lot_usage = start_weight - end_weight
         
