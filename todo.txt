@@ -23,3 +23,15 @@ On the manage_products:
     create function to reset wholesale availability to FALSE    
     create function to reset website_bulk to FALSE
     add function to scan for items with no lineitem name
+
+Add scoop icon on products page (next to envelope)
+
+** Update usage calc **
+if a product is retired, then check to see if an inventory for it was taken 
+during the inventory window during the year in question (CURRENT_ORDER_YEAR-1). 
+if inventory was taken, then calculate usage based on that inv. subtracted from the 
+previous year's inv and do not report it as retired on the usage summary. If it was retired
+during that sales year (aka no inv exists at the end of the sales year), use existing logic.
+Further, if the transition flag is set to true use CURRENT_ORDER_YEAR-2 to get the last complete 
+year of usage data 
+

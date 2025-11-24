@@ -94,4 +94,5 @@ urlpatterns = [
     path('api/update-website-bulk/', update_website_bulk, name='update_website_bulk'),
     path('update-variety-wholesale/', update_variety_wholesale, name='update_variety_wholesale'),
     path('variety-usage/<str:sku_prefix>/', variety_usage, name='variety_usage'),
+    path('update-product-scoop-size/', update_product_scoop_size, name='update_product_scoop_size'),
 ]

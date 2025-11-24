@@ -128,7 +128,17 @@
                                     <th>YTD Sales</th>
                                     <th>Last Year Sales</th>
                                     <th># Printed</th>
-                                    <th>Env. Type</th>
+                                    <th>
+                                        Env. Type
+                                        <span class="scoop-icon" onclick="showScoopSizesPopup()" title="View Scoop Sizes">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <!-- Handle -->
+                                                <line x1="2" y1="8" x2="10" y2="8"/>
+                                                <!-- Bowl (side view - like a J or cup shape) -->
+                                                <path d="M10 8 L10 16 C10 18 12 20 15 20 C18 20 20 18 20 16 L20 8 Z"/>
+                                            </svg>
+                                        </span>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1638,6 +1648,24 @@
             <div class="print-actions">
                 <button class="print-action-btn cancel-btn" onclick="hidePrintBackWarning()">Cancel</button>
                 <button class="print-action-btn print-btn" onclick="continuePrintDespiteBackMismatch()">Yes, Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scoop Sizes Popup -->
+    <div class="print-popup-overlay" id="scoopSizesPopup" onclick="closeScoopOnOutsideClick(event)">
+        <div class="print-popup">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Scoop Sizes</h3>
+                <button class="print-popup-close" onclick="hideScoopSizesPopup()">×</button>
+            </div>
+            
+            <div id="scoopSizesContent" style="max-height: 400px; overflow-y: auto;">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            
+            <div class="print-actions" style="margin-top: 20px;">
+                <button class="print-action-btn cancel-btn" onclick="hideScoopSizesPopup()">Close</button>
             </div>
         </div>
     </div>

@@ -3537,3 +3537,139 @@ function getCookie(name) {
 function goToDashboard() {
     window.location.href = "/office/dashboard/";
 }
+
+function showScoopSizesPopup() {
+    // Get all product rows
+    const productRows = document.querySelectorAll('.products-table tbody tr[data-product-id]');
+    
+    // Build the content
+    let content = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+    
+    productRows.forEach(row => {
+        const productId = row.dataset.productId;
+        const productName = row.querySelector('td:first-child').textContent.trim();
+        const scoopSize = row.dataset.scoopSize || '';
+        const displaySize = scoopSize ? scoopSize : '--';
+        
+        content += `
+            <div id="scoop-row-${productId}" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(102, 126, 234, 0.05); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.1);">
+                <span style="font-weight: 600; color: #333;">${productName}</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="scoop-display-${productId}" style="color: #667eea; font-weight: 500; font-size: 0.95rem;">${displaySize}</span>
+                    <input type="text" id="scoop-input-${productId}" value="${scoopSize}" style="display: none; flex: 1; padding: 4px 8px; border: 2px solid #667eea; border-radius: 4px; text-align: center;">
+                    <span class="edit-icon" onclick="editScoopSize(${productId})" id="edit-btn-${productId}" title="Edit Scoop Size" style="cursor: pointer; color: #667eea; opacity: 0.6;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </span>
+                    <button onclick="saveScoopSize(${productId})" id="save-btn-${productId}" style="display: none; padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.85rem;">Save</button>
+                    <button onclick="cancelEditScoopSize(${productId}, '${scoopSize}')" id="cancel-btn-${productId}" style="display: none; padding: 4px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.85rem;">Cancel</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    content += '</div>';
+    
+    // Set the content
+    document.getElementById('scoopSizesContent').innerHTML = content;
+    
+    // Show the popup
+    document.getElementById('scoopSizesPopup').classList.add('show');
+}
+
+function hideScoopSizesPopup() {
+    document.getElementById('scoopSizesPopup').classList.remove('show');
+}
+
+function closeScoopOnOutsideClick(event) {
+    // Only close if the click was directly on the overlay (not on the popup content)
+    if (event.target.id === 'scoopSizesPopup') {
+        hideScoopSizesPopup();
+    }
+}
+
+function editScoopSize(productId) {
+    // Hide display and edit button
+    document.getElementById(`scoop-display-${productId}`).style.display = 'none';
+    document.getElementById(`edit-btn-${productId}`).style.display = 'none';
+    
+    // Show input, save, and cancel buttons
+    document.getElementById(`scoop-input-${productId}`).style.display = 'block';
+    document.getElementById(`save-btn-${productId}`).style.display = 'block';
+    document.getElementById(`cancel-btn-${productId}`).style.display = 'block';
+    
+    // Focus on input
+    document.getElementById(`scoop-input-${productId}`).focus();
+}
+
+function cancelEditScoopSize(productId, originalValue) {
+    // Reset input to original value
+    document.getElementById(`scoop-input-${productId}`).value = originalValue;
+    
+    // Hide input, save, and cancel buttons
+    document.getElementById(`scoop-input-${productId}`).style.display = 'none';
+    document.getElementById(`save-btn-${productId}`).style.display = 'none';
+    document.getElementById(`cancel-btn-${productId}`).style.display = 'none';
+    
+    // Show display and edit button
+    document.getElementById(`scoop-display-${productId}`).style.display = 'block';
+    document.getElementById(`edit-btn-${productId}`).style.display = 'block';
+}
+
+function saveScoopSize(productId) {
+    const newScoopSize = document.getElementById(`scoop-input-${productId}`).value.trim();
+    
+    // Disable buttons during save
+    const saveBtn = document.getElementById(`save-btn-${productId}`);
+    const cancelBtn = document.getElementById(`cancel-btn-${productId}`);
+    saveBtn.disabled = true;
+    cancelBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    // Make API call
+    fetch('/office/update-product-scoop-size/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            scoop_size: newScoopSize
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the display
+            const displayValue = newScoopSize || '--';
+            document.getElementById(`scoop-display-${productId}`).textContent = displayValue;
+            
+            // Update the data attribute in the main table
+            const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            if (productRow) {
+                productRow.dataset.scoopSize = newScoopSize;
+            }
+            
+            // Hide edit mode
+            cancelEditScoopSize(productId, newScoopSize);
+            
+            // Show success message
+            showMessage('Scoop size updated successfully', 'success');
+        } else {
+            showMessage('Error updating scoop size: ' + (data.error || 'Unknown error'), 'error');
+            saveBtn.disabled = false;
+            cancelBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Network error occurred', 'error');
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    });
+}

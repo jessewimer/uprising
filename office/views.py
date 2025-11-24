@@ -3115,3 +3115,25 @@ def variety_usage(request, sku_prefix):
             'success': False,
             'error': str(e)
         }, status=500)
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_product_scoop_size(request):
+    try:
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        scoop_size = data.get('scoop_size', '').strip()
+        
+        # Get the product
+        product = Product.objects.get(pk=product_id)
+        
+        # Update scoop size
+        product.scoop_size = scoop_size if scoop_size else None
+        product.save()
+        
+        return JsonResponse({'success': True})
+    except Product.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Product not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
