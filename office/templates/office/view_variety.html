@@ -319,6 +319,14 @@
             <!-- Right Side: Label Info Section -->
             <div class="label-section">
                 <div class="label-content">
+                    <!-- Package Size for PKT Product -->
+                    {% if products %}
+                    <div class="label-group">
+                        <div class="label-line">
+                            Pkt. Size: {% if products.0.pkg_size %}{{ products.0.pkg_size }}{% else %}<span class="label-line-empty">Not set</span>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="label-group">
                         <div class="label-group-title">
                             Front Label

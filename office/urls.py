@@ -28,6 +28,7 @@ urlpatterns = [
 
 # ============
     path('analytics/', analytics, name='analytics'),
+    path('mixes/', mixes, name='mixes'),
     path('envelope-data-for-printing/', get_envelope_data_for_printing, name='envelope_data_for_printing'),
 
     path('<int:store_num>/update/', update_store, name='update_store'),

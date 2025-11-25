@@ -1875,8 +1875,9 @@ def variety_sales_data(request, sku_prefix):
         # Sort: packets first, then bulk, then by quantity descending within each group
         formatted_sales.sort(key=lambda x: (not x['is_packet'], -x['quantity']))
         
-        # Calculate usage for previous sales year (CURRENT_ORDER_YEAR - 1)
-        previous_sales_year = settings.CURRENT_ORDER_YEAR - 1
+        # Calculate usage for previous sales year
+        # During transition, look back 2 years; otherwise look back 1 year
+        previous_sales_year = settings.CURRENT_ORDER_YEAR - (2 if settings.TRANSITION else 1)
         usage_data = calculate_variety_usage(variety, previous_sales_year)
       
         lot_inventory_data = get_variety_lot_inventory(variety, settings.CURRENT_ORDER_YEAR)
@@ -3255,7 +3256,7 @@ def variety_usage(request, sku_prefix):
             return JsonResponse({'error': 'Variety not found'}, status=404)
         
         # Calculate usage for previous sales year (CURRENT_ORDER_YEAR - 1)
-        previous_sales_year = settings.CURRENT_ORDER_YEAR - 1
+        previous_sales_year = settings.CURRENT_ORDER_YEAR - (2 if settings.TRANSITION else 1)
         usage_data = calculate_variety_usage(variety, previous_sales_year)
       
         # Get lot inventory data
@@ -3298,3 +3299,9 @@ def update_product_scoop_size(request):
         return JsonResponse({'success': False, 'error': 'Product not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+
+@login_required
+@user_passes_test(is_employee)
+def mixes(request):
+    return render(request, 'office/mixes.html')

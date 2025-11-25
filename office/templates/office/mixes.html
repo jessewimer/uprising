@@ -1,0 +1,1022 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mixes - Uprising Seeds</title>
+    <link rel="stylesheet" href="{% static 'office/css/base.css' %}">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        .dashboard-button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dashboard-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            flex: 1;
+            text-align: center;
+        }
+
+        .mix-selector {
+            padding: 12px 20px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 220px;
+        }
+
+        .mix-selector:hover {
+            border-color: #667eea;
+        }
+
+        .mix-selector:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Main Content */
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Create New Mix Section */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #26de81, #20bf6b);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(38, 222, 129, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        /* Lot Selection Table */
+        .lot-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 20px;
+        }
+
+        .lot-table thead {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .lot-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .lot-table th:first-child {
+            border-top-left-radius: 12px;
+        }
+
+        .lot-table th:last-child {
+            border-top-right-radius: 12px;
+        }
+
+        .lot-table td {
+            padding: 15px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .lot-table tbody tr:hover td {
+            background: #f8f9fa;
+        }
+
+        .lot-table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 12px;
+        }
+
+        .lot-table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 12px;
+        }
+
+        .lot-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .parts-input {
+            width: 60px;
+            padding: 8px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .parts-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* New Mix Lot Form */
+        .new-lot-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-input:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        /* Existing Mix Lots */
+        .mix-lots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .mix-lot-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mix-lot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .mix-lot-code {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .mix-lot-info {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #333;
+            transform: scale(1.1);
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        /* Batches Section */
+        .batches-list {
+            margin-top: 20px;
+        }
+
+        .batch-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .batch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .batch-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .batch-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .batch-info {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Hidden state */
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-title {
+                text-align: center;
+            }
+
+            .content {
+                padding: 25px;
+            }
+
+            .lot-table {
+                font-size: 0.9rem;
+            }
+
+            .mix-lots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="{% url 'office_landing' %}" class="dashboard-button">
+                ← Dashboard
+            </a>
+            <h1 class="header-title">🥣 Mixes</h1>
+            <select class="mix-selector" id="mixSelector">
+                <option value="">Select a mix...</option>
+                <option value="rainbow">Rainbow Mix</option>
+                <option value="mild-mesclun">Mild Mesclun</option>
+                <option value="spicy-mesclun">Spicy Mesclun</option>
+                <option value="braising">Uprising Braising Mix</option>
+                <option value="3-beet">3 Beet Mix</option>
+                <option value="edible-flower">Edible Flower Mix</option>
+                <option value="lettuce">Uprising Lettuce Mix</option>
+            </select>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state">
+                <div class="empty-state-icon">🥣</div>
+                <p>Select a mix from the dropdown above to get started</p>
+            </div>
+
+            <!-- Mix Content (hidden by default) -->
+            <div id="mixContent" class="hidden">
+                <!-- Create New Mix Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Create New Mix Lot</h2>
+                    </div>
+
+                    <table class="lot-table" id="availableLotsTable">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Variety</th>
+                                <th>Lot</th>
+                                <th>Germ %</th>
+                                <th>Status</th>
+                                <th>Inventory</th>
+                                <th>Parts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="availableLotsBody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+
+                    <div class="new-lot-form">
+                        <div class="form-group">
+                            <label class="form-label">New Mix Lot Code</label>
+                            <input type="text" class="form-input" id="newLotCode" placeholder="e.g., UO25A1" disabled>
+                            <small style="color: #666; margin-top: 5px; display: block;">
+                                Format: UO[Year][Letter][Batch#] - Letter changes when lot combination changes
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Calculated Germination Rate</label>
+                            <input type="text" class="form-input" id="calcGerm" disabled>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveMixLot()">
+                            💾 Save Mix Lot
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Existing Mix Lots -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Existing Mix Lots</h2>
+                    </div>
+                    <div class="mix-lots-grid" id="existingLotsGrid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mix Lot Details Modal -->
+    <div class="modal-overlay" id="lotDetailsModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <h2 class="modal-title" id="modalLotCode">Mix Lot Details</h2>
+            
+            <div class="section">
+                <h3 style="margin-bottom: 15px;">Component Lots</h3>
+                <table class="lot-table" id="componentLotsTable">
+                    <thead>
+                        <tr>
+                            <th>Variety</th>
+                            <th>Lot Code</th>
+                            <th>Germ %</th>
+                            <th>Parts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="componentLotsBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h3>Batches</h3>
+                    <button class="btn btn-primary" onclick="showNewBatchForm()">
+                        + Record New Batch
+                    </button>
+                </div>
+
+                <!-- New Batch Form (hidden by default) -->
+                <div id="newBatchForm" class="new-lot-form hidden">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-input" id="batchDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Final Weight (lbs)</label>
+                        <input type="number" step="0.01" class="form-input" id="batchWeight" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes (measurement spoon used, etc.)</label>
+                        <textarea class="form-input" id="batchNotes" rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveBatch()">💾 Save Batch</button>
+                    <button class="btn btn-secondary" onclick="hideNewBatchForm()">Cancel</button>
+                </div>
+
+                <div class="batches-list" id="batchesList">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        // const CURRENT_ORDER_YEAR = {{ settings.CURRENT_ORDER_YEAR }};
+        
+        // Mix configurations
+        const MIX_CONFIGS = {
+            'rainbow': {
+                name: 'Rainbow Mix',
+                varieties: ['CAR-SN', 'CAR-YE', 'CAR-DR']
+            },
+            'mild-mesclun': {
+                name: 'Mild Mesclun',
+                varieties: [] // Add varieties
+            },
+            'spicy-mesclun': {
+                name: 'Spicy Mesclun',
+                varieties: [] // Add varieties
+            },
+            'braising': {
+                name: 'Uprising Braising Mix',
+                varieties: [] // Add varieties
+            },
+            '3-beet': {
+                name: '3 Beet Mix',
+                varieties: [] // Add varieties
+            },
+            'edible-flower': {
+                name: 'Edible Flower Mix',
+                varieties: [] // Add varieties
+            },
+            'lettuce': {
+                name: 'Uprising Lettuce Mix',
+                varieties: [] // Add varieties
+            }
+        };
+
+        let currentMix = null;
+        let currentMixLot = null;
+
+        // Initialize
+        document.getElementById('mixSelector').addEventListener('change', function() {
+            const mixId = this.value;
+            if (mixId) {
+                loadMix(mixId);
+            } else {
+                showEmptyState();
+            }
+        });
+
+        function showEmptyState() {
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('mixContent').classList.add('hidden');
+        }
+
+        function loadMix(mixId) {
+            currentMix = mixId;
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('mixContent').classList.remove('hidden');
+            
+            // Load available lots for this mix
+            loadAvailableLots(mixId);
+            
+            // Load existing mix lots
+            loadExistingMixLots(mixId);
+        }
+
+        function loadAvailableLots(mixId) {
+            const config = MIX_CONFIGS[mixId];
+            
+            // TODO: Replace with actual Django view call
+            // For now, using mock data
+            fetch(`/office/mixes/available-lots/?mix=${mixId}&year=${CURRENT_ORDER_YEAR}`)
+                .then(response => response.json())
+                .then(lots => {
+                    displayAvailableLots(lots);
+                })
+                .catch(error => {
+                    console.error('Error loading lots:', error);
+                    // Use mock data for development
+                    displayAvailableLots(getMockLots(mixId));
+                });
+        }
+
+        function displayAvailableLots(lots) {
+            const tbody = document.getElementById('availableLotsBody');
+            tbody.innerHTML = '';
+            
+            lots.forEach(lot => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="lot-checkbox" data-lot-id="${lot.id}" onchange="updateMixCalculation()"></td>
+                    <td>${lot.variety_name}</td>
+                    <td>${lot.lot_code}</td>
+                    <td>${lot.germ_rate}%</td>
+                    <td><span class="status-badge status-${lot.status}">${lot.status}</span></td>
+                    <td>${lot.inventory}</td>
+                    <td><input type="number" class="parts-input" min="1" value="1" data-lot-id="${lot.id}" onchange="updateMixCalculation()"></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateMixCalculation() {
+            const checkboxes = document.querySelectorAll('.lot-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                document.getElementById('newLotCode').value = '';
+                document.getElementById('calcGerm').value = '';
+                return;
+            }
+
+            // Calculate weighted germination
+            let totalParts = 0;
+            let weightedGerm = 0;
+
+            checkboxes.forEach(cb => {
+                const lotId = cb.dataset.lotId;
+                const partsInput = document.querySelector(`.parts-input[data-lot-id="${lotId}"]`);
+                const parts = parseInt(partsInput.value) || 1;
+                
+                // Get germination from table row
+                const row = cb.closest('tr');
+                const germText = row.cells[3].textContent;
+                const germ = parseInt(germText);
+
+                totalParts += parts;
+                weightedGerm += (germ * parts);
+            });
+
+            const avgGerm = Math.round(weightedGerm / totalParts);
+            document.getElementById('calcGerm').value = `${avgGerm}%`;
+
+            // Generate lot code (you'll need to fetch next available letter from backend)
+            const year = CURRENT_ORDER_YEAR.toString().slice(-2);
+            document.getElementById('newLotCode').value = `UO${year}A1`; // Placeholder
+        }
+
+        function saveMixLot() {
+            const checkboxes = document.querySelectorAll('.lot-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('Please select at least one lot');
+                return;
+            }
+
+            const components = [];
+            checkboxes.forEach(cb => {
+                const lotId = cb.dataset.lotId;
+                const partsInput = document.querySelector(`.parts-input[data-lot-id="${lotId}"]`);
+                components.push({
+                    lot_id: lotId,
+                    parts: parseInt(partsInput.value) || 1
+                });
+            });
+
+            const lotCode = document.getElementById('newLotCode').value;
+            const germRate = document.getElementById('calcGerm').value;
+
+            // TODO: Replace with actual Django view call
+            fetch('/office/mixes/create-lot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    mix: currentMix,
+                    lot_code: lotCode,
+                    germ_rate: germRate,
+                    components: components
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Mix lot created successfully!');
+                    loadExistingMixLots(currentMix);
+                    // Reset form
+                    document.querySelectorAll('.lot-checkbox').forEach(cb => cb.checked = false);
+                    updateMixCalculation();
+                }
+            })
+            .catch(error => {
+                console.error('Error saving mix lot:', error);
+                alert('Error creating mix lot');
+            });
+        }
+
+        function loadExistingMixLots(mixId) {
+            // TODO: Replace with actual Django view call
+            fetch(`/office/mixes/existing-lots/?mix=${mixId}`)
+                .then(response => response.json())
+                .then(mixLots => {
+                    displayExistingMixLots(mixLots);
+                })
+                .catch(error => {
+                    console.error('Error loading mix lots:', error);
+                    displayExistingMixLots(getMockMixLots());
+                });
+        }
+
+        function displayExistingMixLots(mixLots) {
+            const grid = document.getElementById('existingLotsGrid');
+            grid.innerHTML = '';
+
+            if (mixLots.length === 0) {
+                grid.innerHTML = '<p style="color: #666;">No existing mix lots for this mix yet.</p>';
+                return;
+            }
+
+            mixLots.forEach(mixLot => {
+                const card = document.createElement('div');
+                card.className = 'mix-lot-card';
+                card.onclick = () => showLotDetails(mixLot.id);
+                
+                card.innerHTML = `
+                    <div class="mix-lot-code">${mixLot.lot_code}</div>
+                    <div class="mix-lot-info">
+                        <div>Created: ${mixLot.created_date}</div>
+                        <div>Germination: ${mixLot.germ_rate}%</div>
+                        <div>Batches: ${mixLot.batch_count}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function showLotDetails(mixLotId) {
+            currentMixLot = mixLotId;
+            
+            // TODO: Fetch actual mix lot details
+            fetch(`/office/mixes/lot-details/${mixLotId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    displayLotDetails(data);
+                    document.getElementById('lotDetailsModal').classList.add('show');
+                })
+                .catch(error => {
+                    console.error('Error loading lot details:', error);
+                    // Use mock data
+                    displayLotDetails(getMockLotDetails());
+                    document.getElementById('lotDetailsModal').classList.add('show');
+                });
+        }
+
+        function displayLotDetails(data) {
+            document.getElementById('modalLotCode').textContent = data.lot_code;
+            
+            // Display component lots
+            const tbody = document.getElementById('componentLotsBody');
+            tbody.innerHTML = '';
+            data.components.forEach(comp => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${comp.variety_name}</td>
+                    <td>${comp.lot_code}</td>
+                    <td>${comp.germ_rate}%</td>
+                    <td>${comp.parts}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Display batches
+            displayBatches(data.batches);
+        }
+
+        function displayBatches(batches) {
+            const list = document.getElementById('batchesList');
+            list.innerHTML = '';
+
+            if (batches.length === 0) {
+                list.innerHTML = '<p style="color: #666;">No batches recorded yet.</p>';
+                return;
+            }
+
+            batches.forEach((batch, index) => {
+                const card = document.createElement('div');
+                card.className = 'batch-card';
+                card.innerHTML = `
+                    <div class="batch-header">
+                        <div class="batch-number">Batch #${index + 1}</div>
+                        <div class="batch-date">${batch.date}</div>
+                    </div>
+                    <div class="batch-info">
+                        <div>Final Weight: ${batch.final_weight} lbs</div>
+                        ${batch.notes ? `<div>Notes: ${batch.notes}</div>` : ''}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function showNewBatchForm() {
+            document.getElementById('newBatchForm').classList.remove('hidden');
+            // Set today's date
+            document.getElementById('batchDate').valueAsDate = new Date();
+        }
+
+        function hideNewBatchForm() {
+            document.getElementById('newBatchForm').classList.add('hidden');
+            // Reset form
+            document.getElementById('batchWeight').value = '';
+            document.getElementById('batchNotes').value = '';
+        }
+
+        function saveBatch() {
+            const date = document.getElementById('batchDate').value;
+            const weight = document.getElementById('batchWeight').value;
+            const notes = document.getElementById('batchNotes').value;
+
+            if (!date || !weight) {
+                alert('Please fill in date and weight');
+                return;
+            }
+
+            // TODO: Replace with actual Django view call
+            fetch('/office/mixes/record-batch/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    mix_lot_id: currentMixLot,
+                    date: date,
+                    final_weight: weight,
+                    notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Batch recorded successfully!');
+                    hideNewBatchForm();
+                    showLotDetails(currentMixLot); // Refresh
+                }
+            })
+            .catch(error => {
+                console.error('Error saving batch:', error);
+                alert('Error recording batch');
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('lotDetailsModal').classList.remove('show');
+            hideNewBatchForm();
+        }
+
+        // Utility function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Mock data functions (remove these once backend is connected)
+        function getMockLots(mixId) {
+            if (mixId === 'rainbow') {
+                return [
+                    { id: 1, variety_name: 'Scarlet Nantes', lot_code: 'CAR-SN-UO24', germ_rate: 85, status: 'active', inventory: '15 lbs (10/2024)' },
+                    { id: 2, variety_name: 'Yellowstone', lot_code: 'CAR-YE-DR24', germ_rate: 90, status: 'active', inventory: '22 lbs (10/2024)' },
+                    { id: 3, variety_name: 'Purple Dragon', lot_code: 'CAR-DR-TR23', germ_rate: 88, status: 'active', inventory: '18 lbs (09/2024)' }
+                ];
+            }
+            return [];
+        }
+
+        function getMockMixLots() {
+            return [
+                { id: 1, lot_code: 'UO24A1', created_date: '10/15/2024', germ_rate: 88, batch_count: 2 },
+                { id: 2, lot_code: 'UO24A2', created_date: '11/01/2024', germ_rate: 88, batch_count: 1 }
+            ];
+        }
+
+        function getMockLotDetails() {
+            return {
+                lot_code: 'UO24A1',
+                germ_rate: 88,
+                components: [
+                    { variety_name: 'Scarlet Nantes', lot_code: 'CAR-SN-UO24', germ_rate: 85, parts: 1 },
+                    { variety_name: 'Yellowstone', lot_code: 'CAR-YE-DR24', germ_rate: 90, parts: 1 },
+                    { variety_name: 'Purple Dragon', lot_code: 'CAR-DR-TR23', germ_rate: 88, parts: 1 }
+                ],
+                batches: [
+                    { date: '10/20/2024', final_weight: 5.5, notes: 'Used 1 tbsp scoop' },
+                    { date: '10/25/2024', final_weight: 3.2, notes: 'Used 1 tsp scoop' }
+                ]
+            };
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Close modal on outside click
+        document.getElementById('lotDetailsModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
