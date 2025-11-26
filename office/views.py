@@ -9,7 +9,7 @@ from django.contrib.auth import login
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted, StoreReturns, WholesalePktPrice
 from orders.models import OOIncludes, OnlineOrder
-from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory
+from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory, MixLot, MixLotComponent, MixBatch, RetiredMixLot
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Case, When, IntegerField, Max, Sum, F, CharField, Value, Q
 from django.db.models.functions import Concat
@@ -23,6 +23,65 @@ import pytz
 from decimal import Decimal, InvalidOperation
 from stores.models import WholesalePktPrice
 import math
+
+
+BASE_COMPONENT_MIXES = {
+    'lettuce-base': {
+        'name': 'Lettuce Mix',
+        'type': 'base',
+        'varieties': ['LET-HR', 'LET-FB', 'LET-GR', 'LET-CI', 'LET-FT', 'LET-AY', 'LET-MA', 'LET-RV', 'LET-EM'],
+    },
+    'spicy-base': {
+        'name': 'Spicy Mix',
+        'type': 'base',
+        'varieties': ['GRE-AS', 'GRE-TA', 'GRE-RS', 'KAL-RF', 'KAL-RR', 'GRE-WC', 'CHA-RA', 'GRE-GF', 'GRE-MZ']
+    },
+    'mild-base': {
+        'name': 'Mild Mix',
+        'type': 'base',
+        'varieties': ['GRE-AS', 'GRE-TA', 'SPI-BE', 'KAL-RF', 'GRE-MZ', 'CHA-RA'] 
+    }
+}
+
+# Mix configurations
+FINAL_MIX_CONFIGS = {
+    'CAR-RA': {
+        'name': 'Rainbow Carrot Mix',
+        'varieties': ['CAR-SN', 'CAR-YE', 'CAR-DR']
+    },
+    'BEE-3B': {
+        'name': '3 Beet Mix',
+        'type': 'regular',
+        'varieties': ['BEE-TG', 'BEE-SH', 'BEE-CH']
+    },
+    'LET-MX': {
+        'name': 'Uprising Lettuce Mix',
+        'type': 'regular',
+        'varieties_prefix': 'LET',
+        'varieties_exclude': ['LET-MX']
+    },
+    'MIX-SP': {
+        'name': 'Uprising Spicy Mesclun',
+        'type': 'nested',
+        'base_components': ['lettuce-base', 'spicy-base']
+    },
+    'MIX-MI': {
+        'name': 'Uprising Mild Mesclun',
+        'type': 'nested',
+        'base_components': ['lettuce-base', 'mild-base']
+    },
+    'MIX-BR': {
+        'name': 'Uprising Braising Mix',
+        'type': 'regular',
+        'varieties': []  # Fill in your varieties
+    },
+    'FLO-ED': {
+        'name': 'Edible Flower Mix',
+        'type': 'regular',
+        'varieties': ['GRE-TA', 'GRE-RS', 'GRE-PC', 'SPI-BE', 'SPI-WG', 'SPI-WB', 'KAL-RR', 'KAL-RF', 'KAL-DB', 'CHA-RA', 'GRE-MZ', 'GRE-GF'] 
+    }
+}
+
 
 @login_required
 @require_http_methods(["GET"])
@@ -113,8 +172,11 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
     packed_for_year = settings.CURRENT_ORDER_YEAR
     
     # --- All varieties ---
-    varieties = Variety.objects.all().order_by('veg_type', 'sku_prefix')
-   
+    # Exclude base component mixes (MIX-LB, MIX-SB, MIX-MB)
+    varieties = Variety.objects.exclude(
+        sku_prefix__in=['MIX-LB', 'MIX-SB', 'MIX-MB']
+    ).order_by('veg_type', 'sku_prefix')
+    
     # --- Build all_vars dict for front-end dropdown (JS-friendly) ---
     all_vars = {
         v.sku_prefix: {
@@ -138,53 +200,119 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
                 return redirect('view_variety', sku_prefix=selected_variety_pk)
     
     # --- Get associated products and lots for the current variety ---
+    # products = Product.objects.filter(variety=variety_obj).order_by(
+    #     Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
+    #         output_field=IntegerField())
+    # )
+    # lots = Lot.objects.filter(variety=variety_obj).order_by("year")
+    # has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
+    # growers = Grower.objects.all().order_by('code')
+
+
+
+    # --- Get associated products and lots for the current variety ---
     products = Product.objects.filter(variety=variety_obj).order_by(
         Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
             output_field=IntegerField())
     )
-    lots = Lot.objects.filter(variety=variety_obj).order_by("year")
-    has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
-    growers = Grower.objects.all().order_by('code')
+    # Check if this is a mix variety
+    is_mix = variety_obj.is_mix
 
-    # Build lots JSON data
-    lots_json = json.dumps([
-        {
-            'id': lot.id,
-            'grower': str(lot.grower) if lot.grower else '',
-            'year': lot.year,
-            'harvest': lot.harvest or '',
-            'is_retired': hasattr(lot, 'retired_info'),
-            'low_inv': lot.low_inv,
-        }
-        for lot in lots
-    ])
+    if is_mix:
+        # Get MixLots instead of regular Lots
+        mix_lots = MixLot.objects.filter(variety=variety_obj).order_by("-created_date")
 
-    # Build lots extra data
-    lots_extra_data_list = []
-    six_months_ago = timezone.now().date() - timedelta(days=180)
-
-    for lot in lots:
-        extra_data = {
-            'id': lot.id,
-            'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
-        }
+        # Find the active (non-retired) mix lot
+        active_mix_lot = None
+        for mix_lot in mix_lots:
+            if not hasattr(mix_lot, 'retired_mix_info'):
+                active_mix_lot = mix_lot
+                break
         
-        recent_inv = lot.inventory.order_by('-inv_date').first()
-        if recent_inv and recent_inv.inv_date >= six_months_ago:
-            extra_data['recent_inventory'] = {
-                'id': recent_inv.id,
-                'weight': str(recent_inv.weight),
-                'date': recent_inv.inv_date.strftime('%m/%Y'),
-                'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
+        # Auto-assign active mix lot to all products
+        if active_mix_lot:
+            products.update(mix_lot=active_mix_lot, lot=None)
+
+        has_pending_germ = False  # Mixes don't have pending germ samples
+        
+        # Build mix lots JSON data
+        lots_json = json.dumps([
+            {
+                'id': mix_lot.id,
+                'lot_code': mix_lot.lot_code,
+                'is_retired': hasattr(mix_lot, 'retired_mix_info'),
+                'is_mix': True,
+                'germ_rate': mix_lot.get_current_germ_rate(),
             }
+            for mix_lot in mix_lots
+        ])
         
-        lots_extra_data_list.append(extra_data)
+        # Build mix lots extra data
+        lots_extra_data_list = []
+        for mix_lot in mix_lots:
+            extra_data = {
+                'id': mix_lot.id,
+                'is_next_year_only': False,  # Mixes don't have this concept
+                'is_mix': True,
+                'batch_count': mix_lot.batches.count(),
+            }
+            lots_extra_data_list.append(extra_data)
+        
+        lots_extra_data = json.dumps(lots_extra_data_list)
+        lots = mix_lots  # For template
+        
+    else:
+        # Regular lots logic
+        lots = Lot.objects.filter(variety=variety_obj).order_by("year")
+        has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
+        
+        # Build lots JSON data
+        lots_json = json.dumps([
+            {
+                'id': lot.id,
+                'grower': str(lot.grower) if lot.grower else '',
+                'year': lot.year,
+                'harvest': lot.harvest or '',
+                'is_retired': hasattr(lot, 'retired_info'),
+                'low_inv': lot.low_inv,
+                'is_mix': False,
+            }
+            for lot in lots
+        ])
+        
+        # Build lots extra data
+        lots_extra_data_list = []
+        six_months_ago = timezone.now().date() - timedelta(days=180)
 
-    lots_extra_data = json.dumps(lots_extra_data_list)
+        for lot in lots:
+            extra_data = {
+                'id': lot.id,
+                'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
+                'is_mix': False,
+            }
+            
+            recent_inv = lot.inventory.order_by('-inv_date').first()
+            if recent_inv and recent_inv.inv_date >= six_months_ago:
+                extra_data['recent_inventory'] = {
+                    'id': recent_inv.id,
+                    'weight': str(recent_inv.weight),
+                    'date': recent_inv.inv_date.strftime('%m/%Y'),
+                    'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
+                }
+            
+            lots_extra_data_list.append(extra_data)
+
+        lots_extra_data = json.dumps(lots_extra_data_list)
+
+    # DELETE EVERYTHING FROM HERE DOWN TO growers = ...
+    # The duplicate section that's causing the error
+
+    growers = Grower.objects.all().order_by('code')
 
     context = {
         'last_selected': variety_obj,
         'variety': variety_obj,
+        'is_mix': is_mix, 
         'products': products,
         'lots': lots,
         'lots_json': lots_json,
@@ -205,6 +333,59 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'has_pending_germ': has_pending_germ,
     }
     return render(request, 'office/view_variety.html', context)
+   
+
+
+    # # Build lots extra data
+    # lots_extra_data_list = []
+    # six_months_ago = timezone.now().date() - timedelta(days=180)
+
+    # for lot in lots:
+    #     extra_data = {
+    #         'id': lot.id,
+    #         'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
+    #     }
+        
+    #     recent_inv = lot.inventory.order_by('-inv_date').first()
+    #     if recent_inv and recent_inv.inv_date >= six_months_ago:
+    #         extra_data['recent_inventory'] = {
+    #             'id': recent_inv.id,
+    #             'weight': str(recent_inv.weight),
+    #             'date': recent_inv.inv_date.strftime('%m/%Y'),
+    #             'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
+    #         }
+        
+    #     lots_extra_data_list.append(extra_data)
+
+    # lots_extra_data = json.dumps(lots_extra_data_list)
+
+    # context = {
+    #     'last_selected': variety_obj,
+    #     'variety': variety_obj,
+    #     'is_mix': is_mix, 
+    #     'products': products,
+    #     'lots': lots,
+    #     'lots_json': lots_json,
+    #     'lots_extra_data': lots_extra_data,
+    #     'all_vars_json': all_vars_json,
+    #     'growers': growers,
+    #     'env_types': settings.ENV_TYPES,
+    #     'sku_suffixes': settings.SKU_SUFFIXES,
+    #     'pkg_sizes': settings.PKG_SIZES,
+    #     'groups': settings.GROUPS,
+    #     'categories': settings.CATEGORIES,
+    #     'crops': settings.CROPS,
+    #     'subtypes': settings.SUBTYPES,
+    #     'supergroups': settings.SUPERGROUPS,
+    #     'veg_types': settings.VEG_TYPES,
+    #     'packed_for_year': packed_for_year,
+    #     'transition': settings.TRANSITION,
+    #     'has_pending_germ': has_pending_germ,
+    # }
+    # return render(request, 'office/view_variety.html', context)
+
+
+
 
 @login_required
 @user_passes_test(is_employee)
@@ -227,6 +408,10 @@ def print_product_labels(request):
             
             product = Product.objects.get(pk=product_id)
             
+            # Determine if this is a mix or regular product
+            has_mix_lot = product.mix_lot is not None
+            has_regular_lot = product.lot is not None
+            
             # Update bulk_pre_pack if requested
             if add_to_bulk_pre_pack and bulk_pre_pack_qty > 0:
                 if product.bulk_pre_pack is None:
@@ -247,13 +432,26 @@ def print_product_labels(request):
                 pst = pytz.timezone('America/Los_Angeles')
                 today_pst = timezone.now().astimezone(pst).date()
                 
+                # Build filter for existing print job based on lot type
+                filter_kwargs = {
+                    'product': product,
+                    'date': today_pst,
+                    'for_year': packed_for_year
+                }
+                
+                if has_mix_lot:
+                    filter_kwargs['mix_lot'] = product.mix_lot
+                    filter_kwargs['lot__isnull'] = True
+                elif has_regular_lot:
+                    filter_kwargs['lot'] = product.lot
+                    filter_kwargs['mix_lot__isnull'] = True
+                else:
+                    # No lot assigned at all
+                    filter_kwargs['lot__isnull'] = True
+                    filter_kwargs['mix_lot__isnull'] = True
+                
                 # Check if there's already a print job for this product today with same for_year
-                existing_print = LabelPrint.objects.filter(
-                    product=product,
-                    lot=product.lot,
-                    date=today_pst,
-                    for_year=packed_for_year
-                ).first()
+                existing_print = LabelPrint.objects.filter(**filter_kwargs).first()
                 
                 if existing_print:
                     # Add to existing quantity
@@ -261,14 +459,25 @@ def print_product_labels(request):
                     existing_print.save()
                     print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
                 else:
-                    # Create new print job
-                    LabelPrint.objects.create(
-                        product=product,
-                        lot=product.lot,
-                        date=today_pst,
-                        qty=actual_qty,
-                        for_year=packed_for_year,
-                    )
+                    # Create new print job with appropriate lot assignment
+                    create_kwargs = {
+                        'product': product,
+                        'date': today_pst,
+                        'qty': actual_qty,
+                        'for_year': packed_for_year,
+                    }
+                    
+                    if has_mix_lot:
+                        create_kwargs['mix_lot'] = product.mix_lot
+                        create_kwargs['lot'] = None
+                    elif has_regular_lot:
+                        create_kwargs['lot'] = product.lot
+                        create_kwargs['mix_lot'] = None
+                    else:
+                        create_kwargs['lot'] = None
+                        create_kwargs['mix_lot'] = None
+                    
+                    LabelPrint.objects.create(**create_kwargs)
                     print(f"Created new print job for {actual_qty} labels")
             
             print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
@@ -284,6 +493,84 @@ def print_product_labels(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
+# @login_required
+# @user_passes_test(is_employee)
+# def print_product_labels(request):
+#     if request.method == 'POST':
+#         if request.user.username not in ["office", "admin"]:
+#             return JsonResponse({'error': 'You are not allowed to print labels'}, status=403)
+        
+#         try:
+#             data = json.loads(request.body)
+#             product_id = data.get('product_id')
+#             print_type = data.get('print_type')
+#             quantity = int(data.get('quantity', 1))
+#             packed_for_year = int(data.get('packed_for_year', 1))
+#             add_to_bulk_pre_pack = data.get('add_to_bulk_pre_pack', False)
+#             bulk_pre_pack_qty = int(data.get('bulk_pre_pack_qty', 0))
+            
+#             print(f"Packed for year: {packed_for_year}")
+#             print(f"Add to bulk pre-pack: {add_to_bulk_pre_pack}, Qty: {bulk_pre_pack_qty}")
+            
+#             product = Product.objects.get(pk=product_id)
+            
+#             # Update bulk_pre_pack if requested
+#             if add_to_bulk_pre_pack and bulk_pre_pack_qty > 0:
+#                 if product.bulk_pre_pack is None:
+#                     product.bulk_pre_pack = 0
+#                 product.bulk_pre_pack += bulk_pre_pack_qty
+#                 product.save()
+#                 print(f"Updated bulk_pre_pack: added {bulk_pre_pack_qty}, new total: {product.bulk_pre_pack}")
+            
+#             # Only log if not printing back-only labels
+#             if print_type not in ['back_single', 'back_sheet']:
+#                 # Calculate actual label quantity
+#                 if print_type in ['front_sheet', 'front_back_sheet']:
+#                     actual_qty = quantity * 30  # 30 labels per sheet
+#                 else:
+#                     actual_qty = quantity  # Singles and front_back_single
+                
+#                 # Get today's date in PST/PDT
+#                 pst = pytz.timezone('America/Los_Angeles')
+#                 today_pst = timezone.now().astimezone(pst).date()
+                
+#                 # Check if there's already a print job for this product today with same for_year
+#                 existing_print = LabelPrint.objects.filter(
+#                     product=product,
+#                     lot=product.lot,
+#                     date=today_pst,
+#                     for_year=packed_for_year
+#                 ).first()
+                
+#                 if existing_print:
+#                     # Add to existing quantity
+#                     existing_print.qty += actual_qty
+#                     existing_print.save()
+#                     print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
+#                 else:
+#                     # Create new print job
+#                     LabelPrint.objects.create(
+#                         product=product,
+#                         lot=product.lot,
+#                         date=today_pst,
+#                         qty=actual_qty,
+#                         for_year=packed_for_year,
+#                     )
+#                     print(f"Created new print job for {actual_qty} labels")
+            
+#             print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
+            
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': f"Printing {quantity} {print_type} labels for {product.variety}."
+#             })
+            
+#         except Product.DoesNotExist:
+#             return JsonResponse({'error': 'Product not found'}, status=404)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+    
+#     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 
@@ -320,6 +607,32 @@ def assign_lot_to_product(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def assign_mix_lot(request):
+    try:
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        mix_lot_id = data.get('mix_lot_id')
+        
+        product = Product.objects.get(pk=product_id)
+        mix_lot = MixLot.objects.get(pk=mix_lot_id)
+        
+        product.mix_lot = mix_lot
+        product.lot = None  # Clear regular lot
+        product.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+
+
+
 
 
 
@@ -979,30 +1292,80 @@ def retire_lot(request):
             data = json.loads(request.body)
             print("Backend data:", data)
             lot_id = data.get('lot_id')
-            lbs_remaining = data.get('lbs_remaining')
+            is_mix = data.get('is_mix', False)
             notes = data.get('notes', '')
             retire_date = data.get('retire_date')
             
-            lot = Lot.objects.get(pk=lot_id)
-            
-            if hasattr(lot, 'retired_info'):
-                return JsonResponse({'error': 'This lot is already retired'}, status=400)
-            
-            # Create the RetiredLot entry
-            RetiredLot.objects.create(
-                lot=lot,
-                lbs_remaining=lbs_remaining,
-                retired_date=retire_date, 
-                notes=notes
-            )
-            
-            return JsonResponse({'success': True})
-        except Lot.DoesNotExist:
+            if is_mix:
+                # Handle mix lot retirement
+                mix_lot = MixLot.objects.get(pk=lot_id)
+                
+                if hasattr(mix_lot, 'retired_mix_info'):
+                    return JsonResponse({'error': 'This mix lot is already retired'}, status=400)
+                
+                RetiredMixLot.objects.create(
+                    mix_lot=mix_lot,
+                    retired_date=retire_date,
+                    notes=notes
+                )
+                
+                return JsonResponse({'success': True, 'message': f'Mix lot {mix_lot.lot_code} retired'})
+            else:
+                # Handle regular lot retirement
+                lot = Lot.objects.get(pk=lot_id)
+                
+                if hasattr(lot, 'retired_info'):
+                    return JsonResponse({'error': 'This lot is already retired'}, status=400)
+                
+                lbs_remaining = data.get('lbs_remaining', 0)
+                
+                RetiredLot.objects.create(
+                    lot=lot,
+                    lbs_remaining=lbs_remaining,
+                    retired_date=retire_date,
+                    notes=notes
+                )
+                
+                return JsonResponse({'success': True, 'message': 'Lot retired'})
+                
+        except (Lot.DoesNotExist, MixLot.DoesNotExist):
             return JsonResponse({'error': 'Lot not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
+# @login_required
+# @user_passes_test(is_employee)
+# def retire_lot(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             print("Backend data:", data)
+#             lot_id = data.get('lot_id')
+#             lbs_remaining = data.get('lbs_remaining')
+#             notes = data.get('notes', '')
+#             retire_date = data.get('retire_date')
+            
+#             lot = Lot.objects.get(pk=lot_id)
+            
+#             if hasattr(lot, 'retired_info'):
+#                 return JsonResponse({'error': 'This lot is already retired'}, status=400)
+            
+#             # Create the RetiredLot entry
+#             RetiredLot.objects.create(
+#                 lot=lot,
+#                 lbs_remaining=lbs_remaining,
+#                 retired_date=retire_date, 
+#                 notes=notes
+#             )
+            
+#             return JsonResponse({'success': True})
+#         except Lot.DoesNotExist:
+#             return JsonResponse({'error': 'Lot not found'}, status=404)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+    
+#     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 @login_required
@@ -1471,106 +1834,6 @@ def create_germ_sample_print(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
-
-
-
-
-# def calculate_variety_usage(variety, sales_year):
-#     """
-#     Calculate how many lbs of a variety were used during a sales year.
-#     Finds lots with active germination for the sales year, then:
-#     - If retired AFTER Sept/Oct inventory: uses difference between last two inventory records
-#     - If retired BEFORE Sept/Oct inventory: uses lbs_remaining from retirement
-#     - If not retired: uses difference between last two inventory records
-    
-#     Tracks if variety ran out of seed during the season (all lots retired before Sept/Oct).
-#     """
-#     from decimal import Decimal
-#     from datetime import datetime
-    
-#     # Find all lots for this variety that had active status for this sales year
-#     active_lots = Lot.objects.filter(
-#         variety=variety,
-#         germinations__status='active',
-#         germinations__for_year=sales_year
-#     ).distinct()
-    
-#     total_usage = Decimal('0.00')
-#     lot_details = []
-#     lots_processed = 0
-#     retired_during_season_count = 0
-    
-#     # Define Sept/Oct range for the sales year (e.g., Sept/Oct 2025 for year 25)
-#     year_full = 2000 + int(sales_year)
-#     sept_start = datetime(year_full, 9, 1)
-#     oct_end = datetime(year_full, 10, 31, 23, 59, 59)
-    
-#     for lot in active_lots:
-#         # Get all inventory records for this lot, ordered by date
-#         inventory_records = lot.inventory.all().order_by('inv_date')
-        
-#         if inventory_records.count() < 2:
-#             # Not enough inventory records to calculate usage
-#             continue
-        
-#         lots_processed += 1
-        
-#         # Get the last two inventory records
-#         last_two = inventory_records[inventory_records.count()-2:]
-#         start_inventory = last_two[0]
-#         end_inventory = last_two[1]
-        
-#         start_weight = start_inventory.weight
-        
-#         # Check if lot was retired
-#         retired_during_season = False
-#         if hasattr(lot, 'retired_info'):
-#             # Check if there was inventory recorded during Sept/Oct of the sales year
-#             sept_oct_inventory = inventory_records.filter(
-#                 inv_date__gte=sept_start,
-#                 inv_date__lte=oct_end
-#             ).exists()
-            
-#             if sept_oct_inventory:
-#                 # Lot was retired AFTER the season, calculate normally
-#                 end_weight = end_inventory.weight
-#                 retired_during_season = False
-#             else:
-#                 # Lot was retired DURING the season, use lbs_remaining
-#                 end_weight = lot.retired_info.lbs_remaining
-#                 retired_during_season = True
-#                 retired_during_season_count += 1
-#         else:
-#             # Lot not retired - use most recent inventory
-#             end_weight = end_inventory.weight
-        
-#         lot_usage = start_weight - end_weight
-        
-#         # Only count positive usage
-#         if lot_usage > 0:
-#             total_usage += lot_usage
-#             lot_details.append({
-#                 'lot_code': lot.get_four_char_lot_code(),
-#                 'start_weight': float(start_weight),
-#                 'end_weight': float(end_weight),
-#                 'usage': float(lot_usage),
-#                 'retired': retired_during_season
-#             })
-    
-#     # Check if ALL processed lots were retired during the season
-#     ran_out_of_seed = (
-#         lots_processed > 0 and 
-#         retired_during_season_count == lots_processed
-#     )
-    
-#     return {
-#         'total_lbs': float(total_usage),
-#         'lot_count': len(lot_details),
-#         'lots': lot_details,
-#         'sales_year': sales_year,
-#         'display_year': f"20{sales_year}",
-#         'ran_out_of_seed': ran_out_of_seed
-#     }
 
 
 
@@ -3304,4 +3567,272 @@ def update_product_scoop_size(request):
 @login_required
 @user_passes_test(is_employee)
 def mixes(request):
-    return render(request, 'office/mixes.html')
+    """Render the mixes page"""
+    context = {
+        'current_year': settings.CURRENT_ORDER_YEAR
+    }
+    return render(request, 'office/mixes.html', context)
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def get_available_lots_for_mix(request):
+    """Get available component lots for creating a new mix lot"""
+    mix_id = request.GET.get('mix')
+    year = int(request.GET.get('year', settings.CURRENT_ORDER_YEAR))
+    
+    # Check if it's a base component or final mix
+    if mix_id in BASE_COMPONENT_MIXES:
+        config = BASE_COMPONENT_MIXES[mix_id]
+    elif mix_id in FINAL_MIX_CONFIGS:
+        config = FINAL_MIX_CONFIGS[mix_id]
+    else:
+        return JsonResponse({'error': 'Invalid mix'}, status=400)
+    
+    # Build the query based on config
+    if config.get('varieties_prefix'):
+        # Get all varieties starting with prefix
+        prefix = config['varieties_prefix']
+        lots = Lot.objects.filter(variety__sku_prefix__startswith=prefix)
+        
+        # Exclude specific varieties if specified
+        if config.get('varieties_exclude'):
+            lots = lots.exclude(variety__sku_prefix__in=config['varieties_exclude'])
+    else:
+        # Get specific varieties
+        sku_prefixes = config.get('varieties', [])
+        lots = Lot.objects.filter(variety__sku_prefix__in=sku_prefixes)
+    
+    lots = lots.select_related('variety', 'grower').prefetch_related('germinations', 'inventory')
+    
+    available_lots = []
+    for lot in lots:
+        germ = lot.germinations.filter(status='active', for_year=year).first()
+        
+        if germ:
+            inventory = lot.get_most_recent_inventory()
+            
+            available_lots.append({
+                'id': lot.id,
+                'variety_name': lot.variety.var_name,
+                'variety_sku': lot.variety.sku_prefix,
+                'lot_code': lot.get_four_char_lot_code(),
+                'full_lot_code': str(lot),
+                'germ_rate': germ.germination_rate,
+                'status': germ.status,
+                'inventory': inventory
+            })
+    
+    return JsonResponse(available_lots, safe=False)
+
+# @login_required
+# @user_passes_test(is_employee)
+# @require_http_methods(["GET"])
+# def get_available_lots_for_mix(request):
+#     """Get available component lots for creating a new mix lot"""
+#     mix_sku = request.GET.get('mix')
+#     year = int(request.GET.get('year', settings.CURRENT_ORDER_YEAR))
+    
+#     if mix_sku not in MIX_CONFIGS:
+#         return JsonResponse({'error': 'Invalid mix'}, status=400)
+    
+#     config = MIX_CONFIGS[mix_sku]
+#     sku_prefixes = config['varieties']
+    
+#     # Find all lots for these varieties with active germination
+#     lots = Lot.objects.filter(
+#         variety__sku_prefix__in=sku_prefixes
+#     ).select_related('variety', 'grower').prefetch_related('germinations', 'inventory')
+    
+#     available_lots = []
+#     for lot in lots:
+#         # Get active germination for the specified year
+#         germ = lot.germinations.filter(
+#             status='active',
+#             for_year=year
+#         ).first()
+        
+#         if germ:
+#             inventory = lot.get_most_recent_inventory()
+            
+#             available_lots.append({
+#                 'id': lot.id,
+#                 'variety_name': lot.variety.var_name,
+#                 'variety_sku': lot.variety.sku_prefix,
+#                 'lot_code': lot.get_four_char_lot_code(),
+#                 'full_lot_code': str(lot),
+#                 'germ_rate': germ.germination_rate,
+#                 'status': germ.status,
+#                 'inventory': inventory
+#             })
+    
+#     return JsonResponse(available_lots, safe=False)
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def get_existing_mix_lots(request):
+    """Get all existing mix lots for a specific mix variety"""
+    mix_sku = request.GET.get('mix')
+    
+    if not mix_sku:
+        return JsonResponse({'error': 'Mix SKU required'}, status=400)
+    
+    try:
+        variety = Variety.objects.get(sku_prefix=mix_sku)
+    except Variety.DoesNotExist:
+        return JsonResponse({'error': 'Variety not found'}, status=404)
+    
+    mix_lots = MixLot.objects.filter(variety=variety).prefetch_related('batches', 'components')
+    
+    result = []
+    for mix_lot in mix_lots:
+        result.append({
+            'id': mix_lot.id,
+            'lot_code': mix_lot.lot_code,
+            'is_retired': hasattr(mix_lot, 'retired_mix_info'),
+            'created_date': mix_lot.created_date.strftime('%m/%d/%Y'),
+            'germ_rate': mix_lot.get_current_germ_rate(),
+            'batch_count': mix_lot.batches.count(),
+            'component_count': mix_lot.components.count()
+        })
+    
+    return JsonResponse(result, safe=False)
+
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def create_mix_lot(request):
+    """Create a new mix lot"""
+    try:
+        data = json.loads(request.body)
+        mix_sku = data.get('mix_sku')
+        lot_code = data.get('lot_code')
+        components = data.get('components')  # [{lot_id: x, parts: y}, ...]
+        
+        if not all([mix_sku, lot_code, components]):
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+        
+        variety = Variety.objects.get(sku_prefix=mix_sku)
+        
+        # Check if lot_code already exists for this variety
+        if MixLot.objects.filter(variety=variety, lot_code=lot_code).exists():
+            return JsonResponse({'error': f'Lot code {lot_code} already exists for this mix'}, status=400)
+        
+        # Create mix lot
+        mix_lot = MixLot.objects.create(
+            variety=variety,
+            lot_code=lot_code
+        )
+        
+        # Create components
+        for comp in components:
+            MixLotComponent.objects.create(
+                mix_lot=mix_lot,
+                lot_id=comp['lot_id'],
+                parts=comp['parts']
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'mix_lot_id': mix_lot.id,
+            'lot_code': lot_code,
+            'germ_rate': mix_lot.get_current_germ_rate()
+        })
+        
+    except Variety.DoesNotExist:
+        return JsonResponse({'error': 'Variety not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def get_mix_lot_details(request, mix_lot_id):
+    """Get detailed information about a specific mix lot"""
+    try:
+        mix_lot = MixLot.objects.get(id=mix_lot_id)
+        
+        # Get components
+        components = []
+        for comp in mix_lot.components.select_related('lot__variety', 'lot__grower'):
+            lot = comp.lot
+            germ = lot.germinations.filter(
+                status='active',
+                for_year=settings.CURRENT_ORDER_YEAR
+            ).first()
+            
+            components.append({
+                'variety_name': lot.variety.var_name,
+                'variety_sku': lot.variety.sku_prefix,
+                'lot_code': lot.get_four_char_lot_code(),
+                # 'is_retired': hasattr(mix_lot, 'retired_mix_info'), 
+                'full_lot_code': str(lot),
+                'germ_rate': germ.germination_rate if germ else None,
+                'parts': comp.parts
+            })
+        
+        # Get batches
+        batches = []
+        for batch in mix_lot.batches.all():
+            batches.append({
+                'id': batch.id,
+                'date': batch.date.strftime('%m/%d/%Y'),
+                'final_weight': float(batch.final_weight),
+                'notes': batch.notes or ''
+            })
+        
+        return JsonResponse({
+            'id': mix_lot.id,
+            'variety_sku': mix_lot.variety.sku_prefix,
+            'variety_name': mix_lot.variety.var_name,
+            'lot_code': mix_lot.lot_code,
+            'created_date': mix_lot.created_date.strftime('%m/%d/%Y'),
+            'germ_rate': mix_lot.get_current_germ_rate(),
+            'germ_display': mix_lot.get_germ_rate_display(),
+            'is_retired': hasattr(mix_lot, 'retired_mix_info'),
+            'components': components,
+            'batches': batches
+        })
+        
+    except MixLot.DoesNotExist:
+        return JsonResponse({'error': 'Mix lot not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def create_batch(request):
+    """Record a new batch for a mix lot"""
+    try:
+        data = json.loads(request.body)
+        mix_lot_id = data.get('mix_lot_id')
+        date = data.get('date')
+        final_weight = data.get('final_weight')
+        notes = data.get('notes', '')
+        
+        if not all([mix_lot_id, date, final_weight]):
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+        
+        mix_lot = MixLot.objects.get(id=mix_lot_id)
+        
+        batch = MixBatch.objects.create(
+            mix_lot=mix_lot,
+            date=date,
+            final_weight=final_weight,
+            notes=notes
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'batch_id': batch.id
+        })
+        
+    except MixLot.DoesNotExist:
+        return JsonResponse({'error': 'Mix lot not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

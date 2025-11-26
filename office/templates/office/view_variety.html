@@ -152,6 +152,15 @@
                                         data-pkg-size="{{ product.pkg_size|default:'' }}"
                                         data-env-type="{{ product.env_type|default:'' }}"
                                         data-alt-sku="{{ product.alt_sku|default:'' }}"
+                                        {% if is_mix %}
+                                            data-lot-code="{{ product.mix_lot.lot_code|default:'' }}"
+                                            data-germination="{{ product.mix_lot.get_current_germ_rate|default:'' }}"
+                                            data-lot-for-year="{{ packed_for_year }}"
+                                        {% else %}
+                                            data-lot-code="{% if product.lot %}{{ product.lot.get_four_char_lot_code }}{% endif %}"
+                                            data-germination="{% if product.lot %}{{ product.lot.get_most_recent_germ_percent }}{% endif %}"
+                                            data-lot-for-year="{% if product.lot %}{{ product.lot.get_most_recent_germ_for_year }}{% endif %}"
+                                        {% endif %}
                                         data-lineitem-name="{{ product.lineitem_name|default:'' }}"
                                         data-rack-location="{{ product.rack_location|default:'' }}"
                                         data-env-multiplier="{{ product.env_multiplier|default:'' }}"
@@ -192,7 +201,30 @@
                                                 <span class="product-sku">{{ product.sku_suffix|default:"--" }}</span>
                                             </div>
                                         </td>
-                                        <td>
+                                        {% if is_mix %}
+                                            <td class="lot-cell">
+                                                <span class="lot-identifier">
+                                                    {% if product.mix_lot %}
+                                                        {{ product.mix_lot.lot_code }}
+                                                    {% else %}
+                                                        --
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                        {% else %}
+                                            <td class="lot-cell">
+                                                <span class="lot-identifier">
+                                                    {% if product.lot %}
+                                                        {{ product.lot.get_four_char_lot_code }}
+                                                    {% else %}
+                                                        --
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                        {% endif %}
+              
+
+                                        <!-- <td>
                                             {% if product.lot %}
                                                 {% if product.lot.grower and product.lot.year %}
                                                     {{ product.lot.grower }}{{ product.lot.year }}{% if product.lot.harvest %}{{ product.lot.harvest }}{% endif %}
@@ -203,7 +235,7 @@
                                                 --
                                             {% endif %}
                          
-                                        </td>
+                                        </td> -->
                                         <td>{{ product.get_ytd_sales|default:"--" }}</td>
                                         <td>{{ product.get_last_year_sales|default:"--" }}</td>
                                         <td>{{ product.get_total_printed|default:"0" }}</td>
@@ -228,6 +260,7 @@
                                 <tr>
                                     <th>
                                         Lot
+                                        {% if not is_mix %}
                                         <span class="add-icon" onclick="showAddLotPopup()">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <circle cx="12" cy="12" r="10"></circle>
@@ -235,6 +268,7 @@
                                                 <line x1="8" y1="12" x2="16" y2="12"></line>
                                             </svg>
                                         </span>
+                                        {% endif %}
                                     </th>
                                     <th>Germ (For yr.)</th>
                                     <th>Inventory</th>
@@ -252,52 +286,87 @@
                                 </tr>
                             </thead>
                             {% if lots %}
-                            <tbody>
-                                {% for lot in lots %}
-                                <tr>
-                                    <td>
-                                        <span class="edit-icon" data-lot-id="{{ lot.pk }}" data-low-inv="{{ lot.low_inv|yesno:'true,false' }}" onclick="showLotActionsPopup(this)">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                        </span>
-                                        {% if lot.grower and lot.year %}
-                                            {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
-                                        {% else %}
-                                            --
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ lot.get_most_recent_germ_percent_with_year|default:"--" }}
-                                        {% if lot.get_germ_record_with_no_test_date %}*{% endif %}
-                                    </td>
-                                    <td>{{ lot.get_most_recent_inventory|default:"--" }}</td>
-                                    <!-- <td>{{ lot.get_lot_status|default:"--" }}</td> -->
-                                     <td>
-                                        {% if lot.get_lot_status %}
-                                            <span class="lot-status {{ lot.get_lot_status|lower }}">{{ lot.get_lot_status }}</span>
-                                        {% else %}
-                                            --
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if lot.low_inv %}
-                                            <span class="yes-no-pill no">Yes</span>
-                                        {% else %}
-                                            <span class="yes-no-pill yes">No</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if lot.check_stock_seed %}
-                                            <span class="yes-no-pill yes">Yes</span>
-                                        {% else %}
-                                            <span class="yes-no-pill no">No</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
+                                <tbody>
+                                    {% for lot in lots %}
+                                    <tr {% if is_mix and lot.retired_mix_info %}class="retired-lot"{% elif not is_mix and lot.retired_info %}class="retired-lot"{% endif %}>
+                                        <td>
+                                            {% if not is_mix %}
+                                                <span class="edit-icon" data-lot-id="{{ lot.pk }}" data-low-inv="{{ lot.low_inv|yesno:'true,false' }}" onclick="showLotActionsPopup(this)">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                </span>
+                                            {% endif %}
+                                            {% if is_mix %}
+                                                {{ lot.lot_code }}
+                                            {% else %}
+                                                {% if lot.grower and lot.year %}
+                                                    {{ lot.grower }}{{ lot.year }}{% if lot.harvest %}{{ lot.harvest }}{% endif %}
+                                                {% else %}
+                                                    --
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if is_mix %}
+                                                {% if lot.get_current_germ_rate %}
+                                                    {{ lot.get_current_germ_rate }}% (20{{ packed_for_year }})
+                                                {% else %}
+                                                    --
+                                                {% endif %}
+                                            {% else %}
+                                                {{ lot.get_most_recent_germ_percent_with_year|default:"--" }}
+                                                {% if lot.get_germ_record_with_no_test_date %}*{% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if is_mix %}
+                                                --
+                                            {% else %}
+                                                {{ lot.get_most_recent_inventory|default:"--" }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if is_mix %}
+                                                {% if lot.retired_mix_info %}
+                                                    <span class="lot-status retired">retired</span>
+                                                {% else %}
+                                                    <span class="lot-status active">active</span>
+                                                {% endif %}
+                                            {% else %}
+                                                {% if lot.get_lot_status %}
+                                                    <span class="lot-status {{ lot.get_lot_status|lower }}">{{ lot.get_lot_status }}</span>
+                                                {% else %}
+                                                    --
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if is_mix %}
+                                                --
+                                            {% else %}
+                                                {% if lot.low_inv %}
+                                                    <span class="yes-no-pill no">Yes</span>
+                                                {% else %}
+                                                    <span class="yes-no-pill yes">No</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if is_mix %}
+                                                --
+                                            {% else %}
+                                                {% if lot.check_stock_seed %}
+                                                    <span class="yes-no-pill yes">Yes</span>
+                                                {% else %}
+                                                    <span class="yes-no-pill no">No</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
                             {% endif %}
                         </table>
                     </div>
@@ -1686,6 +1755,7 @@
         const isTransition = JSON.parse('{{ transition|yesno:"true,false"|lower }}');
         const lotsExtraData = JSON.parse('{{ lots_extra_data|escapejs }}');
         const lotsDataString = '{{ lots_json|escapejs }}';
+        const isMix = JSON.parse('{{ is_mix|yesno:"true,false"|lower }}');
     </script>
 
     <script src="{% static 'office/js/view_variety.js' %}"></script>

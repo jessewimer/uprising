@@ -924,6 +924,68 @@ def label_print_menu():
 
 
 # ============================================================================
+# MIX MANAGEMENT
+# ============================================================================
+
+def set_mix_flags():
+    """Set is_mix=True for all mix varieties"""
+    mix_skus = ['CAR-RA', 'LET-MX', 'BEE-3B', 'MIX-SP', 'MIX-MI', 'MIX-BR', 'FLO-ED']
+    
+    print("\n" + "="*60)
+    print("SETTING is_mix FLAG FOR MIX VARIETIES")
+    print("="*60)
+    
+    updated_count = 0
+    not_found = []
+    
+    for sku in mix_skus:
+        try:
+            variety = Variety.objects.get(sku_prefix=sku)
+            variety.is_mix = True
+            variety.save()
+            print(f"✓ Set is_mix=True for {sku} - {variety.var_name}")
+            updated_count += 1
+        except Variety.DoesNotExist:
+            not_found.append(sku)
+            print(f"✗ Variety not found: {sku}")
+    
+    print(f"\n✅ Updated {updated_count} varieties")
+    if not_found:
+        print(f"⚠️  Not found: {', '.join(not_found)}")
+
+def create_base_component_mixes():
+    """Create base component mixes in Variety table"""
+    base_mixes = [
+        {'sku_prefix': 'MIX-LB', 'var_name': 'Lettuce Mix (Base Component)'},
+        {'sku_prefix': 'MIX-SB', 'var_name': 'Spicy Mix (Base Component)'},
+        {'sku_prefix': 'MIX-MB', 'var_name': 'Mild Mix (Base Component)'}
+    ]
+    
+    print("\n" + "="*60)
+    print("CREATING BASE COMPONENT MIXES")
+    print("="*60)
+    
+    created_count = 0
+    already_exists = []
+    
+    for mix in base_mixes:
+        if Variety.objects.filter(sku_prefix=mix['sku_prefix']).exists():
+            already_exists.append(mix['sku_prefix'])
+            print(f"⚠️  {mix['sku_prefix']} already exists")
+        else:
+            Variety.objects.create(
+                sku_prefix=mix['sku_prefix'],
+                var_name=mix['var_name'],
+                is_mix=True,
+                active=True
+            )
+            print(f"✓ Created {mix['sku_prefix']} - {mix['var_name']}")
+            created_count += 1
+    
+    print(f"\n✅ Created {created_count} base component mixes")
+    if already_exists:
+        print(f"⚠️  Already existed: {', '.join(already_exists)}")
+# ============================================================================
 # MAIN MENU
 # ============================================================================
 
@@ -939,9 +1001,11 @@ def main_menu():
         print("3.  Sales Management")
         print("4.  Misc Products & Sales")
         print("5.  Label Print Management")
+        print("6.  Set mix flags for existing mixes")
+        print("7.  Create base component mixes")
         print("0.  Exit")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7'])
         
         if choice == '0':
             print("\n👋 Goodbye!")
@@ -956,6 +1020,12 @@ def main_menu():
             misc_menu()
         elif choice == '5':
             label_print_menu()
+        elif choice == '6':
+            set_mix_flags()
+            pause()
+        elif choice == '7':
+            create_base_component_mixes()
+            pause()
 
 
 # #### ||||| MAIN PROGRAM BEGINS HERE ||||| #### #

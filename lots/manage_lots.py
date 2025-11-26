@@ -782,6 +782,46 @@ def remove_retired_status():
     """Un-retire a lot - PLACEHOLDER"""
     print("\n⚠️  UN-RETIRE LOT - Function placeholder")
 
+def update_retired_lot_lbs():
+    """Update lbs remaining for a retired lot"""
+    retired_lots = RetiredLot.objects.all().select_related('lot__variety', 'lot__grower').order_by('lot__variety__sku_prefix')
+    
+    if not retired_lots:
+        print("\n❌ No retired lots found.")
+        return
+    
+    print("\n--- Select a retired lot to update ---")
+    for idx, r in enumerate(retired_lots, start=1):
+        print(f"{idx}. {r.lot.build_lot_code()} - Current: {r.lbs_remaining} lbs")
+    
+    try:
+        selection = int(input("\nEnter number (0 to cancel): ").strip())
+        if selection == 0:
+            return
+        retired_lot = retired_lots[selection - 1]
+    except (ValueError, IndexError):
+        print("❌ Invalid selection.")
+        return
+    
+    print(f"\nUpdating: {retired_lot.lot.build_lot_code()}")
+    print(f"Current lbs remaining: {retired_lot.lbs_remaining}")
+    
+    try:
+        new_lbs = input("Enter new lbs remaining: ").strip()
+        new_lbs = float(new_lbs)
+        
+        if new_lbs < 0:
+            print("❌ Cannot set negative weight.")
+            return
+        
+        retired_lot.lbs_remaining = new_lbs
+        retired_lot.save()
+        print(f"✅ Updated lbs remaining to {new_lbs} lbs.")
+        
+    except ValueError:
+        print("❌ Invalid number entered.")
+
+
 def retired_lots_menu():
     """Retired lots management submenu"""
     while True:
@@ -792,9 +832,10 @@ def retired_lots_menu():
         print("1. View retired lots")
         print("2. Retire a lot")
         print("3. Un-retire a lot")
+        print("4. Update lbs remaining")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
         
         if choice == '0':
             break
@@ -806,6 +847,9 @@ def retired_lots_menu():
             pause()
         elif choice == '3':
             remove_retired_status()
+            pause()
+        elif choice == '4':
+            update_retired_lot_lbs()
             pause()
 
 

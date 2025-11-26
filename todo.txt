@@ -20,7 +20,6 @@ factor in store credit for pkts returned when finalizing an order
 =============================
 
 
-** Update usage calc **
-Further, if the transition flag is set to true use CURRENT_ORDER_YEAR-2 to get the last complete 
-year of usage data 
+take mixes out of germination_inventory / growouts page
+add base mixes to variety table but exclude from search variety 
 

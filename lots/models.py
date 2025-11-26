@@ -1,7 +1,7 @@
 from django.db import models
 from datetime import date
 from django.utils import timezone
-
+from django.conf import settings
 
 class Grower(models.Model):
     code = models.CharField(max_length=2, primary_key=True)
@@ -215,7 +215,14 @@ class RetiredLot(models.Model):
     def __str__(self):
         return f"Retired {self.lot}"
 
-
+class RetiredMixLot(models.Model):
+    mix_lot = models.OneToOneField('lots.MixLot', on_delete=models.CASCADE, related_name="retired_mix_info")  # Changed here
+    retired_date = models.DateField(default=timezone.now)
+    notes = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return f"Retired {self.mix_lot.lot_code}"
+    
 class LotNote(models.Model):
     lot = models.ForeignKey(Lot, on_delete=models.CASCADE, related_name="notes")
     date = models.DateTimeField(auto_now_add=True)
@@ -237,3 +244,120 @@ class Growout(models.Model):
     def __str__(self):
         return f"Growout for {self.lot}"
     
+
+class MixLot(models.Model):
+    """
+    Mixed lot like UO26A
+    - UO = grower (Uprising Organics)
+    - 26 = year
+    - A = letter (increments for different blends)
+    """
+    variety = models.ForeignKey(
+        'products.Variety',  # ✅ Correct - includes app label
+        on_delete=models.CASCADE, 
+        related_name='mix_lots',
+        null=True,
+        blank=True
+    )
+    lot_code = models.CharField(max_length=10)  # e.g., UO26A
+    created_date = models.DateField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_date']
+        unique_together = ('variety', 'lot_code')  # Just like regular lots!
+    
+    def __str__(self):
+        return f"{self.variety.sku_prefix} - {self.lot_code}"
+    
+    def calculate_germ_rate(self, for_year=None):
+        if for_year is None:
+            for_year = settings.CURRENT_ORDER_YEAR
+        
+        base_lots = self._get_flattened_components()
+        
+        if not base_lots:
+            return None
+        
+        total_parts = sum(parts for lot, parts in base_lots)
+        weighted_germ = 0
+        
+        for lot, parts in base_lots:
+            germ = lot.germinations.filter(status='active', for_year=for_year).first()
+            if not germ:
+                return None
+            weighted_germ += (germ.germination_rate * parts)
+        
+        return round(weighted_germ / total_parts) if total_parts > 0 else None
+    
+    def _get_flattened_components(self, parent_parts=1):
+        base_lots = []
+        
+        for comp in self.components.all():
+            if comp.lot:
+                base_lots.append((comp.lot, comp.parts * parent_parts))
+            elif comp.sub_mix_lot:
+                nested = comp.sub_mix_lot._get_flattened_components(comp.parts * parent_parts)
+                base_lots.extend(nested)
+        
+        return base_lots
+    
+    def get_current_germ_rate(self):
+        return self.calculate_germ_rate()
+    
+    def get_germ_rate_display(self):
+        germ = self.get_current_germ_rate()
+        if germ:
+            return f"{germ}% (20{settings.CURRENT_ORDER_YEAR})"
+        return "--"
+
+
+class MixLotComponent(models.Model):
+    """Component of a mix - either a regular lot or another mix lot"""
+    mix_lot = models.ForeignKey(MixLot, on_delete=models.CASCADE, related_name='components')
+    lot = models.ForeignKey('lots.Lot', on_delete=models.CASCADE, null=True, blank=True, related_name='used_in_mixes')
+    sub_mix_lot = models.ForeignKey(MixLot, on_delete=models.CASCADE, null=True, blank=True, related_name='used_as_component')
+    parts = models.PositiveIntegerField()
+    
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if (self.lot and self.sub_mix_lot) or (not self.lot and not self.sub_mix_lot):
+            raise ValidationError("Must specify either lot OR sub_mix_lot")
+        
+        # Check for duplicates
+        if self.lot:
+            existing = MixLotComponent.objects.filter(
+                mix_lot=self.mix_lot, lot=self.lot
+            ).exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError("This lot is already in this mix")
+        
+        if self.sub_mix_lot:
+            existing = MixLotComponent.objects.filter(
+                mix_lot=self.mix_lot, sub_mix_lot=self.sub_mix_lot
+            ).exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError("This sub-mix is already in this mix")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        if self.lot:
+            return f"{self.mix_lot} - {self.lot} ({self.parts} parts)"
+        else:
+            return f"{self.mix_lot} - {self.sub_mix_lot} ({self.parts} parts)"
+
+
+class MixBatch(models.Model):
+    """Record of physically mixing a batch from a mix lot"""
+    mix_lot = models.ForeignKey(MixLot, on_delete=models.CASCADE, related_name='batches')
+    date = models.DateField()
+    final_weight = models.DecimalField(max_digits=10, decimal_places=2)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-date']
+    
+    def __str__(self):
+        return f"{self.mix_lot} - Batch on {self.date} ({self.final_weight} lbs)"

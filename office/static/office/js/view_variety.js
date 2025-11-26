@@ -24,6 +24,7 @@ let passwordCallback = null;
 let passwordParams = null;
 let bulkPrePackDecision = null;
 
+
 function showPasswordPopup(callback, params) {
     passwordCallback = callback;
     passwordParams = params;
@@ -258,9 +259,20 @@ function proceedWithPrintPopupChecks(productId, productName) {
         }
 
         // Find the matching lot in our data
+        // const matchingLot = allLotsData.find(lot => {
+        //     const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        //     return lotDisplay === lotText;
+        // });
+        // Find the matching lot in our data - handle both mix lots and regular lots
         const matchingLot = allLotsData.find(lot => {
-            const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
-            return lotDisplay === lotText;
+            if (isMix) {
+                // For mix lots, match by lot_code
+                return lot.lot_code === lotText;
+            } else {
+                // For regular lots, match by grower+year+harvest
+                const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+                return lotDisplay === lotText;
+            }
         });
         
         if (!matchingLot) {
@@ -426,9 +438,20 @@ function setupPackedForYearControl(productId) {
     const lotCode = productRow ? productRow.dataset.lotCode : null;
     
     // Find if this is a next-year-only lot
+    // const matchingLot = allLotsData.find(lot => {
+    //     const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+    //     return lotDisplay === lotCode;
+    // });
+    // Find if this is a next-year-only lot - handle both mix lots and regular lots
     const matchingLot = allLotsData.find(lot => {
-        const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
-        return lotDisplay === lotCode;
+        if (isMix) {
+            // For mix lots, match by lot_code
+            return lot.lot_code === lotCode;
+        } else {
+            // For regular lots, match by grower+year+harvest
+            const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+            return lotDisplay === lotCode;
+        }
     });
     
     const lotExtraData = lotsExtraData.find(extra => extra.id === matchingLot?.id);
@@ -2300,7 +2323,14 @@ function showLotSelectionPopup(productId, lots) {
     lots.forEach(lot => {
         const button = document.createElement('button');
         button.className = 'lot-option-btn';
-        button.textContent = `${lot.grower}${lot.year}${lot.harvest}`;
+        
+        // Different display for mix lots vs regular lots
+        if (lot.is_mix) {
+            button.textContent = lot.lot_code;  // e.g., "UO25A"
+        } else {
+            button.textContent = `${lot.grower}${lot.year}${lot.harvest}`;  // e.g., "DR25A"
+        }
+        
         button.onclick = () => assignLotToProduct(productId, lot.id);
         lotsContainer.appendChild(button);
     });
@@ -2314,32 +2344,64 @@ function showLotSelectionPopup(productId, lots) {
     
     popup.classList.add('show');
 }
-
+// function showLotSelectionPopup(productId, lots) {
+//     const popup = document.getElementById('lotSelectionPopup');
+//     const lotsContainer = document.getElementById('availableLots');
+    
+//     // Clear previous lots
+//     lotsContainer.innerHTML = '';
+    
+//     // Add lots as clickable buttons
+//     lots.forEach(lot => {
+//         const button = document.createElement('button');
+//         button.className = 'lot-option-btn';
+//         button.textContent = `${lot.grower}${lot.year}${lot.harvest}`;
+//         button.onclick = () => assignLotToProduct(productId, lot.id);
+//         lotsContainer.appendChild(button);
+//     });
+    
+//     // Add "No Lot" option
+//     const noLotButton = document.createElement('button');
+//     noLotButton.className = 'lot-option-btn no-lot';
+//     noLotButton.textContent = 'No Lot Assigned';
+//     noLotButton.onclick = () => assignLotToProduct(productId, null);
+//     lotsContainer.appendChild(noLotButton);
+    
+//     popup.classList.add('show');
+// }
 
 function assignLotToProduct(productId, lotId) {
+    
     // Check if the "change all products" checkbox is checked
     const changeAllCheckbox = document.getElementById('changeAllProductsCheckbox');
     const changeAllProducts = changeAllCheckbox ? changeAllCheckbox.checked : false;
     
-    fetch('/office/assign-lot-to-product/', {
+    // Determine endpoint and data based on whether this is a mix or regular variety
+    const endpoint = isMix ? '/office/assign-mix-lot/' : '/office/assign-lot-to-product/';
+    const lotKey = isMix ? 'mix_lot_id' : 'lot_id';
+    
+    const requestData = {
+        product_id: productId,
+        [lotKey]: lotId,
+        change_all_products: changeAllProducts
+    };
+    
+    fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({
-            product_id: productId,
-            lot_id: lotId,
-            change_all_products: changeAllProducts
-        })
+        body: JSON.stringify(requestData)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             // Show appropriate success message
+            const lotType = isMix ? 'Mix lot' : 'Lot';
             const message = changeAllProducts 
-                ? `Lot updated for all products in this variety`
-                : `Lot updated for selected product`;
+                ? `${lotType} updated for all products in this variety`
+                : `${lotType} updated for selected product`;
             showMessage(message, 'success');
             
             setTimeout(() => {
@@ -2356,6 +2418,50 @@ function assignLotToProduct(productId, lotId) {
     
     hideLotSelectionPopup();
 }
+// function assignLotToProduct(productId, lotId) {
+    
+
+//     // Check if the "change all products" checkbox is checked
+//     const changeAllCheckbox = document.getElementById('changeAllProductsCheckbox');
+//     const changeAllProducts = changeAllCheckbox ? changeAllCheckbox.checked : false;
+    
+//     fetch('/office/assign-lot-to-product/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCookie('csrftoken')
+//         },
+//         body: JSON.stringify({
+//             product_id: productId,
+//             lot_id: lotId,
+//             change_all_products: changeAllProducts
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             // Show appropriate success message
+//             const message = changeAllProducts 
+//                 ? `Lot updated for all products in this variety`
+//                 : `Lot updated for selected product`;
+//             showMessage(message, 'success');
+            
+//             setTimeout(() => {
+//                 window.location.href = window.location.pathname;
+//             }, 2000);
+//         } else {
+//             showMessage('Error assigning lot: ' + (data.error || 'Unknown error'), 'error');
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//         showMessage('Network error occurred', 'error');
+//     });
+    
+//     hideLotSelectionPopup();
+// }
+
+
 
 function hideLotSelectionPopup() {
     document.getElementById('lotSelectionPopup').classList.remove('show');
@@ -2451,7 +2557,16 @@ function retireLot(lotId) {
     
     if (lot) {
         const varietyName = document.getElementById('varietyName').textContent.trim();
-        const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        
+        let lotDisplay;
+        if (isMix) {
+            // For mix lots, show the lot_code
+            lotDisplay = lot.lot_code;
+        } else {
+            // For regular lots, show grower/year/harvest
+            lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+        }
+        
         title = `Retiring ${varietyName} ${lotDisplay}`;
     }
     
@@ -2468,6 +2583,34 @@ function retireLot(lotId) {
         document.getElementById('retireDateInput').value = today;
     }, 10);
 }
+// function retireLot(lotId) {
+//     hideLotActionsPopup();
+    
+//     currentLotId = lotId;
+    
+//     // Find the lot data to display variety and lot info
+//     const lot = allLotsData.find(l => l.id == lotId);
+//     let title = "Retire Lot";
+    
+//     if (lot) {
+//         const varietyName = document.getElementById('varietyName').textContent.trim();
+//         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
+//         title = `Retiring ${varietyName} ${lotDisplay}`;
+//     }
+    
+//     // Reset the form to clear previous values
+//     document.getElementById('retireLotForm').reset();
+    
+//     // Update title and show popup
+//     document.getElementById('retireLotTitle').textContent = title;
+//     document.getElementById('retireLotPopup').classList.add('show');
+    
+//     // Set today's date as default AFTER showing popup
+//     setTimeout(() => {
+//         const today = new Date().toISOString().split('T')[0];
+//         document.getElementById('retireDateInput').value = today;
+//     }, 10);
+// }
 
 
 function hideRetireLotPopup() {
@@ -2475,19 +2618,28 @@ function hideRetireLotPopup() {
     document.getElementById('retireLotForm').reset();
 }
 
+
 function submitRetireLot(event) {
     event.preventDefault();
     
-    const lbsRemaining = document.getElementById('retireLbsInput').value;
     const notes = document.getElementById('retireNotesInput').value;
     const retireDate = document.getElementById('retireDateInput').value;
-
-    console.log('Form data:', { // ADD THIS
+    
+    // Build request data - only include lbs_remaining for regular lots
+    const requestData = {
         lot_id: currentLotId,
-        lbs_remaining: lbsRemaining,
+        is_mix: isMix,
         retire_date: retireDate,
         notes: notes
-    });
+    };
+    
+    // Only add lbs_remaining for regular lots, not mix lots
+    if (!isMix) {
+        const lbsRemaining = document.getElementById('retireLbsInput').value;
+        requestData.lbs_remaining = lbsRemaining;
+    }
+    
+    console.log('Form data:', requestData);
     
     fetch('/office/retire-lot/', {
         method: 'POST',
@@ -2495,19 +2647,15 @@ function submitRetireLot(event) {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({
-            lot_id: currentLotId,
-            lbs_remaining: lbsRemaining,
-            retire_date: retireDate,
-            notes: notes
-        })
+        body: JSON.stringify(requestData)
     })
     .then(response => response.json())
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
             localStorage.removeItem('germination_inventory_data'); // Clear the cached data directly
-            showMessage('Lot retired successfully', 'success');
+            const lotType = isMix ? 'Mix lot' : 'Lot';
+            showMessage(`${lotType} retired successfully`, 'success');
             setTimeout(() => {
                 window.location.href = window.location.pathname;
             }, 3000);
@@ -2522,6 +2670,53 @@ function submitRetireLot(event) {
     
     hideRetireLotPopup();
 }
+// function submitRetireLot(event) {
+//     event.preventDefault();
+    
+//     const lbsRemaining = document.getElementById('retireLbsInput').value;
+//     const notes = document.getElementById('retireNotesInput').value;
+//     const retireDate = document.getElementById('retireDateInput').value;
+
+//     console.log('Form data:', { // ADD THIS
+//         lot_id: currentLotId,
+//         lbs_remaining: lbsRemaining,
+//         retire_date: retireDate,
+//         notes: notes
+//     });
+    
+//     fetch('/office/retire-lot/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCookie('csrftoken')
+//         },
+//         body: JSON.stringify({
+//             lot_id: currentLotId,
+//             lbs_remaining: lbsRemaining,
+//             retire_date: retireDate,
+//             notes: notes
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         console.log('Response data:', data);
+//         if (data.success) {
+//             localStorage.removeItem('germination_inventory_data'); // Clear the cached data directly
+//             showMessage('Lot retired successfully', 'success');
+//             setTimeout(() => {
+//                 window.location.href = window.location.pathname;
+//             }, 3000);
+//         } else {
+//             showMessage('Error retiring lot: ' + (data.error || 'Unknown error'), 'error');
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//         showMessage('Network error occurred', 'error');
+//     });
+    
+//     hideRetireLotPopup();
+// }
 
 
 function recordStockSeed(lotId) {

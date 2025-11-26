@@ -28,7 +28,18 @@ urlpatterns = [
 
 # ============
     path('analytics/', analytics, name='analytics'),
+    
+
     path('mixes/', mixes, name='mixes'),
+    path('mixes/available-lots/', get_available_lots_for_mix, name='get_available_lots_for_mix'),
+    path('mixes/existing-lots/', get_existing_mix_lots, name='get_existing_mix_lots'),
+    path('mixes/create-lot/', create_mix_lot, name='create_mix_lot'),
+    path('mixes/lot-details/<int:mix_lot_id>/', get_mix_lot_details, name='get_mix_lot_details'),
+    path('mixes/create-batch/', create_batch, name='create_batch'),
+    path('assign-mix-lot/', assign_mix_lot, name='assign_mix_lot'),
+
+
+
     path('envelope-data-for-printing/', get_envelope_data_for_printing, name='envelope_data_for_printing'),
 
     path('<int:store_num>/update/', update_store, name='update_store'),

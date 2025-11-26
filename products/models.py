@@ -25,6 +25,7 @@ class Variety(models.Model):
     wholesale = models.BooleanField(default=False)
     wholesale_rack_designation = models.CharField(max_length=1, blank=True, null=True)
     website_bulk = models.BooleanField(default=False)
+    is_mix = models.BooleanField(default=False)
 
     desc_line1 = models.TextField(blank=True, null=True)
     desc_line2 = models.TextField(blank=True, null=True)
@@ -48,6 +49,7 @@ class Variety(models.Model):
 class Product(models.Model):
     variety = models.ForeignKey("Variety", on_delete=models.CASCADE, related_name="products", null=True, blank=True)
     lot = models.ForeignKey("lots.Lot", on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
+    mix_lot = models.ForeignKey("lots.MixLot", on_delete=models.SET_NULL, null=True, blank=True, related_name="products") 
     pkg_size = models.CharField(max_length=50, blank=True, null=True)
     sku_suffix = models.CharField(max_length=50, blank=True, null=True)
     alt_sku = models.CharField(max_length=50, blank=True, null=True)
@@ -212,6 +214,7 @@ class LastSelected(models.Model):
 class LabelPrint(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="label_prints")
     lot = models.ForeignKey(Lot, on_delete=models.CASCADE, related_name="label_prints", null=True, blank=True)
+    mix_lot = models.ForeignKey('lots.MixLot', on_delete=models.CASCADE, related_name="label_prints", null=True, blank=True) 
     date = models.DateField()
     qty = models.IntegerField()
     for_year = models.IntegerField()
