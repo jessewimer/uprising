@@ -12,7 +12,7 @@ from datetime import datetime
 from django.db.models import Q
 from django.conf import settings 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def send_germ_samples(request):
     # Get all batches with their data (no ordering limit)
@@ -72,7 +72,7 @@ def send_germ_samples(request):
     return render(request, 'lots/germ_samples.html', context)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @require_http_methods(["POST"])
 @user_passes_test(is_employee)
 def create_new_batch(request):
@@ -115,7 +115,7 @@ def create_new_batch(request):
         return JsonResponse({'success': False, 'error': str(e)})
     
     
-@login_required
+@login_required(login_url='/office/login/')
 @require_http_methods(["POST"])
 @user_passes_test(is_employee)
 def submit_batch(request):
@@ -224,14 +224,14 @@ def submit_batch(request):
         return JsonResponse({'success': False, 'error': str(e)})
     
 # Update your existing process_orders and view_stores views if needed:
-@login_required
+@login_required(login_url='office/login/')
 def inventory(request):
     context = {}
 
     # Point to lots app template if that's where it's located
     return render(request, 'lots/inventory.html', context)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def growouts(request):
     # Define SKU prefixes to exclude
@@ -297,7 +297,7 @@ def growouts(request):
    
     return render(request, 'lots/growouts.html', context)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def update_growout(request, lot_id):
     if request.method == 'POST':

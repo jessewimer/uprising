@@ -267,7 +267,7 @@ def enrich_bulk_to_pull_and_print(bulk_items):
     return bulk_to_print, bulk_to_pull
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def process_online_orders(request):
     """
@@ -316,7 +316,7 @@ def process_online_orders(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 @transaction.atomic
@@ -428,23 +428,6 @@ def process_orders(request):
                         item.order = current_order
                         item.save()
 
-                # # Parse dates with multiple format fallbacks
-                # date_string = row['Created at'].strip()
-                # formats = [
-                #     '%m/%d/%Y %H:%M',
-                #     '%Y-%m-%d %H:%M:%S %z',
-                #     '%Y-%m-%d %H:%M:%S',
-                # ]
-                # for fmt in formats:
-                #     try:
-                #         date = datetime.strptime(date_string, fmt)
-                #         # date = timezone.make_aware(date)
-                #         date = pacific_tz.localize(date)
-                #         break
-                #     except ValueError:
-                #         continue
-                # else:
-                #     raise ValueError(f"Unexpected date format: {date_string}")
                 # Parse dates with multiple format fallbacks
                 date_string = row['Created at'].strip()
                 formats = [
@@ -746,7 +729,7 @@ def process_orders(request):
         return JsonResponse({'success': False, 'error': f"Error processing orders: {e}"})
  
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def reprint_packing_slip(request, order_id):
@@ -1027,7 +1010,7 @@ def reprint_packing_slip(request, order_id):
 
 
 # NEEDS WORK !!!!!!!!!!!
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def reprocess_order(request, order_id):

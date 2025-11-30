@@ -83,7 +83,7 @@ FINAL_MIX_CONFIGS = {
 }
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @require_http_methods(["GET"])
 def check_admin_access(request):
     """Check if user has admin access"""
@@ -95,34 +95,56 @@ class OfficeLoginForm(AuthenticationForm):
     """
     pass  # You can add custom validation here if needed
 
-
 class OfficeLoginView(LoginView):
     template_name = 'office/login.html'
     form_class = OfficeLoginForm
-    redirect_authenticated_user = False  # Let users see login page
-
+    redirect_authenticated_user = False
+    
     def form_valid(self, form):
-        """
-        Only log in the user if they are in the 'employees' group.
-        Otherwise, treat it as an invalid login.
-        """
         user = form.get_user()
         if is_employee(user):
-            login(self.request, user)  # Log in the employee
             return super().form_valid(form)
         else:
-            # Add a form error so the template shows invalid credentials
             form.add_error(None, "Invalid username or password.")
             return self.form_invalid(form)
-
+    
     def get_success_url(self):
+        next_url = self.request.GET.get('next') or self.request.POST.get('next')
+        if next_url:
+            return next_url
         return reverse_lazy('office_landing')
+# class OfficeLoginView(LoginView):
+#     template_name = 'office/login.html'
+#     form_class = OfficeLoginForm
+#     redirect_authenticated_user = False  # Let users see login page
+
+#     def form_valid(self, form):
+#         """
+#         Only log in the user if they are in the 'employees' group.
+#         Otherwise, treat it as an invalid login.
+#         """
+#         user = form.get_user()
+#         if is_employee(user):
+#             login(self.request, user)  # Log in the employee
+#             return super().form_valid(form)
+#         else:
+#             # Add a form error so the template shows invalid credentials
+#             form.add_error(None, "Invalid username or password.")
+#             return self.form_invalid(form)
+
+#     def get_success_url(self):
+#         # Check for 'next' parameter first
+#         next_url = self.request.GET.get('next') or self.request.POST.get('next')
+#         if next_url:
+#             return next_url
+#         # Fall back to default landing page
+#         return reverse_lazy('office_landing')
     
 class OfficeLogoutView(LogoutView):
     next_page = 'office_login'
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def office_landing(request):
     """
@@ -140,7 +162,7 @@ def office_landing(request):
     return render(request, 'office/office_landing.html', context)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def view_variety(request, sku_prefix=None):  # Add optional parameter
     """
@@ -333,61 +355,10 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'has_pending_germ': has_pending_germ,
     }
     return render(request, 'office/view_variety.html', context)
-   
-
-
-    # # Build lots extra data
-    # lots_extra_data_list = []
-    # six_months_ago = timezone.now().date() - timedelta(days=180)
-
-    # for lot in lots:
-    #     extra_data = {
-    #         'id': lot.id,
-    #         'is_next_year_only': lot.is_next_year_only_lot(packed_for_year),
-    #     }
-        
-    #     recent_inv = lot.inventory.order_by('-inv_date').first()
-    #     if recent_inv and recent_inv.inv_date >= six_months_ago:
-    #         extra_data['recent_inventory'] = {
-    #             'id': recent_inv.id,
-    #             'weight': str(recent_inv.weight),
-    #             'date': recent_inv.inv_date.strftime('%m/%Y'),
-    #             'display': f"{recent_inv.weight} lbs ({recent_inv.inv_date.strftime('%m/%Y')})"
-    #         }
-        
-    #     lots_extra_data_list.append(extra_data)
-
-    # lots_extra_data = json.dumps(lots_extra_data_list)
-
-    # context = {
-    #     'last_selected': variety_obj,
-    #     'variety': variety_obj,
-    #     'is_mix': is_mix, 
-    #     'products': products,
-    #     'lots': lots,
-    #     'lots_json': lots_json,
-    #     'lots_extra_data': lots_extra_data,
-    #     'all_vars_json': all_vars_json,
-    #     'growers': growers,
-    #     'env_types': settings.ENV_TYPES,
-    #     'sku_suffixes': settings.SKU_SUFFIXES,
-    #     'pkg_sizes': settings.PKG_SIZES,
-    #     'groups': settings.GROUPS,
-    #     'categories': settings.CATEGORIES,
-    #     'crops': settings.CROPS,
-    #     'subtypes': settings.SUBTYPES,
-    #     'supergroups': settings.SUPERGROUPS,
-    #     'veg_types': settings.VEG_TYPES,
-    #     'packed_for_year': packed_for_year,
-    #     'transition': settings.TRANSITION,
-    #     'has_pending_germ': has_pending_germ,
-    # }
-    # return render(request, 'office/view_variety.html', context)
 
 
 
-
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def print_product_labels(request):
     if request.method == 'POST':
@@ -574,7 +545,7 @@ def print_product_labels(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def assign_lot_to_product(request):
     if request.method == 'POST':
@@ -609,7 +580,7 @@ def assign_lot_to_product(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def assign_mix_lot(request):
@@ -636,7 +607,7 @@ def assign_mix_lot(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def edit_product(request):
     if request.method == 'POST':
@@ -681,7 +652,7 @@ def edit_product(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def set_lot_low_inv(request):
     if request.method == 'POST':
@@ -703,7 +674,7 @@ def set_lot_low_inv(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def analytics(request):
     """
@@ -1056,7 +1027,7 @@ def get_detailed_top_sellers(limit=50):
     return get_top_selling_products(limit=limit)
 
 # Add this API endpoint for the modal
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def top_sellers_details(request):
@@ -1077,7 +1048,7 @@ def top_sellers_details(request):
         }, status=500)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def store_sales_details(request):
     """
@@ -1180,7 +1151,7 @@ def store_sales_details(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def varieties_json(request):
     """
@@ -1191,7 +1162,7 @@ def varieties_json(request):
     return JsonResponse(data, safe=False)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def crops_json(request):
     """
@@ -1208,7 +1179,7 @@ def crops_json(request):
     return JsonResponse(data, safe=False)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def products_by_crop_json(request, crop):
     """
@@ -1232,7 +1203,7 @@ def products_by_crop_json(request, crop):
     return JsonResponse(data, safe=False)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def delete_lot(request):
     if request.method == 'POST':
@@ -1252,7 +1223,7 @@ def delete_lot(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='office/login/')
 @user_passes_test(is_employee)
 def add_lot(request):
     if request.method == 'POST':
@@ -1284,7 +1255,7 @@ def add_lot(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def retire_lot(request):
     if request.method == 'POST':
@@ -1368,7 +1339,7 @@ def retire_lot(request):
 #     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def record_stock_seed(request):
     if request.method == 'POST':
@@ -1396,7 +1367,7 @@ def record_stock_seed(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def record_germination(request):
     if request.method == 'POST':
@@ -1435,7 +1406,7 @@ def record_germination(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def record_inventory(request):
@@ -1467,7 +1438,7 @@ def record_inventory(request):
         return JsonResponse({'success': False, 'error': str(e)})
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def change_lot_status(request):
     if request.method == 'POST':
@@ -1509,7 +1480,7 @@ def change_lot_status(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def edit_front_labels(request):
     if request.method == 'POST':
@@ -1533,7 +1504,7 @@ def edit_front_labels(request):
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def edit_back_labels(request):
     if request.method == 'POST':
@@ -1562,7 +1533,7 @@ def edit_back_labels(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @staff_member_required
 def admin_dashboard(request):
     context = {
@@ -1581,7 +1552,7 @@ def admin_dashboard(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def germination_inventory_view(request):
     """Render the germination/inventory page"""
@@ -1589,7 +1560,7 @@ def germination_inventory_view(request):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def germination_inventory_data(request):
@@ -1749,7 +1720,7 @@ def germination_inventory_data(request):
         return JsonResponse({'error': str(e)}, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def update_website_bulk(request):
@@ -1780,7 +1751,7 @@ def update_website_bulk(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def create_germ_sample_print(request):
@@ -2029,7 +2000,7 @@ def get_variety_lot_inventory(variety, current_order_year):
 
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def variety_sales_data(request, sku_prefix):
@@ -2170,7 +2141,7 @@ def variety_sales_data(request, sku_prefix):
 
 
 # VIEW FUNCTONS FOR MANAGING WHOLESALE STORE ORDERS
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def process_store_orders(request):
     """
@@ -2197,7 +2168,7 @@ def process_store_orders(request):
     return render(request, 'office/store_orders.html', context)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def view_stores(request):
     """
@@ -2209,7 +2180,7 @@ def view_stores(request):
     
     return render(request, 'office/view_stores.html', context)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def update_store(request, store_num):
@@ -2248,10 +2219,8 @@ def update_store(request, store_num):
         }, status=500)
     
 
-
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
-@login_required
 def get_store_orders(request, store_id):
     try:
         orders = StoreOrder.objects.filter(store__store_num=store_id).order_by('-date')
@@ -2272,7 +2241,7 @@ def get_store_orders(request, store_id):
         return JsonResponse({'error': str(e)}, status=400)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def get_pending_orders(request):
     try:
@@ -2297,7 +2266,8 @@ def get_pending_orders(request):
         return JsonResponse({'error': str(e)}, status=400)
     
 
-@login_required
+
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def get_order_details(request, order_id):
     try:
@@ -2338,7 +2308,7 @@ def get_order_details(request, order_id):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def save_order_changes(request):
     try:
@@ -2380,8 +2350,8 @@ def save_order_changes(request):
         print(f"ERROR in save_order_changes: {e}")
         return JsonResponse({'error': str(e)}, status=400)
 
-    
-@login_required
+
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def finalize_order(request):
@@ -2546,7 +2516,7 @@ def finalize_order(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def add_variety(request):
@@ -2622,7 +2592,7 @@ def add_variety(request):
         }, status=500)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def add_product(request):
@@ -2706,7 +2676,7 @@ def add_product(request):
         }, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def get_lot_history(request):
     """Get comprehensive history for a lot"""
@@ -2801,9 +2771,7 @@ def get_lot_history(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-
-    # In your Django views
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def get_product_packing_history(request):
     if request.method == 'POST':
@@ -2844,7 +2812,7 @@ def get_product_packing_history(request):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @require_http_methods(["POST"])
 def edit_packing_record(request):
     """Edit a packing record by updating its quantity"""
@@ -2904,7 +2872,7 @@ def edit_packing_record(request):
         })
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @require_http_methods(["POST"])
 def delete_packing_record(request):
     """Delete a packing record"""
@@ -2955,7 +2923,7 @@ def delete_packing_record(request):
         })
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def get_stock_seed_data(request):
     
@@ -3013,7 +2981,7 @@ def get_stock_seed_data(request):
             })
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def update_inventory(request):
@@ -3044,7 +3012,7 @@ def update_inventory(request):
     
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def check_pick_list_printed(request, order_id):
@@ -3065,7 +3033,7 @@ def check_pick_list_printed(request, order_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def record_pick_list_printed(request):
@@ -3089,7 +3057,7 @@ def record_pick_list_printed(request):
         return JsonResponse({'error': str(e)}, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def set_wholesale_price(request):
@@ -3151,7 +3119,8 @@ def set_wholesale_price(request):
         }, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def record_store_returns(request):
     """
@@ -3173,10 +3142,6 @@ def record_store_returns(request):
             store_num = int(store_num)
             year = int(year)
             packets_returned = int(packets_returned)
-            
-            # # Convert 2-digit year to 4-digit year (e.g., 24 -> 2024)
-            # if year < 100:
-            #     year = 2000 + year
             
             if packets_returned < 0:
                 return JsonResponse({
@@ -3228,8 +3193,8 @@ def record_store_returns(request):
         }, status=500)
 
 
-
-@login_required
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def get_store_returns_years(request):
     """
@@ -3270,7 +3235,8 @@ def get_store_returns_years(request):
         }, status=500)
 
 
-@login_required
+@login_required(login_url='office/login/')
+@user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def get_store_returns_data(request):
     """
@@ -3358,7 +3324,7 @@ def get_store_returns_data(request):
         }, status=500)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def get_store_sales_data(request):
@@ -3442,7 +3408,7 @@ def get_store_sales_data(request):
             'message': str(e)
         }, status=500)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def edit_variety(request):
@@ -3482,7 +3448,7 @@ def edit_variety(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def update_variety_wholesale(request):
@@ -3505,7 +3471,7 @@ def update_variety_wholesale(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def variety_usage(request, sku_prefix):
@@ -3541,7 +3507,7 @@ def variety_usage(request, sku_prefix):
             'error': str(e)
         }, status=500)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def update_product_scoop_size(request):
@@ -3564,7 +3530,7 @@ def update_product_scoop_size(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def mixes(request):
     """Render the mixes page"""
@@ -3574,7 +3540,7 @@ def mixes(request):
     return render(request, 'office/mixes.html', context)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def get_available_lots_for_mix(request):
@@ -3670,7 +3636,7 @@ def get_available_lots_for_mix(request):
 #     return JsonResponse(available_lots, safe=False)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def get_existing_mix_lots(request):
@@ -3702,7 +3668,7 @@ def get_existing_mix_lots(request):
     return JsonResponse(result, safe=False)
 
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def create_mix_lot(request):
@@ -3748,7 +3714,7 @@ def create_mix_lot(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["GET"])
 def get_mix_lot_details(request, mix_lot_id):
@@ -3803,7 +3769,7 @@ def get_mix_lot_details(request, mix_lot_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def create_batch(request):

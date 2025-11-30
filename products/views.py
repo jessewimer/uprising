@@ -15,14 +15,10 @@ import io
 from django.http import JsonResponse
 
 from django.views.decorators.http import require_http_methods
-import pandas as pd  # You might want to use pandas for CSV processing
-
-
-
-
+import pandas as pd
 
 # Handles requests from the admin user to edit the available products for a store
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def edit_products(request):
     if request.method == 'POST':
@@ -167,7 +163,7 @@ def edit_products(request):
         }
         return render(request, 'products/edit_products.html', context)
 
-@login_required
+@login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
 def shopify_inventory(request):
