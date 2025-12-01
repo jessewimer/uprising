@@ -127,6 +127,27 @@
         </div>
     </div>
 
+    <!-- Reprint/Resend Modal -->
+    <div class="modal" id="reprintModal">
+        <div class="modal-content">
+            <div class="modal-icon warning">!</div>
+            <h3 class="modal-title">Label Already Printed</h3>
+            <div class="modal-message">
+                <div>A germination sample label has already been printed for:</div>
+                <div class="modal-variety" id="reprintModalVariety">Loading...</div>
+                <div style="margin-top: 12px; font-size: 14px; color: #666;">
+                    <strong>Reprint:</strong> Print additional labels (same sample)<br>
+                    <strong>Resend:</strong> Send a new germination sample
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="reprintModalCancel">Cancel</button>
+                <button class="modal-btn primary" id="reprintModalReprint">Reprint</button>
+                <button class="modal-btn warning" id="reprintModalResend">Resend</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Bulk Confirmation Modal -->
     <div class="modal" id="bulkModal">
         <div class="modal-content">

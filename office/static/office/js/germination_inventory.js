@@ -36,6 +36,9 @@ function setupEventListeners() {
     document.getElementById('salesModalClose').addEventListener('click', closeSalesModal);
     document.getElementById('bulkModalCancel').addEventListener('click', closeBulkModal);
     document.getElementById('bulkModalConfirm').addEventListener('click', confirmBulk);
+    document.getElementById('reprintModalCancel').addEventListener('click', closeReprintModal);
+    document.getElementById('reprintModalReprint').addEventListener('click', handleReprint);
+    document.getElementById('reprintModalResend').addEventListener('click', handleResend);
     
     
     // Modal backdrop clicks
@@ -49,12 +52,17 @@ function setupEventListeners() {
         if (e.target === this) closeBulkModal();
     });
     
+    document.getElementById('reprintModal').addEventListener('click', function(e) {
+        if (e.target === this) closeReprintModal();
+    });
+
     // Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
             closeSalesModal();
             closeBulkModal();
+            closeReprintModal();
         }
     });
 }
@@ -306,6 +314,13 @@ function getGerminationDisplay(lot, year) {
 
 // Render table
 function renderTable() {
+    // TEMPORARY DEBUG - Remove after testing
+    console.log('First lot data:', appData.filteredLots[0]);
+    if (appData.filteredLots[0]) {
+        const lot = appData.filteredLots[0];
+        console.log('Germ records:', lot.germination_records);
+        console.log('Germ prints:', lot.germ_sample_prints);
+    }
     const tbody = document.getElementById('tableBody');
     const emptyState = document.getElementById('emptyState');
     
@@ -516,17 +531,50 @@ function proceedWithPrintChecks(lot) {
     const currentGermYearFormatted = String(appData.germYear).padStart(2, '0');
     
     if (rightmostYear !== currentGermYearFormatted) {
-        // New year - no warning
-        console.log('New germ year - direct print');
+        // New year - no warning, direct confirmation
+        console.log('New germ year - direct print confirmation');
         showModal(false);
     } else {
         // Check existing label
         const display = getGerminationDisplay(lot, rightmostYear);
         const hasLabel = display.text !== '-';
-        console.log('Existing check:', display.text, hasLabel);
-        showModal(hasLabel);
+        
+        if (hasLabel) {
+            // Already printed - show reprint/resend options directly
+            console.log('Label already exists - showing reprint/resend modal');
+            showReprintModal();
+        } else {
+            // New print - show confirmation modal
+            console.log('New print - showing confirmation');
+            showModal(false);
+        }
     }
 }
+// function proceedWithPrintChecks(lot) {
+//     currentPrintJob = {
+//         lot_id: lot.lot_id,
+//         variety_name: lot.variety_name,
+//         sku_prefix: lot.sku_prefix,
+//         lot_code: lot.lot_code,
+//         species: lot.species
+//     };
+    
+//     // Check if warning needed
+//     const rightmostYear = appData.germYears[appData.germYears.length - 1];
+//     const currentGermYearFormatted = String(appData.germYear).padStart(2, '0');
+    
+//     if (rightmostYear !== currentGermYearFormatted) {
+//         // New year - no warning
+//         console.log('New germ year - direct print');
+//         showModal(false);
+//     } else {
+//         // Check existing label
+//         const display = getGerminationDisplay(lot, rightmostYear);
+//         const hasLabel = display.text !== '-';
+//         console.log('Existing check:', display.text, hasLabel);
+//         showModal(hasLabel);
+//     }
+// }
 
 // Show modal
 function showModal(isWarning) {
@@ -593,6 +641,68 @@ function closeModal() {
     currentPrintJob = null;
 }
 
+// Show reprint/resend modal
+function showReprintModal() {
+    const modal = document.getElementById('reprintModal');
+    const variety = document.getElementById('reprintModalVariety');
+    variety.textContent = `${currentPrintJob.variety_name} (${currentPrintJob.lot_code})`;
+    modal.style.display = 'block';
+}
+
+// Close reprint/resend modal
+function closeReprintModal() {
+    document.getElementById('reprintModal').style.display = 'none';
+}
+
+// Handle reprint (just print, don't create new record)
+function handleReprint() {
+    console.log('Reprint - no new record');
+    closeReprintModal();
+    
+    const printJobData = { ...currentPrintJob };
+    currentPrintJob = null;
+    
+    // Just print, don't update UI or create record
+    tryFlaskPrint(printJobData);
+    showMessage('Reprinting label (no new sample record)', 'success');
+}
+
+// Handle resend (create new record and print)
+function handleResend() {
+    console.log('Resend - creating new record');
+    closeReprintModal();
+    
+    // Force create new record
+    fetch(window.appUrls.createGermSamplePrint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+            lot_id: currentPrintJob.lot_id,
+            germ_year: appData.germYear,
+            force_new: true  // Tell backend to create new record
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success === true) {
+            const printJobData = { ...currentPrintJob };
+            updateUIAfterPrint();
+            tryFlaskPrint(printJobData);
+            showMessage('New germination sample record created', 'success');
+        } else {
+            alert('Error creating new sample record: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating new sample record');
+    });
+}
+
+// Execute print
 // Execute print
 function executePrint() {
     console.log('Executing print for:', currentPrintJob);
@@ -609,29 +719,18 @@ function executePrint() {
             germ_year: appData.germYear
         })
     })
-    .then(response => {
-        console.log('Raw response status:', response.status);
-        console.log('Raw response ok:', response.ok);
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        console.log('Parsed Django response:', data);
-        console.log('data.success value:', data.success);
-        console.log('data.success type:', typeof data.success);
+        console.log('Django response:', data);
         
         if (data.success === true) {
-            console.log('Success condition met - updating UI');
-            
-            // Save print job data before clearing it
+            // New label created - proceed normally
+            console.log('New label - updating UI and printing');
             const printJobData = { ...currentPrintJob };
-            
-            // Update UI immediately
             updateUIAfterPrint();
-            
-            // Try Flask in background with saved data
             tryFlaskPrint(printJobData);
         } else {
-            console.error('Success condition failed. Data:', data);
+            console.error('Django error:', data);
             alert('Error creating print record: ' + (data.error || 'Unknown error'));
         }
     })
@@ -640,6 +739,53 @@ function executePrint() {
         alert('Error creating print record: Network or parsing error');
     });
 }
+// Execute print
+// function executePrint() {
+//     console.log('Executing print for:', currentPrintJob);
+    
+//     // Create Django record
+//     fetch(window.appUrls.createGermSamplePrint, {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCSRFToken()
+//         },
+//         body: JSON.stringify({
+//             lot_id: currentPrintJob.lot_id,
+//             germ_year: appData.germYear
+//         })
+//     })
+//     .then(response => {
+//         console.log('Raw response status:', response.status);
+//         console.log('Raw response ok:', response.ok);
+//         return response.json();
+//     })
+//     .then(data => {
+//         console.log('Parsed Django response:', data);
+//         console.log('data.success value:', data.success);
+//         console.log('data.success type:', typeof data.success);
+        
+//         if (data.success === true) {
+//             console.log('Success condition met - updating UI');
+            
+//             // Save print job data before clearing it
+//             const printJobData = { ...currentPrintJob };
+            
+//             // Update UI immediately
+//             updateUIAfterPrint();
+            
+//             // Try Flask in background with saved data
+//             tryFlaskPrint(printJobData);
+//         } else {
+//             console.error('Success condition failed. Data:', data);
+//             alert('Error creating print record: ' + (data.error || 'Unknown error'));
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Django fetch error:', error);
+//         alert('Error creating print record: Network or parsing error');
+//     });
+// }
 
 // Update UI after print
 function updateUIAfterPrint() {
