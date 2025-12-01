@@ -185,7 +185,7 @@ function showPrintPopup(productId, productName) {
         .then(isFlaskRunning => {
             console.log('Flask running status:', isFlaskRunning);
             if (!isFlaskRunning) {
-                showMessage('Local Flask printing app not running', 'error');
+                showMessage('Printing app not running', 'error');
                 return;
             }
             
@@ -195,7 +195,7 @@ function showPrintPopup(productId, productName) {
         })
         .catch(error => {
             console.error('Error checking Flask connection:', error);
-            showMessage('Local Flask printing app not running', 'error');
+            showMessage('Printing app not running', 'error');
         });
 }
 
@@ -2786,7 +2786,7 @@ function reprintStockSeedLabel() {
     checkFlaskConnection()
         .then(isFlaskRunning => {
             if (!isFlaskRunning) {
-                showMessage('Local Flask printing app not running', 'error');
+                showMessage('Printing app not running', 'error');
                 return;
             }
             
@@ -2821,7 +2821,7 @@ function reprintStockSeedLabel() {
                     fetch('http://localhost:5000/print-stock-seed-label', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(printData)
+                          body: JSON.stringify(printData)
                     })
                     .then(flaskResponse => {
                         if (flaskResponse.ok) {
@@ -2845,7 +2845,7 @@ function reprintStockSeedLabel() {
         })
         .catch(error => {
             console.error('Error checking Flask connection:', error);
-            showMessage('Local Flask printing app not running', 'error');
+            showMessage('Printing app not running', 'error');
         });
 }
 
@@ -2867,7 +2867,7 @@ function submitStockSeed(event) {
         .then(isFlaskRunning => {
             console.log('Flask running status for stock seed:', isFlaskRunning);
             if (!isFlaskRunning) {
-                showMessage('Local Flask printing app not running - cannot print stock seed label', 'error');
+                showMessage('Printing app not running - cannot print stock seed label', 'error');
                 return;
             }
             
@@ -2877,7 +2877,7 @@ function submitStockSeed(event) {
         })
         .catch(error => {
             console.error('Error checking Flask connection for stock seed:', error);
-            showMessage('Local Flask printing app not running - cannot print stock seed label', 'error');
+            showMessage('Printing app not running - cannot print stock seed label', 'error');
         });
 }
 

@@ -338,7 +338,8 @@ function renderTable() {
                 <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
             </svg>
         `;
-        printIcon.addEventListener('click', () => showPrintModal(lot));
+
+        printIcon.addEventListener('click', () => handlePrint(lot));
         
         // NEW: Bulk icon
         const bulkIcon = document.createElement('div');
