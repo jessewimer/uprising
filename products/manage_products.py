@@ -337,6 +337,40 @@ def view_products_without_lineitem():
     
     print(f"\nTotal: {products.count()} products without lineitem names")
 
+
+def view_products_without_pkg_size():
+    """Display all products that do not have a pkg_size"""
+    products = Product.objects.filter(
+        pkg_size__isnull=True
+    ) | Product.objects.filter(
+        pkg_size=""
+    )
+    products = products.select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+    
+    if not products:
+        print("\n✅ All products have pkg_size assigned!")
+        return
+    
+    table = PrettyTable()
+    table.field_names = ["SKU Prefix", "Suffix", "Lineitem Name", "Variety Name"]
+    table.align["SKU Prefix"] = "l"
+    table.align["Suffix"] = "l"
+    table.align["Lineitem Name"] = "l"
+    table.align["Variety Name"] = "l"
+    
+    for prod in products:
+        variety_name = prod.variety.var_name or '--'
+        lineitem = prod.lineitem_name or '--'
+        suffix = prod.sku_suffix or '--'
+        table.add_row([prod.variety.sku_prefix, suffix, lineitem, variety_name])
+    
+    print("\n" + "="*100)
+    print(f"PRODUCTS WITHOUT PKG_SIZE ({products.count()})")
+    print("="*100)
+    print(table)
+    print(f"\nTotal: {products.count()} products without pkg_size")
+
+
 def reset_all_website_bulk():
     """Reset website_bulk to False for all varieties"""
     varieties = Variety.objects.filter(website_bulk=True)
@@ -521,9 +555,10 @@ def product_menu():
         print("10. Add new product")
         print("11. Edit product")
         print("12. Delete product")
+        print("13. View products without pkg_size")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
 
         if choice == '0':
             break
@@ -565,6 +600,9 @@ def product_menu():
             pause()
         elif choice == '12':
             delete_product()
+            pause()
+        elif choice == '13':
+            view_products_without_pkg_size()
             pause()
 
 
