@@ -135,21 +135,33 @@ function setupSearch() {
             return;
         }
 
-        // Only search through the common_spelling keys
+        // Search through common_spelling, crop, and veg_type
         const matches = [];
-        
+
         for (const [skuPrefix, data] of Object.entries(allVarieties)) {
             const matchesCommonSpelling = data.common_spelling && data.common_spelling.toLowerCase().includes(query);
+            const matchesCrop = data.crop && data.crop.toLowerCase().includes(query);
+            const matchesVegType = data.veg_type && data.veg_type.toLowerCase().includes(query);
             
-            if (matchesCommonSpelling) {
+            if (matchesCommonSpelling || matchesCrop || matchesVegType) {
                 matches.push([skuPrefix, data]);
             }
         }
+        // // Only search through the common_spelling keys
+        // const matches = [];
+        
+        // for (const [skuPrefix, data] of Object.entries(allVarieties)) {
+        //     const matchesCommonSpelling = data.common_spelling && data.common_spelling.toLowerCase().includes(query);
+            
+        //     if (matchesCommonSpelling) {
+        //         matches.push([skuPrefix, data]);
+        //     }
+        // }
         // console.log('Found matches:', matches.length);
 
         if (matches.length > 0) {
 
-            searchDropdown.innerHTML = matches.slice(0, 10).map(([skuPrefix, data]) => `
+            searchDropdown.innerHTML = matches.map(([skuPrefix, data]) => `
                 <div class="dropdown-item" onclick="selectVariety('${skuPrefix}')">
                     <div class="dropdown-variety-name">${data.var_name || data.common_spelling}</div>
                     <div class="dropdown-variety-type">${data.veg_type || ''}</div>

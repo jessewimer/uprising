@@ -207,6 +207,7 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
             'common_spelling': v.common_spelling,
             'var_name': v.var_name,
             'veg_type': v.veg_type,
+            'crop': v.crop,
         }
         for v in varieties
     }
