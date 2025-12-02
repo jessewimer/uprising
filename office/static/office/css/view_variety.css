@@ -1160,6 +1160,39 @@ body {
 
 
 
+
+/* Inventory pill styles */
+.inventory-pill {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+.inventory-pill.recent {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.inventory-pill.old {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.inventory-pill.none {
+    background: #e9ecef;
+    color: #6c757d;
+    font-style: italic;
+}
+
+
+
+
+
+
 .form-group {
     display: flex;
     flex-direction: column;

@@ -324,7 +324,9 @@
                                             {% if is_mix %}
                                                 --
                                             {% else %}
-                                                {{ lot.get_most_recent_inventory|default:"--" }}
+                                                <span class="inventory-display" data-lot-id="{{ lot.pk }}">
+                                                    {{ lot.get_most_recent_inventory|default:"--" }}
+                                                </span>
                                             {% endif %}
                                         </td>
                                         <td>

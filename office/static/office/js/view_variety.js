@@ -77,6 +77,44 @@ function verifyPassword() {
     }
 }
 
+
+function styleInventoryDisplays() {
+    const inventoryDisplays = document.querySelectorAll('.inventory-display');
+    const today = new Date();
+    const twelveMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 12, today.getDate());
+    
+    inventoryDisplays.forEach(display => {
+        const lotId = parseInt(display.dataset.lotId);
+        const lotData = lotsExtraData.find(lot => lot.id === lotId);
+        
+        if (!lotData || lotData.is_mix) {
+            return; // Skip mixes
+        }
+        
+        const text = display.textContent.trim();
+        
+        if (text === '--' || text === '') {
+            // No inventory
+            display.innerHTML = `<span class="inventory-pill none">No inventory</span>`;
+        } else if (lotData.recent_inventory) {
+            // Has recent inventory data with date
+            const invDateStr = lotData.recent_inventory.date; // Format: "MM/YYYY"
+            const [month, year] = invDateStr.split('/');
+            const invDate = new Date(2000 + parseInt(year), parseInt(month) - 1, 1);
+            
+            const isRecent = invDate >= twelveMonthsAgo;
+            const pillClass = isRecent ? 'recent' : 'old';
+            
+            display.innerHTML = `<span class="inventory-pill ${pillClass}">${text}</span>`;
+        } else {
+            // Has inventory but no date info (older than 6 months based on view logic)
+            // Assume it's old
+            display.innerHTML = `<span class="inventory-pill old">${text}</span>`;
+        }
+    });
+}
+
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -119,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupPrintHandlers();
     reorderGrowerDropdown(); 
     initializeRetiredLotFilter(); 
+    styleInventoryDisplays();
 });
 
 // Search setup
