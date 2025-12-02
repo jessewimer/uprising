@@ -6,7 +6,7 @@ import sys
 import csv
 from prettytable import PrettyTable
 from collections import Counter
-
+from django.db.models import Q, Sum
 
 # Get the current directory path
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +22,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
 from products.models import Product, Variety, Sales, MiscProduct, MiscSales, LabelPrint
+from lots.models import Lot
 from django.db import transaction
 
 
@@ -510,6 +511,92 @@ def view_products_with_bulk_pre_pack():
     
     print(f"\nTotal: {products.count()} products with bulk pre-pack")
 
+def check_pkt_products_low_label_prints():
+    """Check pkt products with low label prints that have active germination lots"""
+    year_input = input("\nEnter year (2-digit, e.g., 25 for 2025): ").strip()
+    
+    if not year_input:
+        print("❌ Year is required")
+        return
+    
+    try:
+        year = int(year_input)
+    except ValueError:
+        print("❌ Invalid year format")
+        return
+    
+    # Import Germination model
+    from lots.models import Germination
+    
+    # Get all pkt products
+    pkt_products = Product.objects.filter(sku_suffix='pkt').select_related('variety')
+    
+    results = []
+    
+    for product in pkt_products:
+        # Calculate total label prints for this product for the given year
+        total_printed = product.label_prints.filter(for_year=year).aggregate(
+            total=Sum('qty')
+        )['total'] or 0
+        
+        # Only consider products with <= 30 labels printed
+        if total_printed <= 30:
+            # Get lots for this variety
+            variety_lots = Lot.objects.filter(variety=product.variety)
+            
+            # Check if any of these lots have valid germination records for this year
+            valid_lot_count = 0
+            for lot in variety_lots:
+                # Check if this lot has germination records for the year with non-zero germination_rate
+                has_valid_germ = Germination.objects.filter(
+                    lot=lot,
+                    for_year=year,
+                    germination_rate__gt=0
+                ).exists()
+                
+                if has_valid_germ:
+                    valid_lot_count += 1
+            
+            # If variety has lots with valid germination for this year, include it
+            if valid_lot_count > 0:
+                results.append({
+                    'sku_prefix': product.variety.sku_prefix,
+                    'variety_name': product.variety.var_name or '--',
+                    'pkg_size': product.pkg_size or '--',
+                    'total_printed': total_printed,
+                    'lot_count': valid_lot_count
+                })
+    
+    if not results:
+        print(f"\n✅ No pkt products with low label prints (≤30) found for year 20{year}")
+        return
+    
+    # Sort by total printed (ascending)
+    results.sort(key=lambda x: x['total_printed'])
+    
+    table = PrettyTable()
+    table.field_names = ["SKU Prefix", "Variety Name", "Pkg Size", "Printed", "Active Lots"]
+    table.align["SKU Prefix"] = "l"
+    table.align["Variety Name"] = "l"
+    table.align["Pkg Size"] = "l"
+    table.align["Printed"] = "r"
+    table.align["Active Lots"] = "r"
+    
+    for item in results:
+        table.add_row([
+            item['sku_prefix'],
+            item['variety_name'][:38] if len(item['variety_name']) > 38 else item['variety_name'],
+            item['pkg_size'],
+            item['total_printed'],
+            item['lot_count']
+        ])
+    
+    print("\n" + "="*100)
+    print(f"PKT PRODUCTS WITH LOW LABEL PRINTS (≤30) - YEAR 20{year}")
+    print("="*100)
+    print(table)
+    print(f"\nTotal: {len(results)} products with active germination lots")
+
 def add_product():
     """Add a new product - PLACEHOLDER"""
     print("\n⚠️  ADD PRODUCT - Function placeholder")
@@ -556,9 +643,10 @@ def product_menu():
         print("11. Edit product")
         print("12. Delete product")
         print("13. View products without pkg_size")
+        print("14. Check pkt products with low label prints")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'])
 
         if choice == '0':
             break
@@ -583,9 +671,6 @@ def product_menu():
         elif choice == '7':
             reset_all_wholesale()  # NEW
             pause()
-        # elif choice == '8':
-        #     view_products_with_bullet_in_pkg_size()  # NEW
-        #     pause()
         elif choice == '8':
             view_products_with_bulk_pre_pack()  # NEW
             pause()
@@ -603,6 +688,9 @@ def product_menu():
             pause()
         elif choice == '13':
             view_products_without_pkg_size()
+            pause()
+        elif choice == '14':
+            check_pkt_products_low_label_prints()
             pause()
 
 
