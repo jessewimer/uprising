@@ -1146,15 +1146,25 @@ function populateUsageData(usageData) {
     // Populate lot details table
     const tbody = document.getElementById('usageLotTableBody');
     tbody.innerHTML = '';
-    
+
     usageData.lots.forEach(lot => {
         const row = document.createElement('tr');
-        if (lot.retired) {
+        
+        // Apply styling for retired OR depleted lots
+        if (lot.retired || lot.depleted_not_retired) {
             row.className = 'usage-retired-row';
         }
         
+        // Determine the label to display
+        let lotLabel = lot.lot_code;
+        if (lot.depleted_not_retired) {
+            lotLabel += ' (depleted, not retired)';
+        } else if (lot.retired) {
+            lotLabel += ' (retired)';
+        }
+        
         row.innerHTML = `
-            <td>${lot.lot_code}${lot.retired ? ' (retired)' : ''}</td>
+            <td>${lotLabel}</td>
             <td>${lot.start_weight.toFixed(2)}</td>
             <td>${lot.end_weight.toFixed(2)}</td>
             <td class="usage-amount">${lot.usage.toFixed(2)}</td>
