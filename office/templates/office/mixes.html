@@ -643,10 +643,15 @@
                     <option value="FLO-ED">Edible Flower Mix</option>
                 </optgroup>
                 
-                <optgroup label="Component Mixes">
+                <!-- <optgroup label="Component Mixes">
                     <option value="lettuce-base">Lettuce Mix</option>
                     <option value="spicy-base">Spicy Mix</option>
                     <option value="mild-base">Mild Mix</option>
+                </optgroup> -->
+                <optgroup label="Component Mixes">
+                    <option value="MIX-LB">Lettuce Mix</option>
+                    <option value="MIX-SB">Spicy Mix</option>
+                    <option value="MIX-MB">Mild Mix</option>
                 </optgroup>
             </select>
         </div>
@@ -735,12 +740,19 @@
             <button class="modal-close" onclick="closeAddMixLotModal()">&times;</button>
             <h2 class="modal-title">Create New Mix Lot</h2>
 
-            <div class="form-group">
+            <!-- <div class="form-group">
                 <label class="form-label">Lot Code</label>
                 <input type="text" class="form-input" id="newLotCode" placeholder="e.g., UO26A">
                 <small style="color: #666; margin-top: 5px; display: block;">
                     Format: UO[Year][Letter] - e.g., UO26A, UO26B
                 </small>
+            </div> -->
+
+            <div class="form-group">
+                <label class="form-label">Lot Code</label>
+                <div id="newLotCode" style="font-size: 1.5rem; font-weight: 700; color: #667eea; padding: 15px; background: #f8f9ff; border-radius: 10px; text-align: center;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
 
             <div class="form-group">
@@ -832,6 +844,55 @@
         let currentMixLotId = null;
         let currentMixName = null;
 
+        // Add this validation configuration
+        const MIX_VALIDATION_RULES = {
+            'CAR-RA': {  // Replace with actual SKU
+                type: 'exact_varieties',
+                required: ['CAR-YE', 'CAR-SN', 'CAR-DR'],
+                message: 'Rainbow Carrot Mix requires exactly 1 each of: Yellow Carrot (CAR-YE), Snow White Carrot (CAR-SN), and Dragon Carrot (CAR-DR)'
+            },
+            'MIX-SP': {  // Replace with actual SKU
+                type: 'category_count',
+                required: {
+                    'spicy_base': 1,
+                    'lettuce_base': 1
+                },
+                message: 'Uprising Spicy Mix requires exactly 1 spicy base and 1 lettuce base'
+            },
+            'MIX-MI': {  // Replace with actual SKU
+                type: 'category_count',
+                required: {
+                    'mild_base': 1,
+                    'lettuce_base': 1
+                },
+                message: 'Uprising Mild Mix requires exactly 1 mild base and 1 lettuce base'
+            },
+            'BEE-3B': {  // Replace with actual SKU
+                type: 'exact_varieties',
+                required: ['BEE-TG', 'BEE-SH', 'BEE-CH'],
+                message: '3 Beet Mix requires exactly 1 each of: Touchstone Gold (BEE-TG), Shiraz (BEE-SH), and Chioggia (BEE-CH)'
+            }
+        };
+
+        // Add category mappings for varieties (you'll need to expand this with all your varieties)
+        const VARIETY_CATEGORIES = {
+            // Spicy bases
+            'ARU-RO': 'spicy_base',
+            'MUS-OR': 'spicy_base',
+            'RAD-CH': 'spicy_base',
+            // Add more spicy varieties...
+            
+            // Mild bases
+            'SPL-SP': 'mild_base',
+            'BAS-GE': 'mild_base',
+            // Add more mild varieties...
+            
+            // Lettuce bases
+            'LET-GR': 'lettuce_base',
+            'LET-RE': 'lettuce_base',
+            // Add more lettuce varieties...
+        };
+
         // Mix selector change
         document.getElementById('mixSelector').addEventListener('change', function() {
             currentMixSku = this.value;
@@ -887,6 +948,13 @@
                 return;
             }
 
+            // Sort lots by lot_code in descending order (newest first, oldest last)
+            mixLots.sort((a, b) => {
+                if (a.lot_code > b.lot_code) return -1;
+                if (a.lot_code < b.lot_code) return 1;
+                return 0;
+            });
+
             container.innerHTML = '';
             mixLots.forEach(lot => {
                 const div = document.createElement('div');
@@ -897,6 +965,18 @@
                     <div class="lot-code">
                         ${lot.lot_code}
                         ${lot.is_retired ? '<span style="color: #dc3545; font-size: 0.85rem; margin-left: 8px;">(Retired)</span>' : ''}
+                    </div>
+                    <div class="lot-info">
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e9ecef;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="color: #999;">Germ Rate:</span>
+                                <span style="font-weight: 600;">${lot.germ_rate}%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #999;">Created:</span>
+                                <span style="font-weight: 600;">${lot.created_date}</span>
+                            </div>
+                        </div>
                     </div>
                 `;
                 container.appendChild(div);
@@ -1005,6 +1085,17 @@
                 .then(response => response.json())
                 .then(lots => {
                     displayAvailableLots(lots);
+                    
+                    // Auto-populate the lot code
+                    return fetch(`{% url 'get_existing_mix_lots' %}?mix=${currentMixSku}`);
+                })
+                .then(response => response.json())
+                .then(mixLots => {
+                    // Calculate next lot code
+                    const nextLotCode = generateNextLotCode(mixLots);
+                    // document.getElementById('newLotCode').value = nextLotCode;
+                    document.getElementById('newLotCode').textContent = nextLotCode;
+                    
                     document.getElementById('addMixLotModal').classList.add('show');
                 })
                 .catch(error => {
@@ -1012,6 +1103,40 @@
                     showMessage('Error loading available lots', 'error');
                 });
         }
+
+
+        function generateNextLotCode(mixLots) {
+            // Get the current year (last 2 digits)
+            const currentYear = CURRENT_ORDER_YEAR.toString().slice(-2);
+            const prefix = `UO${currentYear}`;
+            
+            // Filter lots for current year only
+            const currentYearLots = mixLots.filter(lot => 
+                lot.lot_code.startsWith(prefix)
+            );
+            
+            if (currentYearLots.length === 0) {
+                // No lots for current year, start with A
+                return `${prefix}A`;
+            }
+            
+            // Extract the letter suffixes and find the highest
+            const letters = currentYearLots.map(lot => {
+                // Extract letter(s) after the prefix (e.g., "A" from "UO26A")
+                return lot.lot_code.substring(prefix.length);
+            });
+            
+            // Find the highest letter
+            letters.sort();
+            const lastLetter = letters[letters.length - 1];
+            
+            // Get next letter (assuming single letter A-Z)
+            const nextCharCode = lastLetter.charCodeAt(0) + 1;
+            const nextLetter = String.fromCharCode(nextCharCode);
+            
+            return `${prefix}${nextLetter}`;
+        }
+
 
         function displayAvailableLots(lots) {
             const tbody = document.getElementById('availableLotsTableBody');
@@ -1025,7 +1150,7 @@
             lots.forEach(lot => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><input type="checkbox" class="lot-checkbox" data-lot-id="${lot.id}" data-germ="${lot.germ_rate}" onchange="updateGermCalculation()"></td>
+                    <td><input type="checkbox" class="lot-checkbox" data-lot-id="${lot.id}" data-germ="${lot.germ_rate}" data-variety-sku="${lot.variety}" onchange="updateGermCalculation()"></td>
                     <td>${lot.variety_name}</td>
                     <td>${lot.lot_code}</td>
                     <td>${lot.germ_rate}%</td>
@@ -1061,17 +1186,86 @@
             document.getElementById('calcGerm').value = `${avgGerm}%`;
         }
 
+
+        function validateMixComponents() {
+            const rules = MIX_VALIDATION_RULES[currentMixSku];
+            
+            // If no rules defined for this mix, allow it
+            if (!rules) {
+                return { valid: true };
+            }
+            
+            const checkboxes = document.querySelectorAll('.lot-checkbox:checked');
+            const selectedVarieties = [];
+            
+            checkboxes.forEach(cb => {
+                const varietySku = cb.dataset.varietySku; // Get from data attribute
+                selectedVarieties.push(varietySku);
+            });
+            
+            if (rules.type === 'exact_varieties') {
+                // Check if we have exactly the required varieties
+                const required = rules.required;
+                
+                if (selectedVarieties.length !== required.length) {
+                    return { valid: false, message: rules.message };
+                }
+                
+                // Check each required variety is present exactly once
+                for (const reqVariety of required) {
+                    const count = selectedVarieties.filter(v => v === reqVariety).length;
+                    if (count !== 1) {
+                        return { valid: false, message: rules.message };
+                    }
+                }
+                
+                return { valid: true };
+            }
+            
+            if (rules.type === 'category_count') {
+                // Count varieties by category
+                const categoryCounts = {};
+                
+                selectedVarieties.forEach(sku => {
+                    const category = VARIETY_CATEGORIES[sku];
+                    if (category) {
+                        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                    }
+                });
+                
+                // Check if counts match requirements
+                for (const [category, requiredCount] of Object.entries(rules.required)) {
+                    const actualCount = categoryCounts[category] || 0;
+                    if (actualCount !== requiredCount) {
+                        return { valid: false, message: rules.message };
+                    }
+                }
+                
+                return { valid: true };
+            }
+            
+            return { valid: true };
+        }
+
+
         function saveMixLot() {
-            const lotCode = document.getElementById('newLotCode').value.trim();
+            const lotCode = document.getElementById('newLotCode').textContent.trim();
             const checkboxes = document.querySelectorAll('.lot-checkbox:checked');
             
             if (!lotCode) {
-                showMessage('Please enter a lot code', 'error');
+                showMessage('Lot code is missing', 'error');
                 return;
             }
-            
+
             if (checkboxes.length === 0) {
                 showMessage('Please select at least one component lot', 'error');
+                return;
+            }
+
+            // Validate mix components
+            const validation = validateMixComponents();
+            if (!validation.valid) {
+                showMessage(validation.message, 'error');
                 return;
             }
 
@@ -1115,7 +1309,8 @@
 
         function closeAddMixLotModal() {
             document.getElementById('addMixLotModal').classList.remove('show');
-            document.getElementById('newLotCode').value = '';
+            // document.getElementById('newLotCode').value = '';
+            document.getElementById('newLotCode').textContent = '';
             document.getElementById('calcGerm').value = '';
             document.querySelectorAll('.lot-checkbox').forEach(cb => cb.checked = false);
         }

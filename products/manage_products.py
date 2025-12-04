@@ -6,7 +6,7 @@ import sys
 import csv
 from prettytable import PrettyTable
 from collections import Counter
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Max
 
 # Get the current directory path
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -514,6 +514,18 @@ def view_products_with_bulk_pre_pack():
 def check_pkt_products_low_label_prints():
     """Check pkt products with low label prints that have active germination lots"""
     year_input = input("\nEnter year (2-digit, e.g., 25 for 2025): ").strip()
+    # Prompt for threshold
+    threshold_input = input("\nEnter label print threshold (e.g., 30): ").strip()
+    
+    if not threshold_input:
+        print("❌ Threshold is required")
+        return
+    
+    try:
+        threshold = int(threshold_input)
+    except ValueError:
+        print("❌ Invalid threshold format")
+        return
     
     if not year_input:
         print("❌ Year is required")
@@ -540,7 +552,7 @@ def check_pkt_products_low_label_prints():
         )['total'] or 0
         
         # Only consider products with <= 30 labels printed
-        if total_printed <= 30:
+        if total_printed <= threshold:
             # Get lots for this variety
             variety_lots = Lot.objects.filter(variety=product.variety)
             
@@ -568,7 +580,7 @@ def check_pkt_products_low_label_prints():
                 })
     
     if not results:
-        print(f"\n✅ No pkt products with low label prints (≤30) found for year 20{year}")
+        print(f"\n✅ No pkt products with low label prints (≤{threshold}) found for year 20{year}")
         return
     
     # Sort by total printed (ascending)
@@ -592,10 +604,128 @@ def check_pkt_products_low_label_prints():
         ])
     
     print("\n" + "="*100)
-    print(f"PKT PRODUCTS WITH LOW LABEL PRINTS (≤30) - YEAR 20{year}")
+    print(f"PKT PRODUCTS WITH LOW LABEL PRINTS (≤{threshold}) - YEAR 20{year}")
     print("="*100)
     print(table)
     print(f"\nTotal: {len(results)} products with active germination lots")
+
+
+def check_pkt_products_below_sales_percentage():
+    """Check pkt products with print qty > 0 but < threshold% of previous year's sales"""
+    year_input = input("\nEnter current year (2-digit, e.g., 25 for 2025): ").strip()
+    
+    if not year_input:
+        print("❌ Year is required")
+        return
+    
+    try:
+        current_year = int(year_input)
+    except ValueError:
+        print("❌ Invalid year format")
+        return
+    
+    threshold_input = input("\nEnter percentage threshold (e.g., 50 for 50%): ").strip()
+    
+    if not threshold_input:
+        print("❌ Threshold is required")
+        return
+    
+    try:
+        threshold_pct = float(threshold_input)
+    except ValueError:
+        print("❌ Invalid threshold format")
+        return
+    
+    from lots.models import Germination
+    
+    most_recent_sales_year = Sales.objects.aggregate(
+        max_year=Max('year')
+    )['max_year']
+    
+    if not most_recent_sales_year:
+        print("❌ No sales data found in Sales table")
+        return
+    
+    print(f"\n📊 Using sales data from year 20{most_recent_sales_year} for comparison")
+    
+    pkt_products = Product.objects.filter(sku_suffix='pkt').select_related('variety')
+    
+    results = []
+    
+    for product in pkt_products:
+        total_printed = product.label_prints.filter(for_year=current_year).aggregate(
+            total=Sum('qty')
+        )['total'] or 0
+        
+        if total_printed > 0:
+            prev_year_sales = product.sales.filter(
+                year=most_recent_sales_year
+            ).aggregate(total=Sum('quantity'))['total'] or 0
+            
+            if prev_year_sales > 0:
+                threshold_qty = (threshold_pct / 100) * prev_year_sales
+                
+                if total_printed < threshold_qty:
+                    actual_pct = (total_printed / prev_year_sales) * 100
+                    
+                    variety_lots = Lot.objects.filter(variety=product.variety)
+                    
+                    valid_lot_count = 0
+                    for lot in variety_lots:
+                        has_valid_germ = Germination.objects.filter(
+                            lot=lot,
+                            for_year=current_year,
+                            germination_rate__gt=0
+                        ).exists()
+                        
+                        if has_valid_germ:
+                            valid_lot_count += 1
+                    
+                    results.append({
+                        'sku_prefix': product.variety.sku_prefix,
+                        'variety_name': product.variety.var_name or '--',
+                        'pkg_size': product.pkg_size or '--',
+                        'total_printed': total_printed,
+                        'prev_year_sales': prev_year_sales,
+                        'percentage': actual_pct,
+                        'threshold_qty': int(threshold_qty),
+                        'lot_count': valid_lot_count
+                    })
+    
+    if not results:
+        print(f"\n✅ No pkt products found with prints > 0 but < {threshold_pct}% of 20{most_recent_sales_year} sales")
+        return
+    
+    results.sort(key=lambda x: x['percentage'])
+    
+    table = PrettyTable()
+    table.field_names = ["SKU", "Variety Name", "Printed", f"20{most_recent_sales_year} Sales", "Threshold", "%", "Lots"]
+    table.align["SKU"] = "l"
+    table.align["Variety Name"] = "l"
+    table.align["Printed"] = "r"
+    table.align[f"20{most_recent_sales_year} Sales"] = "r"
+    table.align["Threshold"] = "r"
+    table.align["%"] = "r"
+    table.align["Lots"] = "r"
+    
+    for item in results:
+        table.add_row([
+            item['sku_prefix'],
+            item['variety_name'][:28] if len(item['variety_name']) > 28 else item['variety_name'],
+            item['total_printed'],
+            item['prev_year_sales'],
+            item['threshold_qty'],
+            f"{item['percentage']:.1f}%",
+            item['lot_count']
+        ])
+    
+    print("\n" + "="*120)
+    print(f"PKT PRODUCTS WITH PRINTS < {threshold_pct}% OF PREVIOUS YEAR SALES - YEAR 20{current_year}")
+    print("="*120)
+    print(table)
+    print(f"\nTotal: {len(results)} products below threshold")
+    print(f"\nNote: Threshold column shows {threshold_pct}% of previous year sales")
+
 
 def add_product():
     """Add a new product - PLACEHOLDER"""
@@ -644,9 +774,10 @@ def product_menu():
         print("12. Delete product")
         print("13. View products without pkg_size")
         print("14. Check pkt products with low label prints")
+        print("15. Check pkt products below % of prev year sales")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'])
 
         if choice == '0':
             break
@@ -660,19 +791,19 @@ def product_menu():
             view_lineitems()
             pause()
         elif choice == '4':
-            view_products_without_lineitem()  # NEW
+            view_products_without_lineitem()  
             pause()
         elif choice == '5':
             reset_bulk_pre_pack_to_zero()
             pause()
         elif choice == '6':
-            reset_all_website_bulk()  # NEW
+            reset_all_website_bulk()
             pause()
         elif choice == '7':
-            reset_all_wholesale()  # NEW
+            reset_all_wholesale()
             pause()
         elif choice == '8':
-            view_products_with_bulk_pre_pack()  # NEW
+            view_products_with_bulk_pre_pack() 
             pause()
         elif choice == '9':
             find_pkt_products_with_wrong_print_back_setting()
@@ -691,6 +822,9 @@ def product_menu():
             pause()
         elif choice == '14':
             check_pkt_products_low_label_prints()
+            pause()
+        elif choice == '15':
+            check_pkt_products_below_sales_percentage()
             pause()
 
 

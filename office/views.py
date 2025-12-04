@@ -26,17 +26,17 @@ import math
 
 
 BASE_COMPONENT_MIXES = {
-    'lettuce-base': {
+    'MIX-LB': {
         'name': 'Lettuce Mix',
         'type': 'base',
         'varieties': ['LET-HR', 'LET-FB', 'LET-GR', 'LET-CI', 'LET-FT', 'LET-AY', 'LET-MA', 'LET-RV', 'LET-EM'],
     },
-    'spicy-base': {
+    'MIX-SB': {
         'name': 'Spicy Mix',
         'type': 'base',
         'varieties': ['GRE-AS', 'GRE-TA', 'GRE-RS', 'KAL-RF', 'KAL-RR', 'GRE-WC', 'CHA-RA', 'GRE-GF', 'GRE-MZ']
     },
-    'mild-base': {
+    'MIX-MB': {
         'name': 'Mild Mix',
         'type': 'base',
         'varieties': ['GRE-AS', 'GRE-TA', 'SPI-BE', 'KAL-RF', 'GRE-MZ', 'CHA-RA'] 
@@ -65,12 +65,12 @@ FINAL_MIX_CONFIGS = {
     'MIX-SP': {
         'name': 'Uprising Spicy Mesclun',
         'type': 'nested',
-        'base_components': ['lettuce-base', 'spicy-base']
+        'base_components': ['MIX-LB', 'MIX-SB']  
     },
     'MIX-MI': {
         'name': 'Uprising Mild Mesclun',
         'type': 'nested',
-        'base_components': ['lettuce-base', 'mild-base']
+        'base_components': ['MIX-LB', 'MIX-MB']  
     },
     'MIX-BR': {
         'name': 'Uprising Braising Mix',
@@ -4262,6 +4262,45 @@ def get_available_lots_for_mix(request):
     else:
         return JsonResponse({'error': 'Invalid mix'}, status=400)
     
+    # Handle nested mixes (composed of other mix lots)
+    if config.get('type') == 'nested':
+        base_component_skus = config.get('base_components', [])
+        
+        # Fetch MixLots for the base components
+        from products.models import Variety
+        varieties = Variety.objects.filter(sku_prefix__in=base_component_skus)
+        mix_lots = MixLot.objects.filter(
+            variety__in=varieties
+        ).select_related('variety').prefetch_related('batches')
+        
+        # Exclude retired mix lots
+        mix_lots = mix_lots.exclude(retired_mix_info__isnull=False)
+        
+        available_lots = []
+        for mix_lot in mix_lots:
+            germ_rate = mix_lot.calculate_germ_rate(for_year=year)
+            
+            if germ_rate:  # Only include if germ rate can be calculated
+                # Calculate inventory from batches
+                total_weight = mix_lot.batches.aggregate(
+                    total=Sum('final_weight')
+                )['total'] or 0
+                
+                available_lots.append({
+                    'id': mix_lot.id,
+                    'variety_name': mix_lot.variety.var_name,
+                    'variety_sku': mix_lot.variety.sku_prefix,
+                    'lot_code': mix_lot.lot_code,
+                    'full_lot_code': str(mix_lot),
+                    'germ_rate': germ_rate,
+                    'status': 'active',
+                    'inventory': f"{total_weight} lbs",
+                    'is_mix': True  # Flag to identify this is a MixLot
+                })
+        
+        return JsonResponse(available_lots, safe=False)
+    
+    # Handle regular mixes (composed of regular lots)
     # Build the query based on config
     if config.get('varieties_prefix'):
         # Get all varieties starting with prefix
@@ -4293,10 +4332,59 @@ def get_available_lots_for_mix(request):
                 'full_lot_code': str(lot),
                 'germ_rate': germ.germination_rate,
                 'status': germ.status,
-                'inventory': inventory
+                'inventory': inventory,
+                'is_mix': False  # Flag to identify this is a regular Lot
             })
     
     return JsonResponse(available_lots, safe=False)
+# def get_available_lots_for_mix(request):
+#     """Get available component lots for creating a new mix lot"""
+#     mix_id = request.GET.get('mix')
+#     year = int(request.GET.get('year', settings.CURRENT_ORDER_YEAR))
+    
+#     # Check if it's a base component or final mix
+#     if mix_id in BASE_COMPONENT_MIXES:
+#         config = BASE_COMPONENT_MIXES[mix_id]
+#     elif mix_id in FINAL_MIX_CONFIGS:
+#         config = FINAL_MIX_CONFIGS[mix_id]
+#     else:
+#         return JsonResponse({'error': 'Invalid mix'}, status=400)
+    
+#     # Build the query based on config
+#     if config.get('varieties_prefix'):
+#         # Get all varieties starting with prefix
+#         prefix = config['varieties_prefix']
+#         lots = Lot.objects.filter(variety__sku_prefix__startswith=prefix)
+        
+#         # Exclude specific varieties if specified
+#         if config.get('varieties_exclude'):
+#             lots = lots.exclude(variety__sku_prefix__in=config['varieties_exclude'])
+#     else:
+#         # Get specific varieties
+#         sku_prefixes = config.get('varieties', [])
+#         lots = Lot.objects.filter(variety__sku_prefix__in=sku_prefixes)
+    
+#     lots = lots.select_related('variety', 'grower').prefetch_related('germinations', 'inventory')
+    
+#     available_lots = []
+#     for lot in lots:
+#         germ = lot.germinations.filter(status='active', for_year=year).first()
+        
+#         if germ:
+#             inventory = lot.get_most_recent_inventory()
+            
+#             available_lots.append({
+#                 'id': lot.id,
+#                 'variety_name': lot.variety.var_name,
+#                 'variety_sku': lot.variety.sku_prefix,
+#                 'lot_code': lot.get_four_char_lot_code(),
+#                 'full_lot_code': str(lot),
+#                 'germ_rate': germ.germination_rate,
+#                 'status': germ.status,
+#                 'inventory': inventory
+#             })
+    
+#     return JsonResponse(available_lots, safe=False)
 
 # @login_required
 # @user_passes_test(is_employee)
