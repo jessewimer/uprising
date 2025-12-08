@@ -115,7 +115,7 @@
                             <thead>
                                 <tr>
                                     <th>
-                                        Product
+                                        Products
                                         <span class="add-icon" onclick="showAddProductPopup()">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <circle cx="12" cy="12" r="10"></circle>
@@ -222,20 +222,6 @@
                                                 </span>
                                             </td>
                                         {% endif %}
-              
-
-                                        <!-- <td>
-                                            {% if product.lot %}
-                                                {% if product.lot.grower and product.lot.year %}
-                                                    {{ product.lot.grower }}{{ product.lot.year }}{% if product.lot.harvest %}{{ product.lot.harvest }}{% endif %}
-                                                {% else %}
-                                                    --
-                                                {% endif %}
-                                            {% else %}
-                                                --
-                                            {% endif %}
-                         
-                                        </td> -->
                                         <td>{{ product.get_ytd_sales|default:"--" }}</td>
                                         <td>{{ product.get_last_year_sales|default:"--" }}</td>
                                         <td>{{ product.get_total_printed|default:"0" }}</td>
@@ -259,7 +245,7 @@
                             <thead>
                                 <tr>
                                     <th>
-                                        Lot
+                                        Lots
                                         {% if not is_mix %}
                                         <span class="add-icon" onclick="showAddLotPopup()">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -272,7 +258,6 @@
                                     </th>
                                     <th>Germ (For yr.)</th>
                                     <th>Inventory</th>
-                                    <!-- <th>Status</th> -->
                                      <th>
                                         Status
                                         <span class="filter-icon" id="statusFilterIcon" onclick="toggleRetiredLots()" title="Toggle retired lots">
