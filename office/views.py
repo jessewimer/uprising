@@ -115,32 +115,7 @@ class OfficeLoginView(LoginView):
         if next_url:
             return next_url
         return reverse_lazy('office_landing')
-# class OfficeLoginView(LoginView):
-#     template_name = 'office/login.html'
-#     form_class = OfficeLoginForm
-#     redirect_authenticated_user = False  # Let users see login page
 
-#     def form_valid(self, form):
-#         """
-#         Only log in the user if they are in the 'employees' group.
-#         Otherwise, treat it as an invalid login.
-#         """
-#         user = form.get_user()
-#         if is_employee(user):
-#             login(self.request, user)  # Log in the employee
-#             return super().form_valid(form)
-#         else:
-#             # Add a form error so the template shows invalid credentials
-#             form.add_error(None, "Invalid username or password.")
-#             return self.form_invalid(form)
-
-#     def get_success_url(self):
-#         # Check for 'next' parameter first
-#         next_url = self.request.GET.get('next') or self.request.POST.get('next')
-#         if next_url:
-#             return next_url
-#         # Fall back to default landing page
-#         return reverse_lazy('office_landing')
     
 class OfficeLogoutView(LogoutView):
     next_page = 'office_login'
@@ -223,17 +198,6 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
             if selected_variety_pk:
                 # Redirect to URL with new variety
                 return redirect('view_variety', sku_prefix=selected_variety_pk)
-    
-    # --- Get associated products and lots for the current variety ---
-    # products = Product.objects.filter(variety=variety_obj).order_by(
-    #     Case(*[When(sku_suffix=s, then=i) for i, s in enumerate(settings.SKU_SUFFIXES)],
-    #         output_field=IntegerField())
-    # )
-    # lots = Lot.objects.filter(variety=variety_obj).order_by("year")
-    # has_pending_germ = any(lot.get_germ_record_with_no_test_date() for lot in lots)
-    # growers = Grower.objects.all().order_by('code')
-
-
 
     # --- Get associated products and lots for the current variety ---
     products = Product.objects.filter(variety=variety_obj).order_by(
@@ -328,9 +292,6 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
             lots_extra_data_list.append(extra_data)
 
         lots_extra_data = json.dumps(lots_extra_data_list)
-
-    # DELETE EVERYTHING FROM HERE DOWN TO growers = ...
-    # The duplicate section that's causing the error
 
     growers = Grower.objects.all().order_by('code')
 
@@ -467,85 +428,6 @@ def print_product_labels(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
-# @login_required
-# @user_passes_test(is_employee)
-# def print_product_labels(request):
-#     if request.method == 'POST':
-#         if request.user.username not in ["office", "admin"]:
-#             return JsonResponse({'error': 'You are not allowed to print labels'}, status=403)
-        
-#         try:
-#             data = json.loads(request.body)
-#             product_id = data.get('product_id')
-#             print_type = data.get('print_type')
-#             quantity = int(data.get('quantity', 1))
-#             packed_for_year = int(data.get('packed_for_year', 1))
-#             add_to_bulk_pre_pack = data.get('add_to_bulk_pre_pack', False)
-#             bulk_pre_pack_qty = int(data.get('bulk_pre_pack_qty', 0))
-            
-#             print(f"Packed for year: {packed_for_year}")
-#             print(f"Add to bulk pre-pack: {add_to_bulk_pre_pack}, Qty: {bulk_pre_pack_qty}")
-            
-#             product = Product.objects.get(pk=product_id)
-            
-#             # Update bulk_pre_pack if requested
-#             if add_to_bulk_pre_pack and bulk_pre_pack_qty > 0:
-#                 if product.bulk_pre_pack is None:
-#                     product.bulk_pre_pack = 0
-#                 product.bulk_pre_pack += bulk_pre_pack_qty
-#                 product.save()
-#                 print(f"Updated bulk_pre_pack: added {bulk_pre_pack_qty}, new total: {product.bulk_pre_pack}")
-            
-#             # Only log if not printing back-only labels
-#             if print_type not in ['back_single', 'back_sheet']:
-#                 # Calculate actual label quantity
-#                 if print_type in ['front_sheet', 'front_back_sheet']:
-#                     actual_qty = quantity * 30  # 30 labels per sheet
-#                 else:
-#                     actual_qty = quantity  # Singles and front_back_single
-                
-#                 # Get today's date in PST/PDT
-#                 pst = pytz.timezone('America/Los_Angeles')
-#                 today_pst = timezone.now().astimezone(pst).date()
-                
-#                 # Check if there's already a print job for this product today with same for_year
-#                 existing_print = LabelPrint.objects.filter(
-#                     product=product,
-#                     lot=product.lot,
-#                     date=today_pst,
-#                     for_year=packed_for_year
-#                 ).first()
-                
-#                 if existing_print:
-#                     # Add to existing quantity
-#                     existing_print.qty += actual_qty
-#                     existing_print.save()
-#                     print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
-#                 else:
-#                     # Create new print job
-#                     LabelPrint.objects.create(
-#                         product=product,
-#                         lot=product.lot,
-#                         date=today_pst,
-#                         qty=actual_qty,
-#                         for_year=packed_for_year,
-#                     )
-#                     print(f"Created new print job for {actual_qty} labels")
-            
-#             print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
-            
-#             return JsonResponse({
-#                 'success': True,
-#                 'message': f"Printing {quantity} {print_type} labels for {product.variety}."
-#             })
-            
-#         except Product.DoesNotExist:
-#             return JsonResponse({'error': 'Product not found'}, status=404)
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)
-    
-#     return JsonResponse({'error': 'Invalid method'}, status=405)
-
 
 
 @login_required(login_url='/office/login/')
@@ -3484,16 +3366,29 @@ def get_product_packing_history(request):
         data = json.loads(request.body)
         product_id = data.get('product_id')
         
+
         try:
             product = Product.objects.get(id=product_id)
             
+            # Check if this is a mix product
+            is_mix = product.variety.sku_prefix in mix_prefixes
+            
             # Get all print records for this product
-            print_records = product.label_prints.all().order_by('-date')
+            if is_mix:
+                print_records = product.label_prints.select_related('mix_lot').all().order_by('-date')
+            else:
+                print_records = product.label_prints.select_related('lot').all().order_by('-date')
 
 
             packing_history = []
             for record in print_records:
-                lot_code = record.lot.get_four_char_lot_code() if record.lot else 'UNK'
+                # Determine lot code based on whether it's a mix or regular lot
+                if is_mix and record.mix_lot:
+                    lot_code = record.mix_lot.lot_code
+                elif record.lot:
+                    lot_code = record.lot.get_four_char_lot_code()
+                else:
+                    lot_code = 'UNK'
                 packing_history.append({
                     'id': record.id,
                     'date': record.date.strftime('%Y-%m-%d'),
@@ -3501,6 +3396,25 @@ def get_product_packing_history(request):
                     'lot_code': lot_code,
                     'for_year': record.for_year or '--'
                 })
+
+
+        # try:
+        #     product = Product.objects.get(id=product_id)
+            
+        #     # Get all print records for this product
+        #     print_records = product.label_prints.all().order_by('-date')
+
+
+        #     packing_history = []
+        #     for record in print_records:
+        #         lot_code = record.lot.get_four_char_lot_code() if record.lot else 'UNK'
+        #         packing_history.append({
+        #             'id': record.id,
+        #             'date': record.date.strftime('%Y-%m-%d'),
+        #             'qty': record.qty,
+        #             'lot_code': lot_code,
+        #             'for_year': record.for_year or '--'
+        #         })
             
             return JsonResponse({
                 'success': True,
