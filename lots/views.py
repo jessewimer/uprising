@@ -224,7 +224,7 @@ def submit_batch(request):
         return JsonResponse({'success': False, 'error': str(e)})
     
 # Update your existing process_orders and view_stores views if needed:
-@login_required(login_url='office/login/')
+@login_required(login_url='/office/login/')
 def inventory(request):
     context = {}
 

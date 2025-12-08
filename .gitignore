@@ -38,3 +38,6 @@ rack_locations.csv
 # all csv folders
 csv/
 **/csv/
+
+# Claude Code
+.claude/
