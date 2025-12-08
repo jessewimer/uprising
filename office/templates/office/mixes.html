@@ -643,11 +643,6 @@
                     <option value="FLO-ED">Edible Flower Mix</option>
                 </optgroup>
                 
-                <!-- <optgroup label="Component Mixes">
-                    <option value="lettuce-base">Lettuce Mix</option>
-                    <option value="spicy-base">Spicy Mix</option>
-                    <option value="mild-base">Mild Mix</option>
-                </optgroup> -->
                 <optgroup label="Component Mixes">
                     <option value="MIX-LB">Lettuce Mix</option>
                     <option value="MIX-SB">Spicy Mix</option>
@@ -739,14 +734,6 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeAddMixLotModal()">&times;</button>
             <h2 class="modal-title">Create New Mix Lot</h2>
-
-            <!-- <div class="form-group">
-                <label class="form-label">Lot Code</label>
-                <input type="text" class="form-input" id="newLotCode" placeholder="e.g., UO26A">
-                <small style="color: #666; margin-top: 5px; display: block;">
-                    Format: UO[Year][Letter] - e.g., UO26A, UO26B
-                </small>
-            </div> -->
 
             <div class="form-group">
                 <label class="form-label">Lot Code</label>
@@ -1150,7 +1137,7 @@
             lots.forEach(lot => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><input type="checkbox" class="lot-checkbox" data-lot-id="${lot.id}" data-germ="${lot.germ_rate}" data-variety-sku="${lot.variety}" onchange="updateGermCalculation()"></td>
+                    <td><input type="checkbox" class="lot-checkbox" data-lot-id="${lot.id}" data-germ="${lot.germ_rate}" data-variety-sku="${lot.variety_sku}" onchange="updateGermCalculation()"></td>
                     <td>${lot.variety_name}</td>
                     <td>${lot.lot_code}</td>
                     <td>${lot.germ_rate}%</td>
