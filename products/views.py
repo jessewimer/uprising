@@ -173,6 +173,11 @@ def shopify_inventory(request):
     try:
 
         uploaded_file = request.FILES.get('csv_file')
+
+        
+        if not uploaded_file.name.endswith('.csv'):
+            return JsonResponse({'success': False, 'error': 'Only CSV files are allowed'})
+        
         df = pd.read_csv(uploaded_file, dtype=str)
 
         # Check if bulk inventory was requested
