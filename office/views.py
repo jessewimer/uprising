@@ -4081,7 +4081,7 @@ def update_variety_wholesale(request):
         
         variety = Variety.objects.get(sku_prefix=sku_prefix)
         variety.wholesale = wholesale
-        variety.wholesale_rack_designation = rack_designation if wholesale else None
+        variety.wholesale_rack_designation = rack_designation
         variety.save()
         
         return JsonResponse({'success': True})
