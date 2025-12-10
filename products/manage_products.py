@@ -170,6 +170,66 @@ def delete_variety_by_sku():
     except Variety.DoesNotExist:
         print(f"\n❌ No variety found with SKU prefix {sku_prefix}")
 
+def view_variety_lots():
+    """Look up all lots, germinations, and inventory for a variety"""
+    while True:
+        sku_prefix = input("\nEnter SKU prefix (or 'back' to return): ").strip().upper()
+        
+        if sku_prefix.lower() == 'back':
+            break
+            
+        try:
+            variety = Variety.objects.get(sku_prefix=sku_prefix)
+            print(f"\n{'='*80}")
+            print(f"VARIETY: {variety.sku_prefix} - {variety.var_name}")
+            print(f"{'='*80}")
+            
+            lots = Lot.objects.filter(variety=variety).order_by('-year', 'grower')
+            
+            if not lots.exists():
+                print("No lots found for this variety.")
+                continue
+            
+            for lot in lots:
+                print(f"\n{'-'*80}")
+                print(f"LOT: {lot.get_four_char_lot_code()} ({lot.grower.name if lot.grower else 'No grower'} - {lot.year})")
+                if hasattr(lot, 'retired_info'):
+                    print("  STATUS: RETIRED")
+                print(f"{'-'*80}")
+                
+                # Germination Records
+                germinations = lot.germinations.all().order_by('-test_date')
+                if germinations.exists():
+                    print("\n  GERMINATION RECORDS:")
+                    print(f"  {'Test Date':<12} {'For Year':<10} {'Rate':<8} {'Status':<10} {'Notes'}")
+                    print(f"  {'-'*76}")
+                    for germ in germinations:
+                        test_date = germ.test_date.strftime('%m/%d/%Y') if germ.test_date else '--'
+                        notes = (germ.notes[:30] + '...') if germ.notes and len(germ.notes) > 30 else (germ.notes or '--')
+                        print(f"  {test_date:<12} 20{germ.for_year:<8} {germ.germination_rate}%{'':<5} {germ.status:<10} {notes}")
+                else:
+                    print("\n  No germination records")
+                
+                # Inventory Records
+                inventory_records = lot.inventory.all().order_by('-inv_date')
+                if inventory_records.exists():
+                    print("\n  INVENTORY RECORDS:")
+                    print(f"  {'Date':<12} {'Weight (lbs)':<15} {'Smarties':<10} {'Notes'}")
+                    print(f"  {'-'*76}")
+                    for inv in inventory_records:
+                        inv_date = inv.inv_date.strftime('%m/%d/%Y')
+                        notes = (inv.notes[:30] + '...') if inv.notes and len(inv.notes) > 30 else (inv.notes or '--')
+                        print(f"  {inv_date:<12} {str(inv.weight):<15} {inv.smarties_ct:<10} {notes}")
+                else:
+                    print("\n  No inventory records")
+                
+                print()  # Extra line between lots
+            
+            input("\nPress Enter to continue...")
+            
+        except Variety.DoesNotExist:
+            print(f"Variety '{sku_prefix}' not found.")
+            
 def add_variety():
     """Add a new variety - PLACEHOLDER"""
     print("\n⚠️  ADD VARIETY - Function placeholder")
@@ -203,9 +263,10 @@ def variety_menu():
         print("6.  Add new variety")
         print("7.  Edit variety")
         print("8.  Delete variety")
+        print("9.  View variety lots")
         print("0.  Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
         
         if choice == '0':
             break
@@ -232,6 +293,9 @@ def variety_menu():
             pause()
         elif choice == '8':
             delete_variety_by_sku()
+            pause()
+        elif choice == '9':
+            view_variety_lots()
             pause()
 
 
