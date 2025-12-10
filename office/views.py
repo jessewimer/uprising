@@ -295,6 +295,13 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
 
     growers = Grower.objects.all().order_by('code')
 
+    if variety_obj.wholesale:
+        wholesale_status = f"Available ({variety_obj.wholesale_rack_designation or 'No rack'})"
+    elif variety_obj.wholesale_rack_designation == 'N':
+        wholesale_status = "Not available"
+    else:
+        wholesale_status = "N/A"
+
     context = {
         'last_selected': variety_obj,
         'variety': variety_obj,
@@ -317,6 +324,7 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'packed_for_year': packed_for_year,
         'transition': settings.TRANSITION,
         'has_pending_germ': has_pending_germ,
+        'wholesale_status': wholesale_status,
     }
     return render(request, 'office/view_variety.html', context)
 
