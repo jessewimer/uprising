@@ -2404,6 +2404,13 @@ def calculate_variety_usage(variety, sales_year):
             inv_date__gte=season_end_begin,
             inv_date__lte=season_end_end
         ).order_by('-inv_date').first()
+
+        # If no inventory in normal window, check if there's ANY inventory after season start
+        # This handles cases where inventory was taken late (e.g., December)
+        if not end_inventory:
+            end_inventory = inventory_records.filter(
+                inv_date__gt=season_end_begin
+            ).order_by('inv_date').first()
         
         # Determine start weight
         if start_inventory:
