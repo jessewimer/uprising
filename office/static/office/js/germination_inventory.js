@@ -389,15 +389,42 @@ function renderTable() {
         varietyCellContent.className = 'variety-cell-content';
         
         // Print icon
+        // const printIcon = document.createElement('div');
+        // printIcon.className = 'print-icon';
+        // printIcon.innerHTML = `
+        //     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        //         <polyline points="6,9 6,2 18,2 18,9"></polyline>
+        //         <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+        //         <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+        //     </svg>
+        // `;
+        // Print icon
         const printIcon = document.createElement('div');
         printIcon.className = 'print-icon';
-        printIcon.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6,9 6,2 18,2 18,9"></polyline>
-                <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-                <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-            </svg>
-        `;
+
+        // Only make clickable if there's a lot
+        if (lot.lot_id) {
+            printIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                    <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                    <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                </svg>
+            `;
+            printIcon.addEventListener('click', () => handlePrint(lot));
+        } else {
+            // No lot - show disabled print icon
+            printIcon.classList.add('print-icon-disabled');
+            printIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3">
+                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                    <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                    <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                </svg>
+            `;
+            printIcon.style.cursor = 'not-allowed';
+            printIcon.style.opacity = '0.3';
+        }
 
         printIcon.addEventListener('click', () => handlePrint(lot));
         
