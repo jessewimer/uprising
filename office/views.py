@@ -2728,8 +2728,8 @@ def variety_sales_data(request, sku_prefix):
             'wholesale': variety.wholesale, 
             'wholesale_rack_designation': variety.wholesale_rack_designation,
             'usage_data': usage_data,
-            'lot_inventory_data': lot_inventory_data
-
+            'lot_inventory_data': lot_inventory_data,
+            'growout_needed': variety.growout_needed or '',
         })
         
     except Exception as e:
@@ -4431,5 +4431,29 @@ def create_batch(request):
         
     except MixLot.DoesNotExist:
         return JsonResponse({'error': 'Mix lot not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_variety_growout(request, sku_prefix):
+    """Update growout_needed status for a variety"""
+    try:
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+        data = json.loads(request.body)
+        
+        growout_value = data.get('growout_needed', '')
+        # Validate the value
+        if growout_value not in ['', 'green', 'orange', 'red']:
+            return JsonResponse({'error': 'Invalid growout value'}, status=400)
+        
+        variety.growout_needed = growout_value if growout_value else None
+        variety.save()
+        
+        return JsonResponse({'success': True})
+    except Variety.DoesNotExist:
+        return JsonResponse({'error': 'Variety not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

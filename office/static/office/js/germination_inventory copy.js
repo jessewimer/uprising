@@ -64,7 +64,7 @@ function setupEventListeners() {
             closeReprintModal();
         }
     });
-
+    
     // Growout box selection handler
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('growout-box')) {
@@ -79,33 +79,41 @@ function setupEventListeners() {
             e.target.classList.add('selected');
             
             // Save the selection
-            const growoutSection = document.getElementById('growoutSection');
-            const skuPrefix = growoutSection.dataset.skuPrefix;
+            const skuPrefix = document.getElementById('salesModal').dataset.currentSku;
             const growoutValue = e.target.dataset.value;
             
-            fetch(`/office/variety/${skuPrefix}/update-growout/`, {
+            fetch(`/office/api/variety-growout/${skuPrefix}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({ growout_needed: growoutValue })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showMessage('Growout status updated', 'success');
-                } else {
-                    showMessage('Error updating growout status', 'error');
+                    console.log('Growout status updated');
                 }
             })
-            .catch(error => {
-                console.error('Error updating growout:', error);
-                showMessage('Error updating growout status', 'error');
-            });
+            .catch(error => console.error('Error updating growout:', error));
         }
     });
 }
+// Add wholesale checkbox change handler
+document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
+    const rackTypeContainer = document.getElementById('rackTypeContainer');
+    const notAvailableCheckbox = document.getElementById('notAvailableCheckbox');
+    
+    if (this.checked) {
+        rackTypeContainer.style.display = 'block';
+        notAvailableCheckbox.checked = false; // Uncheck "Not Available" when Wholesale is checked
+    } else {
+        rackTypeContainer.style.display = 'none';
+        // DON'T clear the selection - just hide it
+    }
+});
+
 
 // Add wholesale checkbox change handler
 document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
@@ -136,6 +144,40 @@ document.getElementById('notAvailableCheckbox')?.addEventListener('change', func
         rackTypeContainer.style.display = 'none';
     }
 });
+// // Add "Not Available" checkbox change handler
+// document.getElementById('notAvailableCheckbox')?.addEventListener('change', function() {
+//     const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
+//     const rackTypeContainer = document.getElementById('rackTypeContainer');
+    
+//     if (this.checked) {
+//         wholesaleCheckbox.checked = false; // Uncheck Wholesale when "Not Available" is checked
+//         rackTypeContainer.style.display = 'none'; // Hide rack options
+//     }
+// });
+// // Add wholesale checkbox change handler
+// // document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
+// //     const rackTypeContainer = document.getElementById('rackTypeContainer');
+// //     if (this.checked) {
+// //         rackTypeContainer.style.display = 'block';
+// //     } else {
+// //         rackTypeContainer.style.display = 'none';
+// //         // Clear rack selection when unchecking wholesale
+// //         document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+// //             radio.checked = false;
+// //         });
+// //     }
+// // });
+
+// // Add wholesale checkbox change handler
+// document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
+//     const rackTypeContainer = document.getElementById('rackTypeContainer');
+//     if (this.checked) {
+//         rackTypeContainer.style.display = 'block';
+//     } else {
+//         rackTypeContainer.style.display = 'none';
+//         // DON'T clear the selection - just hide it
+//     }
+// });
 
 // Cache configuration
 const CACHE_KEY = 'germination_inventory_data';
@@ -724,6 +766,7 @@ function handleResend() {
 }
 
 // Execute print
+// Execute print
 function executePrint() {
     console.log('Executing print for:', currentPrintJob);
     
@@ -865,87 +908,196 @@ function tryFlaskPrint(printJobData) {
     });
 }
 
-function showSalesData(sku_prefix, variety_name) {
-    document.getElementById('salesModalTitle').textContent = `Sales Data - ${variety_name}`;
-    document.getElementById('salesModal').style.display = 'flex';
+// function showSalesData(skuPrefix) {
+//     console.log('Starting showSalesData for:', skuPrefix);
     
-    // Clear all rack selections from previous modal opens
-    document.querySelectorAll('input[name="rackType"]').forEach(radio => {
-        radio.checked = false;
-    });
+//     fetch(`/office/api/variety-sales/${skuPrefix}/`)
+//         .then(response => {
+//             console.log('Response status:', response.status);
+//             if (!response.ok) {
+//                 throw new Error(`HTTP error! status: ${response.status}`);
+//             }
+//             return response.json();
+//         })
+//         .then(data => {
+//             console.log('Received data:', data);
+            
+//             if (data.error) {
+//                 console.log('Data contains error:', data.error);
+//                 alert('Error loading sales data: ' + data.error);
+//                 return;
+//             }
 
-    // Reset sales section
-    document.getElementById('salesLoading').style.display = 'block';
-    document.getElementById('salesTable').style.display = 'none';
-    document.getElementById('salesEmpty').style.display = 'none';
-    
-    // Reset inventory section
-    document.getElementById('inventorySection').style.display = 'none';
-    // Reset usage section
-    document.getElementById('usageSection').style.display = 'none';
-    document.getElementById('usageLoading').style.display = 'block';
-    document.getElementById('usageContent').style.display = 'none';
-    document.getElementById('usageEmpty').style.display = 'none';
-    
-    fetch(window.appUrls.varietySalesData.replace('PLACEHOLDER', sku_prefix))
+//             console.log('About to update modal...');
+//             const salesDataDiv = document.getElementById('salesContent');
+//             // const salesDataDiv = document.getElementById('salesData');
+//             console.log('salesData element:', salesDataDiv);
+            
+//             if (!salesDataDiv) {
+//                 console.error('salesData div not found!');
+//                 alert('Modal element not found');
+//                 return;
+//             }
+
+//             // Store the current SKU for updates
+//             document.getElementById('salesModal').dataset.currentSku = skuPrefix;
+
+//             // Build the modal content
+//             let modalContent = `
+//                 <h3>${data.variety_name || skuPrefix}</h3>
+                
+//                 <!-- Wholesale Section -->
+//                 <div class="info-section">
+//                     <div class="info-label">Wholesale:</div>
+//                     <div class="wholesale-badge ${data.wholesale ? 'active' : 'inactive'}">
+//                         ${data.wholesale ? (data.wholesale_rack_designation || 'Yes') : 'No'}
+//                     </div>
+//                 </div>
+
+//                 <!-- Growout Section -->
+//                 <div class="info-section">
+//                     <div class="info-label">Growout:</div>
+//                     <div class="growout-selection">
+//                         <button class="growout-box blank ${(!data.growout_needed || data.growout_needed === '') ? 'selected' : ''}" data-value=""></button>
+//                         <button class="growout-box green ${data.growout_needed === 'green' ? 'selected' : ''}" data-value="green"></button>
+//                         <button class="growout-box orange ${data.growout_needed === 'orange' ? 'selected' : ''}" data-value="orange"></button>
+//                         <button class="growout-box red ${data.growout_needed === 'red' ? 'selected' : ''}" data-value="red"></button>
+//                     </div>
+//                 </div>
+
+//                 <!-- Sales Data Section -->
+//                 <div class="sales-section">
+//                     <h4>Sales Data (${data.display_year || data.year || 'No data'})</h4>
+//                     <table class="sales-table">
+//                         <thead>
+//                             <tr>
+//                                 <th>Product</th>
+//                                 <th>Quantity</th>
+//                             </tr>
+//                         </thead>
+//                         <tbody>
+//             `;
+
+//             if (data.sales_data && data.sales_data.length > 0) {
+//                 data.sales_data.forEach(sale => {
+//                     const rowClass = sale.is_total ? 'total-row' : '';
+//                     modalContent += `
+//                         <tr class="${rowClass}">
+//                             <td>${sale.display_name}</td>
+//                             <td class="quantity-cell">${sale.quantity}</td>
+//                         </tr>
+//                     `;
+//                 });
+//             } else {
+//                 modalContent += '<tr><td colspan="2" style="text-align: center; color: #999;">No sales data available</td></tr>';
+//             }
+
+//             modalContent += `
+//                         </tbody>
+//                     </table>
+//                 </div>
+
+//                 <!-- Usage Data Section -->
+//                 <div class="sales-section">
+//                     <h4>Usage Data (${data.usage_data?.sales_year ? '20' + data.usage_data.sales_year : 'N/A'})</h4>
+//                     <table class="sales-table">
+//                         <thead>
+//                             <tr>
+//                                 <th>Description</th>
+//                                 <th>Quantity</th>
+//                             </tr>
+//                         </thead>
+//                         <tbody>
+//             `;
+
+//             if (data.usage_data && data.usage_data.products && data.usage_data.products.length > 0) {
+//                 data.usage_data.products.forEach(usage => {
+//                     modalContent += `
+//                         <tr>
+//                             <td>${usage.display_name}</td>
+//                             <td class="quantity-cell">${usage.quantity}</td>
+//                         </tr>
+//                     `;
+//                 });
+//             } else {
+//                 modalContent += '<tr><td colspan="2" style="text-align: center; color: #999;">No usage data available</td></tr>';
+//             }
+
+//             modalContent += `
+//                         </tbody>
+//                     </table>
+//                 </div>
+
+//                 <!-- Lot Inventory Section -->
+//                 <div class="sales-section">
+//                     <h4>Lot Inventory (Order Year ${data.lot_inventory_data?.years?.join(', ') || 'N/A'})</h4>
+//                     <table class="sales-table">
+//                         <thead>
+//                             <tr>
+//                                 <th>Lot Number</th>
+//                                 <th>Quantity (lbs)</th>
+//                             </tr>
+//                         </thead>
+//                         <tbody>
+//             `;
+
+//             if (data.lot_inventory_data && data.lot_inventory_data.lots && data.lot_inventory_data.lots.length > 0) {
+//                 data.lot_inventory_data.lots.forEach(lot => {
+//                     modalContent += `
+//                         <tr>
+//                             <td>${lot.lot_number}</td>
+//                             <td class="quantity-cell">${lot.quantity}</td>
+//                         </tr>
+//                     `;
+//                 });
+//                 // Add total row
+//                 modalContent += `
+//                     <tr class="total-row">
+//                         <td><strong>Total</strong></td>
+//                         <td class="quantity-cell"><strong>${data.lot_inventory_data.total_inventory}</strong></td>
+//                     </tr>
+//                 `;
+//             } else {
+//                 modalContent += '<tr><td colspan="2" style="text-align: center; color: #999;">No lot inventory available</td></tr>';
+//             }
+
+//             modalContent += `
+//                         </tbody>
+//                     </table>
+//                 </div>
+//             `;
+
+//             console.log('Setting innerHTML...');
+//             // Insert content into modal
+//             salesDataDiv.innerHTML = modalContent;
+            
+//             console.log('Showing modal...');
+//             // Show modal
+//             document.getElementById('salesModal').style.display = 'block';
+//             console.log('Modal should be visible now');
+//         })
+//         .catch(error => {
+//             console.error('Error in catch block:', error);
+//             alert('Error loading sales data. Please try again.');
+//         });
+// }
+
+function showSalesData(skuPrefix) {
+    fetch(`/office/api/variety-sales/${skuPrefix}/`)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('salesLoading').style.display = 'none';
-            
-            if (data.sales_data && data.sales_data.length > 0) {
-                populateSalesTable(data.sales_data, data.display_year);
-                document.getElementById('salesTable').style.display = 'table';
-            } else {
-                document.getElementById('salesEmpty').style.display = 'block';
+            if (data.error) {
+                alert('Error loading sales data: ' + data.error);
+                return;
             }
 
-            // Show wholesale section
-            const wholesaleSection = document.getElementById('wholesaleSection');
-            const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
-            wholesaleSection.style.display = 'block';
-            wholesaleCheckbox.checked = data.wholesale || false;
-            wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
-            wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
-            wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
+            // Store the current SKU for updates
+            document.getElementById('salesModal').dataset.currentSku = skuPrefix;
 
-            // Set up "Not Available" checkbox
-            const notAvailableCheckbox = document.getElementById('notAvailableCheckbox');
-            const notAvailableWrapper = notAvailableCheckbox.closest('.wholesale-checkbox-wrapper');
-            const isNotAvailable = data.wholesale_rack_designation === 'N';
-            
-            notAvailableCheckbox.checked = isNotAvailable;
-            notAvailableCheckbox.dataset.skuPrefix = sku_prefix;
-            notAvailableCheckbox.dataset.originalValue = isNotAvailable;
+            // Set variety name
+            document.getElementById('salesVarietyName').textContent = data.variety_name || skuPrefix;
 
-            // Show/hide and set rack type based on wholesale status
-            const rackTypeContainer = document.getElementById('rackTypeContainer');
-            if (data.wholesale) {
-                // Wholesale is true - show rack options, hide "Not Available"
-                rackTypeContainer.style.display = 'block';
-                notAvailableWrapper.style.display = 'none';
-                if (data.wholesale_rack_designation && data.wholesale_rack_designation !== 'N') {
-                    const rackValue = String(data.wholesale_rack_designation).trim();
-                    const rackRadio = document.querySelector(`input[name="rackType"][value="${rackValue}"]`);
-                    if (rackRadio) {
-                        rackRadio.checked = true;
-                    }
-                }
-            } else {
-                // Wholesale is false - hide rack options, show "Not Available"
-                rackTypeContainer.style.display = 'none';
-                notAvailableWrapper.style.display = 'inline-flex';
-                document.querySelectorAll('input[name="rackType"]').forEach(radio => {
-                    radio.checked = false;
-                });
-            }
-
-
-
-            // Show and populate growout section
-            const growoutSection = document.getElementById('growoutSection');
-            growoutSection.style.display = 'block';
-            
-            // Set the selected growout box
+            // Set growout selection
             const growoutValue = data.growout_needed || '';
             document.querySelectorAll('.growout-box').forEach(box => {
                 if (box.dataset.value === growoutValue) {
@@ -954,36 +1106,185 @@ function showSalesData(sku_prefix, variety_name) {
                     box.classList.remove('selected');
                 }
             });
-            
-            // Store SKU for growout updates
-            growoutSection.dataset.skuPrefix = sku_prefix;
 
-
-
-
-
-            // Show inventory section
-            if (data.lot_inventory_data) {
-                populateInventoryData(data.lot_inventory_data);
-            }
-            
-            // Show usage section
-            const usageSection = document.getElementById('usageSection');
-            usageSection.style.display = 'block';
-            
-            if (data.usage_data && data.usage_data.total_lbs > 0) {
-                populateUsageData(data.usage_data);
+            // Set wholesale status
+            const wholesaleStatusElement = document.getElementById('wholesaleStatus');
+            if (data.wholesale) {
+                wholesaleStatusElement.textContent = data.wholesale_rack_designation || 'Yes';
+                wholesaleStatusElement.className = 'wholesale-badge active';
             } else {
-                document.getElementById('usageLoading').style.display = 'none';
-                document.getElementById('usageEmpty').style.display = 'block';
+                wholesaleStatusElement.textContent = 'No';
+                wholesaleStatusElement.className = 'wholesale-badge inactive';
             }
+
+            // Set year
+            const salesYearElement = document.getElementById('salesYear');
+            if (data.year !== null) {
+                salesYearElement.textContent = data.display_year || data.year;
+            } else {
+                salesYearElement.textContent = 'No sales data';
+            }
+
+            // Populate sales table
+            const salesTableBody = document.getElementById('salesTableBody');
+            salesTableBody.innerHTML = '';
+
+            if (data.sales_data && data.sales_data.length > 0) {
+                data.sales_data.forEach(sale => {
+                    const row = document.createElement('tr');
+                    if (sale.is_total) {
+                        row.classList.add('total-row');
+                    }
+                    row.innerHTML = `
+                        <td>${sale.display_name}</td>
+                        <td class="quantity-cell">${sale.quantity}</td>
+                    `;
+                    salesTableBody.appendChild(row);
+                });
+            } else {
+                salesTableBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #999;">No sales data available</td></tr>';
+            }
+
+            // Populate usage table
+            const usageTableBody = document.getElementById('usageTableBody');
+            usageTableBody.innerHTML = '';
+
+            if (data.usage_data && data.usage_data.length > 0) {
+                data.usage_data.forEach(usage => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${usage.display_name}</td>
+                        <td class="quantity-cell">${usage.quantity}</td>
+                    `;
+                    usageTableBody.appendChild(row);
+                });
+            } else {
+                usageTableBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #999;">No usage data available</td></tr>';
+            }
+
+            // Populate lot inventory table
+            const lotInventoryTableBody = document.getElementById('lotInventoryTableBody');
+            lotInventoryTableBody.innerHTML = '';
+
+            if (data.lot_inventory_data && data.lot_inventory_data.length > 0) {
+                data.lot_inventory_data.forEach(lot => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${lot.lot_number}</td>
+                        <td class="quantity-cell">${lot.quantity}</td>
+                    `;
+                    lotInventoryTableBody.appendChild(row);
+                });
+            } else {
+                lotInventoryTableBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #999;">No lot inventory available</td></tr>';
+            }
+
+            // Show modal
+            document.getElementById('salesModal').style.display = 'block';
         })
         .catch(error => {
-            console.error('Sales error:', error);
-            document.getElementById('salesLoading').style.display = 'none';
-            document.getElementById('salesEmpty').style.display = 'block';
+            console.error('Error fetching sales data:', error);
+            alert('Error loading sales data. Please try again.');
         });
 }
+
+// Sales functions
+// function showSalesData(sku_prefix, variety_name) {
+//     document.getElementById('salesModalTitle').textContent = `Sales Data - ${variety_name}`;
+//     document.getElementById('salesModal').style.display = 'flex';
+    
+//     // Clear all rack selections from previous modal opens
+//     document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+//         radio.checked = false;
+//     });
+
+//     // Reset sales section
+//     document.getElementById('salesLoading').style.display = 'block';
+//     document.getElementById('salesTable').style.display = 'none';
+//     document.getElementById('salesEmpty').style.display = 'none';
+    
+//     // Reset inventory section
+//     document.getElementById('inventorySection').style.display = 'none';
+//     // Reset usage section
+//     document.getElementById('usageSection').style.display = 'none';
+//     document.getElementById('usageLoading').style.display = 'block';
+//     document.getElementById('usageContent').style.display = 'none';
+//     document.getElementById('usageEmpty').style.display = 'none';
+    
+//     fetch(window.appUrls.varietySalesData.replace('PLACEHOLDER', sku_prefix))
+//         .then(response => response.json())
+//         .then(data => {
+//             document.getElementById('salesLoading').style.display = 'none';
+            
+//             if (data.sales_data && data.sales_data.length > 0) {
+//                 populateSalesTable(data.sales_data, data.display_year);
+//                 document.getElementById('salesTable').style.display = 'table';
+//             } else {
+//                 document.getElementById('salesEmpty').style.display = 'block';
+//             }
+
+//             // Show wholesale section
+//             const wholesaleSection = document.getElementById('wholesaleSection');
+//             const wholesaleCheckbox = document.getElementById('wholesaleCheckbox');
+//             wholesaleSection.style.display = 'block';
+//             wholesaleCheckbox.checked = data.wholesale || false;
+//             wholesaleCheckbox.dataset.skuPrefix = data.sku_prefix;
+//             wholesaleCheckbox.dataset.originalValue = data.wholesale || false;
+//             wholesaleCheckbox.dataset.rackDesignation = data.wholesale_rack_designation || '';
+
+//             // Set up "Not Available" checkbox
+//             const notAvailableCheckbox = document.getElementById('notAvailableCheckbox');
+//             const notAvailableWrapper = notAvailableCheckbox.closest('.wholesale-checkbox-wrapper');
+//             const isNotAvailable = data.wholesale_rack_designation === 'N';
+            
+//             notAvailableCheckbox.checked = isNotAvailable;
+//             notAvailableCheckbox.dataset.skuPrefix = sku_prefix;
+//             notAvailableCheckbox.dataset.originalValue = isNotAvailable;
+
+//             // Show/hide and set rack type based on wholesale status
+//             const rackTypeContainer = document.getElementById('rackTypeContainer');
+//             if (data.wholesale) {
+//                 // Wholesale is true - show rack options, hide "Not Available"
+//                 rackTypeContainer.style.display = 'block';
+//                 notAvailableWrapper.style.display = 'none';
+//                 if (data.wholesale_rack_designation && data.wholesale_rack_designation !== 'N') {
+//                     const rackValue = String(data.wholesale_rack_designation).trim();
+//                     const rackRadio = document.querySelector(`input[name="rackType"][value="${rackValue}"]`);
+//                     if (rackRadio) {
+//                         rackRadio.checked = true;
+//                     }
+//                 }
+//             } else {
+//                 // Wholesale is false - hide rack options, show "Not Available"
+//                 rackTypeContainer.style.display = 'none';
+//                 notAvailableWrapper.style.display = 'inline-flex';
+//                 document.querySelectorAll('input[name="rackType"]').forEach(radio => {
+//                     radio.checked = false;
+//                 });
+//             }
+
+//             // Show inventory section
+//             if (data.lot_inventory_data) {
+//                 populateInventoryData(data.lot_inventory_data);
+//             }
+            
+//             // Show usage section
+//             const usageSection = document.getElementById('usageSection');
+//             usageSection.style.display = 'block';
+            
+//             if (data.usage_data && data.usage_data.total_lbs > 0) {
+//                 populateUsageData(data.usage_data);
+//             } else {
+//                 document.getElementById('usageLoading').style.display = 'none';
+//                 document.getElementById('usageEmpty').style.display = 'block';
+//             }
+//         })
+//         .catch(error => {
+//             console.error('Sales error:', error);
+//             document.getElementById('salesLoading').style.display = 'none';
+//             document.getElementById('salesEmpty').style.display = 'block';
+//         });
+// }
 
 function populateSalesTable(salesData, displayYear) {
     const tbody = document.getElementById('salesTableBody');
@@ -1426,3 +1727,96 @@ document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function(
         notAvailableCheckbox.checked = originalNotAvailable;
     });
 });
+
+// Wholesale save handler
+// document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function() {
+//     const checkbox = document.getElementById('wholesaleCheckbox');
+//     const skuPrefix = checkbox.dataset.skuPrefix;
+//     const newValue = checkbox.checked;
+//     const originalValue = checkbox.dataset.originalValue === 'true';
+    
+//     // Get rack type selection
+//     const selectedRack = document.querySelector('input[name="rackType"]:checked');
+//     const rackDesignation = selectedRack ? selectedRack.value : null;
+//     const originalRack = checkbox.dataset.rackDesignation || null;
+    
+//     // Validation: if wholesale is checked, rack type must be selected
+//     if (newValue && !rackDesignation) {
+//         showMessage('Please select a rack type before saving', 'error');
+//         return;
+//     }
+    
+//     // Check if anything changed
+//     if (newValue === originalValue && rackDesignation === originalRack) {
+//         showMessage('No changes to save', 'error');
+//         return;
+//     }
+    
+//     fetch('/office/update-variety-wholesale/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCSRFToken()
+//         },
+//         body: JSON.stringify({
+//             sku_prefix: skuPrefix,
+//             wholesale: newValue,
+//             wholesale_rack_designation: newValue ? rackDesignation : null
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             checkbox.dataset.originalValue = newValue;
+//             checkbox.dataset.rackDesignation = newValue ? rackDesignation : '';
+//             showMessage('Wholesale status updated successfully', 'success');
+//         } else {
+//             showMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+//             checkbox.checked = originalValue;
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//         showMessage('Network error occurred', 'error');
+//         checkbox.checked = originalValue;
+//     });
+// });
+// // Wholesale save handler
+// document.getElementById('wholesaleSaveBtn')?.addEventListener('click', function() {
+//     const checkbox = document.getElementById('wholesaleCheckbox');
+//     const skuPrefix = checkbox.dataset.skuPrefix;
+//     const newValue = checkbox.checked;
+//     const originalValue = checkbox.dataset.originalValue === 'true';
+    
+//     if (newValue === originalValue) {
+//         showMessage('No changes to save', 'error'); // CHANGED
+//         return;
+//     }
+    
+//     fetch('/office/update-variety-wholesale/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCSRFToken()
+//         },
+//         body: JSON.stringify({
+//             sku_prefix: skuPrefix,
+//             wholesale: newValue
+//         })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             checkbox.dataset.originalValue = newValue;
+//             showMessage('Wholesale status updated successfully', 'success'); // CHANGED
+//         } else {
+//             showMessage('Error: ' + (data.error || 'Unknown error'), 'error'); // CHANGED
+//             checkbox.checked = originalValue;
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//         showMessage('Network error occurred', 'error'); // CHANGED
+//         checkbox.checked = originalValue;
+//     });
+// });

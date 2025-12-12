@@ -55,31 +55,7 @@ class OOIncludesMisc(models.Model):
 
     def __str__(self):
         return f"{self.qty} × {self.sku} in {self.order}"
-
-# class OOIncludesMisc(models.Model):
-#     order = models.ForeignKey(OnlineOrder, on_delete=models.CASCADE, related_name="includes_misc")
-#     sku = models.CharField(max_length=100, blank=True, null=True)
-#     misc_product = models.ForeignKey(MiscProduct, on_delete=models.CASCADE, null=True, blank=True)
-#     qty = models.IntegerField(default=0)
-#     price = models.DecimalField(max_digits=10, decimal_places=2)
-
-#     class Meta:
-#         db_table = "oo_includes_misc"
-#         unique_together = ("order", "misc_product")
-
-#     def __str__(self):
-#         return f"{self.qty} × {self.misc_product} in {self.order}"
-
-
-# class PulledOrder(models.Model):
-#     order_number = models.CharField(max_length=100)
-
-#     class Meta:
-#         db_table = "pulled_order"
-
-#     def __str__(self):
-#         return f"PulledOrder {self.order_number}"
-
+    
 
 class BatchMetadata(models.Model):
     batch_identifier = models.CharField(max_length=100, unique=True)

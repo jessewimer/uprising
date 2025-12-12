@@ -1101,6 +1101,54 @@ body {
 }
 
 
+
+
+.growout-selection {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.growout-box {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.growout-box:hover {
+    transform: scale(1.1);
+    border-color: #666;
+}
+
+.growout-box.selected {
+    border: 3px solid #000;
+    box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+
+.growout-box.blank {
+    background-color: white;
+}
+
+.growout-box.green {
+    background-color: #4CAF50;
+}
+
+.growout-box.orange {
+    background-color: #FF9800;
+}
+
+.growout-box.red {
+    background-color: #f44336;
+}
+
+
+
+
+
+
 /* Message System */
 .messages-container {
     position: fixed;

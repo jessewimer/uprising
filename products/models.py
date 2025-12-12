@@ -26,6 +26,7 @@ class Variety(models.Model):
     wholesale_rack_designation = models.CharField(max_length=1, blank=True, null=True)
     website_bulk = models.BooleanField(default=False)
     is_mix = models.BooleanField(default=False)
+    growout_needed = models.CharField(max_length=10, blank=True, null=True)
 
     desc_line1 = models.TextField(blank=True, null=True)
     desc_line2 = models.TextField(blank=True, null=True)
@@ -172,7 +173,6 @@ class Sales(models.Model):
     quantity = models.IntegerField()
     year = models.IntegerField()
     wholesale = models.BooleanField(default=False)
-
 
 
 # rethink this, maybe tie into lot??
