@@ -426,7 +426,7 @@ function renderTable() {
             printIcon.style.opacity = '0.3';
         }
 
-        printIcon.addEventListener('click', () => handlePrint(lot));
+        // printIcon.addEventListener('click', () => handlePrint(lot));
         
         // NEW: Bulk icon
         const bulkIcon = document.createElement('div');
@@ -570,6 +570,8 @@ function checkFlaskConnection() {
 
 // Handle print click
 function handlePrint(lot) {
+    console.log('handlePrint called for:', lot.variety_name, lot.lot_code);
+    console.log('Stack trace:', new Error().stack);
     console.log('Print clicked for:', lot.variety_name, lot.lot_code);
     
     // First check if Flask app is running
