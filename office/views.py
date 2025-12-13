@@ -1618,7 +1618,8 @@ def germination_inventory_data(request):
         
         # Now build the final list by iterating through ALL varieties in sorted order
         all_varieties = Variety.objects.exclude(
-            sku_prefix__in=['CAR-RA', 'BEE-3B', 'LET-MX', 'MIX-SP', 'MIX-MI', 'MIX-BR', 'FLO-ED']
+            # sku_prefix__in=['CAR-RA', 'BEE-3B', 'LET-MX', 'MIX-SP', 'MIX-MI', 'MIX-BR', 'FLO-ED', 'MIX-LB', 'MIX-SB', 'MIX-MB']
+            sku_prefix__in=['MIX-LB', 'MIX-SB', 'MIX-MB']
         ).annotate(
             category_order=Case(
                 When(category='Vegetables', then=1),
