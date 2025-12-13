@@ -338,6 +338,34 @@ def find_lots_without_germ_for_year():
     
     print(f"\nTotal: {len(lots_without_germ)} lots without germ entry for 20{year}")
 
+def delete_mix_variety_lots():
+    """Delete all lots associated with mix varieties"""
+    
+    mix_sku_prefixes = ['CAR-RA', 'BEE-3B', 'LET-MX', 'MIX-SP', 'MIX-MI', 'MIX-BR', 'FLO-ED']
+    
+    # Get all lots associated with mix varieties
+    lots_to_delete = Lot.objects.filter(variety__sku_prefix__in=mix_sku_prefixes)
+    
+    count = lots_to_delete.count()
+    
+    if count == 0:
+        print("No lots found for mix varieties.")
+        return
+    
+    print(f"Found {count} lots associated with mix varieties:")
+    for lot in lots_to_delete:
+        grower_code = lot.grower.code if lot.grower else 'UNK'
+        lot_code = f"{grower_code}{lot.year}"
+        print(f"  - {lot.variety.var_name} ({lot.variety.sku_prefix}) - Lot: {lot_code}")
+    
+    confirm = input(f"\nAre you sure you want to delete these {count} lots? (yes/no): ")
+    
+    if confirm.lower() == 'yes':
+        lots_to_delete.delete()
+        print(f"✓ Successfully deleted {count} lots.")
+    else:
+        print("Deletion cancelled.")
+
 
 def lot_menu():
     """Lot management submenu"""
@@ -352,9 +380,10 @@ def lot_menu():
         print("4. Edit lot")
         print("5. Retire lot")
         print("6. Find lots without germ entry for year")
+        print("7. Delete all mix variety lots")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7'])
         
         if choice == '0':
             break
@@ -375,6 +404,9 @@ def lot_menu():
             pause()
         elif choice == '6':
             find_lots_without_germ_for_year()
+            pause()
+        elif choice == '7':
+            delete_mix_variety_lots()
             pause()
 
 
