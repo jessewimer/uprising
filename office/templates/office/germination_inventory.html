@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Uprising Seeds - Germination / Inventory</title>
 
     <!-- base -->
@@ -14,6 +15,7 @@
 </head>
 
 <body>
+
     <!-- Message System Container -->
     <div class="messages-container" id="messagesContainer"></div>
 
@@ -101,9 +103,6 @@
             </div>
         </div>
     </div>
-
-    <!-- CSRF Token -->
-    {% csrf_token %}
 
     <!-- Print Confirmation Modal -->
     <div class="modal" id="printModal">
@@ -326,7 +325,7 @@
                 </div>
 
 
-                
+
                 <!-- Growout Section -->
                 <div class="growout-section" id="growoutSection" style="display: none;">
                     <div class="growout-container">

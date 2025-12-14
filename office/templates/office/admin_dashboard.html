@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Uprising Seeds - Admin Dashboard</title>
 
     <!-- link base.css -->
@@ -12,6 +13,7 @@
 </head>
 
 <body>
+
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -105,7 +107,6 @@
             </div>
 
             <form id="wholesalePriceForm">
-                {% csrf_token %}
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="price_year">Year (2 digits) *</label>
@@ -143,7 +144,6 @@
             </div>
 
             <form id="varietyForm">
-                {% csrf_token %}
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="sku_prefix">SKU Prefix *</label>
@@ -328,7 +328,6 @@
             </div>
 
             <form id="productForm">
-                {% csrf_token %}
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="product_variety">Variety</label>

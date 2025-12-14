@@ -1,10 +1,6 @@
 
-// const varietyDataString = '{{ all_vars_json|escapejs }}';
-// const packedForYear = '{{ packed_for_year }}'; // e.g., "26" or "25"
-// const isTransition = JSON.parse('{{ transition|yesno:"true,false"|lower }}');
-// const lotsExtraData = JSON.parse('{{ lots_extra_data|escapejs }}');
+
 let allVarieties = JSON.parse(varietyDataString);
-// const lotsDataString = '{{ lots_json|escapejs }}';
 let allLotsData = JSON.parse(lotsDataString);
 let availableLots = JSON.parse(lotsDataString);
 let currentLotId = null;
@@ -639,7 +635,7 @@ function saveVarietyChanges() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(formData)
     })
@@ -690,7 +686,7 @@ function submitEditProduct(event) {
         formData.append('is_sub_product', 'on');
     }
     
-    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    formData.append('csrfmiddlewaretoken', getCSRFToken());
     
     fetch('/office/edit-product/', {
         method: 'POST',
@@ -760,7 +756,7 @@ function viewProductPackingHistory(productId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             product_id: productId
@@ -921,7 +917,7 @@ function submitEditPackingRecord(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             record_id: currentPackingRecordId,
@@ -977,7 +973,7 @@ function confirmDeletePackingRecord() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             record_id: currentPackingRecordId
@@ -1281,7 +1277,7 @@ function proceedWithActualPrint() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
+                        'X-CSRFToken': getCSRFToken()
                     },
                     body: JSON.stringify({
                         product_id: currentProductId,
@@ -1330,113 +1326,7 @@ function proceedWithActualPrint() {
         bulkPrePackDecision = null;
     }
 }
-// function proceedWithActualPrint() {
-//     const quantity = document.getElementById('printQuantity').value;
-    
-//     if (!currentProductId || !quantity || quantity < 1) {
-//         showMessage('Please enter a valid quantity', 'error');
-//         return;
-//     }
 
-//     // Disable buttons and show loading state immediately
-//     const printBtn = document.querySelector('.print-btn');
-//     const cancelBtn = document.querySelector('.cancel-btn');
-//     const popup = document.querySelector('.print-popup');
-    
-//     printBtn.disabled = true;
-//     cancelBtn.disabled = true;
-//     printBtn.classList.add('loading');
-//     popup.classList.add('loading');
-    
-//     // Change button text to indicate loading
-//     const originalPrintText = printBtn.textContent;
-//     printBtn.textContent = 'Printing...';
-
-//     try {
-//         // Collect all data from the page
-//         const printData = collectPrintData(currentProductId, quantity);
-        
-//         if (!printData) {
-//             showMessage('Could not collect print data', 'error');
-//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//             return;
-//         }
-
-//         // Determine Flask endpoints based on print option
-//         const endpoints = getFlaskEndpoints(selectedPrintOption);
-        
-//         if (endpoints.length === 0) {
-//             showMessage('Invalid print option selected', 'error');
-//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//             return;
-//         }
-
-//         console.log('Sending to Flask:', printData);
-
-//         // Step 1: Send to Flask for printing - SEQUENTIALLY to maintain order
-//         let printPromise = Promise.resolve();
-        
-//         endpoints.forEach(endpoint => {
-//             printPromise = printPromise.then(() => 
-//                 fetch(`http://localhost:5000${endpoint}`, {
-//                     method: 'POST',
-//                     headers: { 'Content-Type': 'application/json' },
-//                     body: JSON.stringify(printData)
-//                 })
-//                 .then(response => {
-//                     if (!response.ok) {
-//                         throw new Error(`Flask endpoint ${endpoint} failed`);
-//                     }
-//                     return response;
-//                 })
-//             );
-//         });
-
-//         printPromise
-//             .then(() => {
-//                 // Step 2: Record print job in Django after all printing is complete
-//                 return fetch('/office/print-product-labels/', {
-//                     method: 'POST',
-//                     headers: {
-//                         'Content-Type': 'application/json',
-//                         'X-CSRFToken': getCookie('csrftoken')
-//                     },
-//                     body: JSON.stringify({
-//                         product_id: currentProductId,
-//                         print_type: selectedPrintOption,
-//                         quantity: quantity,
-//                         packed_for_year: printData.for_year
-//                     })
-//                 });
-//             })
-//             .then(response => response.json())
-//             .then(data => {
-//                 if (data.success) {
-//                     showMessage(`Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`, 'success');
-//                     hidePrintPopup(); // This will reset the buttons when popup closes
-//                     // Refresh page after 2 seconds to show updated print count
-//                     setTimeout(() => {
-//                         window.location.href = window.location.pathname;
-//                     }, 2000);
-//                 } else {
-//                     showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
-//                     hidePrintPopup(); // This will reset the buttons when popup closes
-//                 }
-//             })
-//             .catch(error => {
-//                 console.error('Print job error:', error);
-//                 console.log('This is the data that would be sent to Flask:', printData);
-//                 showMessage('Printing failed: ' + error.message, 'error');
-//                 resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//             });
-
-//     } catch (error) {
-//         console.error('Data collection error:', error);
-//         console.log('This is the data that would be sent to Flask: [Data collection failed]');
-//         showMessage('Failed to collect print data', 'error');
-//         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
-//     }
-// }
 
 // Helper function to reset button states
 function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
@@ -1446,7 +1336,6 @@ function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
     popup.classList.remove('loading');
     printBtn.textContent = originalText;
 }
-
 
 
 function collectPrintData(productId, quantity) {
@@ -1565,7 +1454,7 @@ function submitEditFrontLabels(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(labelData)
     })
@@ -1624,7 +1513,7 @@ function submitEditBackLabels(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(labelData)
     })
@@ -1962,7 +1851,7 @@ function viewLotHistory(lotId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             lot_id: lotId
@@ -2313,7 +2202,7 @@ function submitAddLot(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             variety_sku: VARIETY_SKU_PREFIX,
@@ -2395,31 +2284,6 @@ function showLotSelectionPopup(productId, lots) {
     
     popup.classList.add('show');
 }
-// function showLotSelectionPopup(productId, lots) {
-//     const popup = document.getElementById('lotSelectionPopup');
-//     const lotsContainer = document.getElementById('availableLots');
-    
-//     // Clear previous lots
-//     lotsContainer.innerHTML = '';
-    
-//     // Add lots as clickable buttons
-//     lots.forEach(lot => {
-//         const button = document.createElement('button');
-//         button.className = 'lot-option-btn';
-//         button.textContent = `${lot.grower}${lot.year}${lot.harvest}`;
-//         button.onclick = () => assignLotToProduct(productId, lot.id);
-//         lotsContainer.appendChild(button);
-//     });
-    
-//     // Add "No Lot" option
-//     const noLotButton = document.createElement('button');
-//     noLotButton.className = 'lot-option-btn no-lot';
-//     noLotButton.textContent = 'No Lot Assigned';
-//     noLotButton.onclick = () => assignLotToProduct(productId, null);
-//     lotsContainer.appendChild(noLotButton);
-    
-//     popup.classList.add('show');
-// }
 
 function assignLotToProduct(productId, lotId) {
     
@@ -2441,7 +2305,7 @@ function assignLotToProduct(productId, lotId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(requestData)
     })
@@ -2469,49 +2333,6 @@ function assignLotToProduct(productId, lotId) {
     
     hideLotSelectionPopup();
 }
-// function assignLotToProduct(productId, lotId) {
-    
-
-//     // Check if the "change all products" checkbox is checked
-//     const changeAllCheckbox = document.getElementById('changeAllProductsCheckbox');
-//     const changeAllProducts = changeAllCheckbox ? changeAllCheckbox.checked : false;
-    
-//     fetch('/office/assign-lot-to-product/', {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json',
-//             'X-CSRFToken': getCookie('csrftoken')
-//         },
-//         body: JSON.stringify({
-//             product_id: productId,
-//             lot_id: lotId,
-//             change_all_products: changeAllProducts
-//         })
-//     })
-//     .then(response => response.json())
-//     .then(data => {
-//         if (data.success) {
-//             // Show appropriate success message
-//             const message = changeAllProducts 
-//                 ? `Lot updated for all products in this variety`
-//                 : `Lot updated for selected product`;
-//             showMessage(message, 'success');
-            
-//             setTimeout(() => {
-//                 window.location.href = window.location.pathname;
-//             }, 2000);
-//         } else {
-//             showMessage('Error assigning lot: ' + (data.error || 'Unknown error'), 'error');
-//         }
-//     })
-//     .catch(error => {
-//         console.error('Error:', error);
-//         showMessage('Network error occurred', 'error');
-//     });
-    
-//     hideLotSelectionPopup();
-// }
-
 
 
 function hideLotSelectionPopup() {
@@ -2574,7 +2395,7 @@ function setLotLowInv(isLowInv) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             lot_id: currentLotId,
@@ -2634,34 +2455,6 @@ function retireLot(lotId) {
         document.getElementById('retireDateInput').value = today;
     }, 10);
 }
-// function retireLot(lotId) {
-//     hideLotActionsPopup();
-    
-//     currentLotId = lotId;
-    
-//     // Find the lot data to display variety and lot info
-//     const lot = allLotsData.find(l => l.id == lotId);
-//     let title = "Retire Lot";
-    
-//     if (lot) {
-//         const varietyName = document.getElementById('varietyName').textContent.trim();
-//         const lotDisplay = `${lot.grower}${lot.year}${lot.harvest}`;
-//         title = `Retiring ${varietyName} ${lotDisplay}`;
-//     }
-    
-//     // Reset the form to clear previous values
-//     document.getElementById('retireLotForm').reset();
-    
-//     // Update title and show popup
-//     document.getElementById('retireLotTitle').textContent = title;
-//     document.getElementById('retireLotPopup').classList.add('show');
-    
-//     // Set today's date as default AFTER showing popup
-//     setTimeout(() => {
-//         const today = new Date().toISOString().split('T')[0];
-//         document.getElementById('retireDateInput').value = today;
-//     }, 10);
-// }
 
 
 function hideRetireLotPopup() {
@@ -2696,7 +2489,7 @@ function submitRetireLot(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(requestData)
     })
@@ -2721,53 +2514,6 @@ function submitRetireLot(event) {
     
     hideRetireLotPopup();
 }
-// function submitRetireLot(event) {
-//     event.preventDefault();
-    
-//     const lbsRemaining = document.getElementById('retireLbsInput').value;
-//     const notes = document.getElementById('retireNotesInput').value;
-//     const retireDate = document.getElementById('retireDateInput').value;
-
-//     console.log('Form data:', { // ADD THIS
-//         lot_id: currentLotId,
-//         lbs_remaining: lbsRemaining,
-//         retire_date: retireDate,
-//         notes: notes
-//     });
-    
-//     fetch('/office/retire-lot/', {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json',
-//             'X-CSRFToken': getCookie('csrftoken')
-//         },
-//         body: JSON.stringify({
-//             lot_id: currentLotId,
-//             lbs_remaining: lbsRemaining,
-//             retire_date: retireDate,
-//             notes: notes
-//         })
-//     })
-//     .then(response => response.json())
-//     .then(data => {
-//         console.log('Response data:', data);
-//         if (data.success) {
-//             localStorage.removeItem('germination_inventory_data'); // Clear the cached data directly
-//             showMessage('Lot retired successfully', 'success');
-//             setTimeout(() => {
-//                 window.location.href = window.location.pathname;
-//             }, 3000);
-//         } else {
-//             showMessage('Error retiring lot: ' + (data.error || 'Unknown error'), 'error');
-//         }
-//     })
-//     .catch(error => {
-//         console.error('Error:', error);
-//         showMessage('Network error occurred', 'error');
-//     });
-    
-//     hideRetireLotPopup();
-// }
 
 
 function recordStockSeed(lotId) {
@@ -2848,7 +2594,7 @@ function reprintStockSeedLabel() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify({
                     lot_id: lotId // Use the captured value
@@ -2938,7 +2684,7 @@ function proceedWithStockSeedSubmission(qty, notes) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             lot_id: currentLotId,
@@ -3082,7 +2828,7 @@ function submitAddOverwriteInventory(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             inventory_id: lastInventoryId,
@@ -3126,7 +2872,7 @@ function submitInventory(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             lot_id: currentLotId,
@@ -3202,7 +2948,7 @@ function submitGermination(event) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             lot_id: currentLotId,
@@ -3325,7 +3071,7 @@ function setLotStatus(newStatus) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             lot_id: currentLotId,
@@ -3437,7 +3183,7 @@ function viewVarietyUsage() {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => {
@@ -3707,7 +3453,7 @@ function confirmDeleteLot() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify({
                 lot_id: lotToDelete
@@ -3776,7 +3522,7 @@ function submitAddProduct(event) {
     // formData.append('bulk_pre_pack', document.getElementById('productBulkPrePack').value);
     formData.append('print_back', document.getElementById('productPrintBack').checked);
     formData.append('is_sub_product', document.getElementById('productIsSubProduct').checked);
-    formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+    formData.append('csrfmiddlewaretoken', getCSRFToken());
     
     fetch('/office/add-product/', {
         method: 'POST',
@@ -3808,20 +3554,9 @@ function submitAddProduct(event) {
         
 }
 
-// Get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+// CSRF token helper - read from meta tag
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
 }
 
 // Dashboard navigation
@@ -3924,7 +3659,7 @@ function saveScoopSize(productId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify({
             product_id: productId,

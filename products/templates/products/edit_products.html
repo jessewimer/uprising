@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Uprising Seeds - Wholesale Order</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -716,6 +717,7 @@
 </head>
 
 <body>
+
     <div class="container">
         <!-- Header Section - Reduced height -->
         <div class="header">
@@ -805,7 +807,6 @@
 
         <!-- Hidden form for POST submission -->
         <form id="save-form" method="post" style="display: none;">
-            {% csrf_token %}
             <input type="hidden" name="selected_products" id="selected-products-input">
             <input type="hidden" name="store_number" id="store-number-input">
         </form>
@@ -968,21 +969,11 @@
         let currentStore = '';
         let allStoresAvailableProducts = {}; // Cache for all stores' available products
 
-        // Function to get CSRF token
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
+        // CSRF token helper - read from meta tag
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
+
 
         // Function to update the selected item count
         function updateSelectedItemCount() {
@@ -1012,7 +1003,7 @@
             try {
                 const formData = new FormData();
                 formData.append('store_id', storeId);
-                formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                formData.append('csrfmiddlewaretoken', getCSRFToken());
                 // console.log("Loading availability for store:", storeId);
                 
                 const response = await fetch('', {
@@ -1160,7 +1151,7 @@
                 const formData = new FormData();
                 formData.append('store_handle', currentStore || '');
                 formData.append('varieties', JSON.stringify(selectedSkuPrefixes));
-                formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                formData.append('csrfmiddlewaretoken', getCSRFToken());
 
                 const response = await fetch('', {
                     method: 'POST',
@@ -1220,7 +1211,7 @@
             try {
                 const formData = new FormData();
                 formData.append('varieties_to_add', JSON.stringify(selectedSkuPrefixes));
-                formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                formData.append('csrfmiddlewaretoken', getCSRFToken());
 
                 const response = await fetch('', {
                     method: 'POST',
@@ -1252,7 +1243,7 @@
             try {
                 const formData = new FormData();
                 formData.append('varieties_to_remove', JSON.stringify(selectedSkuPrefixes));
-                formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                formData.append('csrfmiddlewaretoken', getCSRFToken());
 
                 const response = await fetch('', {
                     method: 'POST',

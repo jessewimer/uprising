@@ -11,7 +11,6 @@ let scanTimeout;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    setupCSRFForFetch(); // Setup CSRF for all fetch requests
     populateBatchDropdown();
     updateUI();
     setupKeyboardListener();
@@ -260,7 +259,8 @@ function confirmNewBatch() {
     fetch(CREATE_NEW_BATCH_URL, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
         }
     })
     .then(response => response.json())
@@ -408,7 +408,8 @@ function submitBatch() {
             fetch(SUBMIT_BATCH_URL, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json', 
+                    'X-CSRFToken': getCSRFToken(),
                 },
                 body: JSON.stringify(requestData)
             })
@@ -524,34 +525,6 @@ function selectBatch() {
     updateUI();
     updateSamplesTable();
 }
-// function selectBatch() {
-//     const select = document.getElementById('batchSelect');
-//     const batchId = select.value;
-    
-//     if (batchId) {
-//         currentBatch = allBatches.find(b => b.id == batchId);
-//         if (currentBatch) {
-//             // Load samples for this batch
-//             samples = currentBatch.germinations.map(g => ({
-//                 id: g.id,
-//                 barcode: g.barcode,
-//                 sku_prefix: g.sku_prefix,
-//                 lot_code: g.lot_code,
-//                 variety_name: g.variety_name,
-//                 crop_name: g.crop_name,
-//                 scan_time: g.scan_time || 'Previously scanned',
-//                 germination_rate: g.germination_rate || 0, // Default to 0 if not set
-//                 status: getSampleStatus(g, currentBatch.status) // Determine status based on batch and sample data
-//             }));
-//         }
-//     } else {
-//         currentBatch = null;
-//         samples = [];
-//     }
-    
-//     updateUI();
-//     updateSamplesTable();
-// }
 
 // Show batch info modal
 function showBatchInfo() {
@@ -653,45 +626,9 @@ function updateUI() {
     document.getElementById('sampleCount').textContent = samples.length;
 }
 
-// Get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Get CSRF token for all requests
+// CSRF token helper - read from meta tag
 function getCSRFToken() {
-    // Try to get from cookie first
-    let token = getCookie('csrftoken');
-    // Fallback to meta tag
-    if (!token) {
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        token = meta ? meta.getAttribute('content') : '';
-    }
-    return token;
-}
-
-// Setup CSRF for all fetch requests
-function setupCSRFForFetch() {
-    const originalFetch = window.fetch;
-    window.fetch = function() {
-        let config = arguments[1] || {};
-        if (config.method && config.method.toUpperCase() !== 'GET') {
-            config.headers = config.headers || {};
-            config.headers['X-CSRFToken'] = getCSRFToken();
-        }
-        return originalFetch.apply(this, arguments);
-    };
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
 }
 
 // Modal helpers

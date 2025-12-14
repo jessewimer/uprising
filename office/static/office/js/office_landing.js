@@ -1,3 +1,8 @@
+// CSRF token helper - read from meta tag
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+
 // Toast notification system
 function showToast(type, title, message, duration = 5000) {
     const container = document.getElementById('toastContainer');
@@ -32,26 +37,12 @@ function closeToast(button) {
     setTimeout(() => toast.remove(), 400);
 }
 
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
 
 function checkAdminAccess() {
     fetch(window.appUrls.checkAdmin, {  // Changed this line
         method: 'GET',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRFToken(),
         }
     })
     .then(response => response.json())
@@ -158,7 +149,7 @@ function logout() {
     form.method = 'POST';
     form.action = window.appUrls.logout || '/accounts/logout/';  // Changed this line
 
-    let csrfToken = getCookie('csrftoken');
+    let csrfToken = getCSRFToken();
     if (csrfToken) {
         const csrfHidden = document.createElement('input');
         csrfHidden.type = 'hidden';

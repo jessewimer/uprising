@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Mixes - Uprising Seeds</title>
     <link rel="stylesheet" href="{% static 'office/css/base.css' %}">
     
@@ -623,6 +624,8 @@
     </style>
 </head>
 <body data-current-year="{{ current_year }}">
+    {% csrf_token %}
+
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -830,6 +833,11 @@
         let currentMixSku = null;
         let currentMixLotId = null;
         let currentMixName = null;
+
+        // CSRF token helper - read from meta tag
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
 
         // Add this validation configuration
         const MIX_VALIDATION_RULES = {
@@ -1270,7 +1278,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify({
                     mix_sku: currentMixSku,
@@ -1326,7 +1334,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify({
                     mix_lot_id: currentMixLotId,
@@ -1355,21 +1363,6 @@
             document.getElementById('addBatchModal').classList.remove('show');
             document.getElementById('batchWeight').value = '';
             document.getElementById('batchNotes').value = '';
-        }
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
         }
 
         // Close modals on escape
@@ -1447,7 +1440,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify({
                     lot_id: mixLotId,  // Use lot_id to match your view
@@ -1469,21 +1462,6 @@
                 console.error('Error:', error);
                 showMessage('Error retiring mix lot', 'error');
             });
-        }
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
         }
 
         // Reset dropdown on page load

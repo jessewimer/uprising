@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Analytics - Uprising Seeds</title>
 
     <style>
@@ -1468,7 +1469,6 @@
         </div>
     </div>
 
-    {% csrf_token %}
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -1808,9 +1808,10 @@
 
     <script>
         // Debug: Check raw Django data
-        console.log('=== DEBUGGING ENVELOPE DATA ===');
-        console.log('Raw envelope_data_json from Django:', '{{ envelope_data_json|safe }}');
+        // console.log('=== DEBUGGING ENVELOPE DATA ===');
+        // console.log('Raw envelope_data_json from Django:', '{{ envelope_data_json|safe }}');
         
+
         // Parse the data - use the properly serialized JSON
         let envelopeData = {};
         try {
@@ -1847,6 +1848,12 @@
         let salesOverTimeChart = null;
         let salesByStoreChart = null;
         
+
+        // CSRF token helper - read from meta tag
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
+        }
+
         // Notification System
         function showNotification(title, message, type = 'error', duration = 8000) {
             const notification = document.getElementById('error-notification');
@@ -1996,13 +2003,10 @@
                 loadingArea.style.display = 'block';
                 contentArea.innerHTML = '';
                 
-                // Get CSRF token
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                
                 const response = await fetch('/office/top-sellers-details/', {
                     method: 'GET',
                     headers: {
-                        'X-CSRFToken': csrfToken,
+                        'X-CSRFToken': getCSRFToken(),
                         'Content-Type': 'application/json'
                     }
                 });
@@ -2128,13 +2132,10 @@
                 // Show loading
                 loadingArea.style.display = 'block';
                 
-                // Get CSRF token
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                
                 const response = await fetch('/office/store-sales-details/', {
                     method: 'GET',
                     headers: {
-                        'X-CSRFToken': csrfToken,
+                        'X-CSRFToken': getCSRFToken(),
                         'Content-Type': 'application/json'
                     }
                 });
@@ -2512,17 +2513,11 @@
                         formData.append('pkt_threshold', packetThreshold.toString());
                     }
 
-                    // Get CSRF token
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                    if (csrfToken) {
-                        formData.append('csrfmiddlewaretoken', csrfToken);
-                    }
-
                     const response = await fetch('/products/shopify-inventory/', {
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-CSRFToken': csrfToken
+                            'X-CSRFToken': getCSRFToken()
                         }
                     });
 
@@ -2784,13 +2779,10 @@
                         
                         console.log('Flask is healthy, proceeding with print request...');
                         
-                        // Step 2: Get envelope data for printing (3 years)
-                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                        
                         const printDataResponse = await fetch('/office/envelope-data-for-printing/', {
                             method: 'GET',
                             headers: {
-                                'X-CSRFToken': csrfToken,
+                                'X-CSRFToken': getCSRFToken(),
                                 'Content-Type': 'application/json'
                             }
                         });

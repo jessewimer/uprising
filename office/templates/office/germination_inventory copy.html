@@ -13,6 +13,8 @@
 </head>
 
 <body>
+    {% csrf_token %}
+    
     <!-- Message System Container -->
     <div class="messages-container" id="messagesContainer"></div>
 
@@ -100,9 +102,6 @@
             </div>
         </div>
     </div>
-
-    <!-- CSRF Token -->
-    {% csrf_token %}
 
     <!-- Print Confirmation Modal -->
     <div class="modal" id="printModal">

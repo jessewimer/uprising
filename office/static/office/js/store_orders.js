@@ -15,6 +15,11 @@ let currentShippingCost = 0;
 // Flask configuration
 const FLASK_BASE_URL = 'http://127.0.0.1:5000';
 
+// CSRF token helper - read from meta tag
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+
 // Function to check Flask health
 async function checkFlaskHealth() {
     try {
@@ -35,21 +40,6 @@ async function checkFlaskHealth() {
     }
 }
 
-// Function to get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
 
 // Function to mark changes as unsaved
 function markUnsavedChanges() {
@@ -548,7 +538,7 @@ async function loadOrderDetails(orderId) {
         const response = await fetch(`/office/get-order-details/${orderId}/`, {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json',
             },
         });
@@ -647,7 +637,7 @@ async function saveOrderChanges() {
         const response = await fetch(`/office/save-order-changes/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -701,7 +691,7 @@ async function loadPendingOrders() {
         const response = await fetch('/office/get-pending-orders/', {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json',
             },
         });
@@ -822,7 +812,7 @@ async function loadOrderFromPending(orderId, storeId, storeName) {
         const response = await fetch(`/office/get-store-orders/${finalStoreId}/`, {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json',
             },
         });
@@ -905,7 +895,7 @@ async function handleStoreFilterChange(event) {
             const response = await fetch(`/office/get-store-orders/${storeId}/`, {
                 method: 'GET',
                 headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-CSRFToken': getCSRFToken(),
                     'Content-Type': 'application/json',
                 },
             });
@@ -1074,7 +1064,7 @@ async function handlePickListClick() {
         const response = await fetch(`/office/check-pick-list-printed/${currentOrderId}/`, {
             method: 'GET',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
             }
         });
 
@@ -1177,7 +1167,7 @@ async function recordPickListPrinted() {
         const response = await fetch('/office/record-pick-list-printed/', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -1333,7 +1323,7 @@ async function finalizeOrder() {
         const response = await fetch(`/office/finalize-order/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({

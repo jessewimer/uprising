@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Process Online Orders - Uprising Seeds</title>
 
     <style>
@@ -853,6 +854,7 @@
 </head>
 
 <body>
+
     <!-- Notification Container -->
     <div class="notification-container" id="notificationContainer"></div>
     <div class="container">
@@ -1462,7 +1464,7 @@
             fetch('/orders/process-orders/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-CSRFToken': getCSRFToken(),
                 },
                 body: formData
             })
@@ -1892,7 +1894,7 @@
                 const djangoResponse = await fetch(`/orders/reprint-packing-slip/${orderNumber}/`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-CSRFToken': getCSRFToken(),
                         'Content-Type': 'application/json'
                     }
                 });
@@ -1973,7 +1975,7 @@
                 const djangoResponse = await fetch(`/orders/reprocess-order/${orderNumber}/`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-CSRFToken': getCSRFToken(),
                         'Content-Type': 'application/json'
                     }
                 });
@@ -2104,19 +2106,9 @@
             return text.toString().replace(/[&<>"']/g, m => map[m]);
         }
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
+        // CSRF token helper - read from meta tag
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
 
         // Initialize everything when DOM is loaded

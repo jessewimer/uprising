@@ -14,7 +14,7 @@ let currentPrintJob = null;
 
 // CSRF helper
 function getCSRFToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 }
 
 // Initialize
@@ -359,6 +359,13 @@ function getGerminationDisplay(lot, year) {
 
 // Render table
 function renderTable() {
+    // TEMPORARY DEBUG - Remove after testing
+    console.log('First lot data:', appData.filteredLots[0]);
+    if (appData.filteredLots[0]) {
+        const lot = appData.filteredLots[0];
+        console.log('Germ records:', lot.germination_records);
+        console.log('Germ prints:', lot.germ_sample_prints);
+    }
     const tbody = document.getElementById('tableBody');
     const emptyState = document.getElementById('emptyState');
     
@@ -371,353 +378,137 @@ function renderTable() {
     
     emptyState.style.display = 'none';
     
-    // Group lots by variety (SKU prefix)
-    const lotsByVariety = {};
     appData.filteredLots.forEach(lot => {
-        if (!lotsByVariety[lot.sku_prefix]) {
-            lotsByVariety[lot.sku_prefix] = [];
+        const row = document.createElement('tr');
+        
+        // Variety cell with print and bulk icons
+        const varietyCell = document.createElement('td');
+        varietyCell.className = 'variety-cell';
+        
+        const varietyCellContent = document.createElement('div');
+        varietyCellContent.className = 'variety-cell-content';
+        
+        // Print icon
+        // const printIcon = document.createElement('div');
+        // printIcon.className = 'print-icon';
+        // printIcon.innerHTML = `
+        //     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        //         <polyline points="6,9 6,2 18,2 18,9"></polyline>
+        //         <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+        //         <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+        //     </svg>
+        // `;
+        // Print icon
+        const printIcon = document.createElement('div');
+        printIcon.className = 'print-icon';
+
+        // Only make clickable if there's a lot
+        if (lot.lot_id) {
+            printIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                    <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                    <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                </svg>
+            `;
+            printIcon.addEventListener('click', () => handlePrint(lot));
+        } else {
+            // No lot - show disabled print icon
+            printIcon.classList.add('print-icon-disabled');
+            printIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3">
+                    <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                    <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+                    <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
+                </svg>
+            `;
+            printIcon.style.cursor = 'not-allowed';
+            printIcon.style.opacity = '0.3';
         }
-        lotsByVariety[lot.sku_prefix].push(lot);
-    });
-    
-    // Render each variety group
-    Object.keys(lotsByVariety).forEach(skuPrefix => {
-        const lots = lotsByVariety[skuPrefix];
-        const firstLot = lots[0]; // Use first lot for variety info
+
+        // printIcon.addEventListener('click', () => handlePrint(lot));
         
-        // Check if this is an empty variety (no lot_id)
-        const hasActiveLots = firstLot.lot_id !== null;
+        // NEW: Bulk icon
+        const bulkIcon = document.createElement('div');
+        bulkIcon.className = lot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
+        bulkIcon.innerHTML = 'B';
+        bulkIcon.addEventListener('click', () => showBulkModal(lot));
         
-        if (hasActiveLots) {
-            // FIRST ROW: Variety header with first lot data
-            const varietyRow = document.createElement('tr');
-            varietyRow.className = 'variety-header-row';
-            
-            // Variety cell (spans the variety info)
-            const varietyCell = document.createElement('td');
-            varietyCell.className = 'variety-header-cell';
-            
-            const varietyCellContent = document.createElement('div');
-            varietyCellContent.className = 'variety-cell-content';
-            
-            // Bulk icon (B)
-            const bulkIcon = document.createElement('div');
-            bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-            bulkIcon.innerHTML = 'B';
-            bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
-            
-            // Variety link
-            const varietyLink = document.createElement('a');
-            varietyLink.className = 'variety-link';
-            varietyLink.textContent = firstLot.variety_name;
-            varietyLink.addEventListener('click', () => showSalesData(firstLot.sku_prefix, firstLot.variety_name));
-            
-            varietyCellContent.appendChild(bulkIcon);
-            varietyCellContent.appendChild(varietyLink);
-            varietyCell.appendChild(varietyCellContent);
-            varietyRow.appendChild(varietyCell);
-            
-            // First lot data cells
-            appendLotDataCells(varietyRow, firstLot, true); // true = first lot
-            tbody.appendChild(varietyRow);
-            
-            // SUBSEQUENT ROWS: Additional lots for this variety
-            for (let i = 1; i < lots.length; i++) {
-                const lotRow = document.createElement('tr');
-                lotRow.className = 'lot-detail-row';
-                
-                // Empty cell for variety column
-                const emptyVarietyCell = document.createElement('td');
-                emptyVarietyCell.className = 'lot-detail-variety-cell';
-                lotRow.appendChild(emptyVarietyCell);
-                
-                // Lot data cells
-                appendLotDataCells(lotRow, lots[i], false); // false = not first lot
-                tbody.appendChild(lotRow);
+        // Variety link
+        const varietyLink = document.createElement('a');
+        varietyLink.className = 'variety-link';
+        varietyLink.textContent = lot.variety_name;
+        varietyLink.addEventListener('click', () => showSalesData(lot.sku_prefix, lot.variety_name));
+        
+        varietyCellContent.appendChild(printIcon);
+        varietyCellContent.appendChild(bulkIcon);  // NEW: Add bulk icon
+        varietyCellContent.appendChild(varietyLink);
+        varietyCell.appendChild(varietyCellContent);
+        row.appendChild(varietyCell);
+        
+        // Lot cell
+        const lotCell = document.createElement('td');
+        lotCell.className = 'lot-cell';
+        lotCell.textContent = lot.lot_code;
+        row.appendChild(lotCell);
+        
+        // Current Inventory cell
+        const currentInvCell = document.createElement('td');
+        currentInvCell.className = 'inventory-cell';
+        if (lot.current_inventory_weight !== null) {
+            currentInvCell.textContent = `${lot.current_inventory_weight.toFixed(2)} lbs`;
+            if (lot.current_inventory_date) {
+                currentInvCell.title = `As of ${lot.current_inventory_date}`;
             }
         } else {
-            // NO ACTIVE LOTS - show variety header with "no active lots" message
-            const varietyRow = document.createElement('tr');
-            varietyRow.className = 'variety-header-row no-lots-row';
-            
-            // Variety cell
-            const varietyCell = document.createElement('td');
-            varietyCell.className = 'variety-header-cell';
-            
-            const varietyCellContent = document.createElement('div');
-            varietyCellContent.className = 'variety-cell-content';
-            
-            // Bulk icon (B)
-            const bulkIcon = document.createElement('div');
-            bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-            bulkIcon.innerHTML = 'B';
-            bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
-            
-            // Variety link
-            const varietyLink = document.createElement('a');
-            varietyLink.className = 'variety-link';
-            varietyLink.textContent = firstLot.variety_name;
-            varietyLink.addEventListener('click', () => showSalesData(firstLot.sku_prefix, firstLot.variety_name));
-            
-            varietyCellContent.appendChild(bulkIcon);
-            varietyCellContent.appendChild(varietyLink);
-            varietyCell.appendChild(varietyCellContent);
-            varietyRow.appendChild(varietyCell);
-            
-            // "No active lots" message spanning remaining columns
-            const noLotsCell = document.createElement('td');
-            noLotsCell.colSpan = 4 + appData.germYears.length; // Lot + 3 inventory cols + germ cols
-            noLotsCell.className = 'no-lots-cell';
-            noLotsCell.textContent = 'No active lots';
-            varietyRow.appendChild(noLotsCell);
-            
-            tbody.appendChild(varietyRow);
+            currentInvCell.textContent = '-';
         }
-    });
-}
-
-// Helper function to append lot data cells (lot code, inventory, germination)
-function appendLotDataCells(row, lot, isFirstLot) {
-    // Lot cell with print icon
-    const lotCell = document.createElement('td');
-    lotCell.className = 'lot-cell';
-    
-    const lotCellContent = document.createElement('div');
-    lotCellContent.className = 'lot-cell-content';
-    
-    // Print icon
-    const printIcon = document.createElement('div');
-    printIcon.className = 'print-icon print-icon-small';
-    printIcon.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6,9 6,2 18,2 18,9"></polyline>
-            <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-            <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-        </svg>
-    `;
-    printIcon.addEventListener('click', () => handlePrint(lot));
-    
-    // Lot code text
-    const lotCodeSpan = document.createElement('span');
-    lotCodeSpan.textContent = lot.lot_code;
-    
-    lotCellContent.appendChild(printIcon);
-    lotCellContent.appendChild(lotCodeSpan);
-    lotCell.appendChild(lotCellContent);
-    row.appendChild(lotCell);
-    
-    // Current Inventory cell
-    const currentInvCell = document.createElement('td');
-    currentInvCell.className = 'inventory-cell';
-    if (lot.current_inventory_weight !== null) {
-        currentInvCell.textContent = `${lot.current_inventory_weight.toFixed(2)} lbs`;
-        if (lot.current_inventory_date) {
-            currentInvCell.title = `As of ${lot.current_inventory_date}`;
-        }
-    } else {
-        currentInvCell.textContent = '-';
-    }
-    row.appendChild(currentInvCell);
-    
-    // Previous Inventory cell
-    const prevInvCell = document.createElement('td');
-    prevInvCell.className = 'inventory-cell';
-    if (lot.previous_inventory_weight !== null) {
-        prevInvCell.textContent = `${lot.previous_inventory_weight.toFixed(2)} lbs`;
-        if (lot.previous_inventory_date) {
-            prevInvCell.title = `As of ${lot.previous_inventory_date}`;
-        }
-    } else {
-        prevInvCell.textContent = '-';
-    }
-    row.appendChild(prevInvCell);
-    
-    // Difference cell
-    const diffCell = document.createElement('td');
-    if (lot.inventory_difference !== null) {
-        const sign = lot.inventory_difference > 0 ? '+' : '';
-        diffCell.textContent = `${sign}${lot.inventory_difference.toFixed(2)}`;
+        row.appendChild(currentInvCell);
         
-        if (lot.inventory_difference > 0) {
-            diffCell.className = 'positive-diff';
-        } else if (lot.inventory_difference < 0) {
-            diffCell.className = 'negative-diff';
+        // Previous Inventory cell
+        const prevInvCell = document.createElement('td');
+        prevInvCell.className = 'inventory-cell';
+        if (lot.previous_inventory_weight !== null) {
+            prevInvCell.textContent = `${lot.previous_inventory_weight.toFixed(2)} lbs`;
+            if (lot.previous_inventory_date) {
+                prevInvCell.title = `As of ${lot.previous_inventory_date}`;
+            }
         } else {
+            prevInvCell.textContent = '-';
+        }
+        row.appendChild(prevInvCell);
+        
+        // Difference cell
+        const diffCell = document.createElement('td');
+        if (lot.inventory_difference !== null) {
+            const sign = lot.inventory_difference > 0 ? '+' : '';
+            diffCell.textContent = `${sign}${lot.inventory_difference.toFixed(2)}`;
+            
+            if (lot.inventory_difference > 0) {
+                diffCell.className = 'positive-diff';
+            } else if (lot.inventory_difference < 0) {
+                diffCell.className = 'negative-diff';
+            } else {
+                diffCell.className = 'neutral-diff';
+            }
+        } else {
+            diffCell.textContent = '-';
             diffCell.className = 'neutral-diff';
         }
-    } else {
-        diffCell.textContent = '-';
-        diffCell.className = 'neutral-diff';
-    }
-    row.appendChild(diffCell);
-    
-    // Germination cells
-    appData.germYears.forEach(year => {
-        const germCell = document.createElement('td');
-        const display = getGerminationDisplay(lot, year);
-        germCell.textContent = display.text;
-        germCell.className = display.className;
-        row.appendChild(germCell);
+        row.appendChild(diffCell);
+        
+        // Germination cells
+        appData.germYears.forEach(year => {
+            const germCell = document.createElement('td');
+            const display = getGerminationDisplay(lot, year);
+            germCell.textContent = display.text;
+            germCell.className = display.className;
+            row.appendChild(germCell);
+        });
+        
+        tbody.appendChild(row);
     });
 }
-
-
-
-
-
-
-// // Render table
-// function renderTable() {
-//     // TEMPORARY DEBUG - Remove after testing
-//     console.log('First lot data:', appData.filteredLots[0]);
-//     if (appData.filteredLots[0]) {
-//         const lot = appData.filteredLots[0];
-//         console.log('Germ records:', lot.germination_records);
-//         console.log('Germ prints:', lot.germ_sample_prints);
-//     }
-//     const tbody = document.getElementById('tableBody');
-//     const emptyState = document.getElementById('emptyState');
-    
-//     tbody.innerHTML = '';
-    
-//     if (appData.filteredLots.length === 0) {
-//         emptyState.style.display = 'block';
-//         return;
-//     }
-    
-//     emptyState.style.display = 'none';
-    
-//     appData.filteredLots.forEach(lot => {
-//         const row = document.createElement('tr');
-        
-//         // Variety cell with print and bulk icons
-//         const varietyCell = document.createElement('td');
-//         varietyCell.className = 'variety-cell';
-        
-//         const varietyCellContent = document.createElement('div');
-//         varietyCellContent.className = 'variety-cell-content';
-        
-//         // Print icon
-//         // const printIcon = document.createElement('div');
-//         // printIcon.className = 'print-icon';
-//         // printIcon.innerHTML = `
-//         //     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-//         //         <polyline points="6,9 6,2 18,2 18,9"></polyline>
-//         //         <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-//         //         <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-//         //     </svg>
-//         // `;
-//         // Print icon
-//         const printIcon = document.createElement('div');
-//         printIcon.className = 'print-icon';
-
-//         // Only make clickable if there's a lot
-//         if (lot.lot_id) {
-//             printIcon.innerHTML = `
-//                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-//                     <polyline points="6,9 6,2 18,2 18,9"></polyline>
-//                     <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-//                     <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-//                 </svg>
-//             `;
-//             printIcon.addEventListener('click', () => handlePrint(lot));
-//         } else {
-//             // No lot - show disabled print icon
-//             printIcon.classList.add('print-icon-disabled');
-//             printIcon.innerHTML = `
-//                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3">
-//                     <polyline points="6,9 6,2 18,2 18,9"></polyline>
-//                     <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
-//                     <polyline points="6,14 18,14 18,22 6,22 6,14"></polyline>
-//                 </svg>
-//             `;
-//             printIcon.style.cursor = 'not-allowed';
-//             printIcon.style.opacity = '0.3';
-//         }
-
-//         // printIcon.addEventListener('click', () => handlePrint(lot));
-        
-//         // NEW: Bulk icon
-//         const bulkIcon = document.createElement('div');
-//         bulkIcon.className = lot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-//         bulkIcon.innerHTML = 'B';
-//         bulkIcon.addEventListener('click', () => showBulkModal(lot));
-        
-//         // Variety link
-//         const varietyLink = document.createElement('a');
-//         varietyLink.className = 'variety-link';
-//         varietyLink.textContent = lot.variety_name;
-//         varietyLink.addEventListener('click', () => showSalesData(lot.sku_prefix, lot.variety_name));
-        
-//         varietyCellContent.appendChild(printIcon);
-//         varietyCellContent.appendChild(bulkIcon);  // NEW: Add bulk icon
-//         varietyCellContent.appendChild(varietyLink);
-//         varietyCell.appendChild(varietyCellContent);
-//         row.appendChild(varietyCell);
-        
-//         // Lot cell
-//         const lotCell = document.createElement('td');
-//         lotCell.className = 'lot-cell';
-//         lotCell.textContent = lot.lot_code;
-//         row.appendChild(lotCell);
-        
-//         // Current Inventory cell
-//         const currentInvCell = document.createElement('td');
-//         currentInvCell.className = 'inventory-cell';
-//         if (lot.current_inventory_weight !== null) {
-//             currentInvCell.textContent = `${lot.current_inventory_weight.toFixed(2)} lbs`;
-//             if (lot.current_inventory_date) {
-//                 currentInvCell.title = `As of ${lot.current_inventory_date}`;
-//             }
-//         } else {
-//             currentInvCell.textContent = '-';
-//         }
-//         row.appendChild(currentInvCell);
-        
-//         // Previous Inventory cell
-//         const prevInvCell = document.createElement('td');
-//         prevInvCell.className = 'inventory-cell';
-//         if (lot.previous_inventory_weight !== null) {
-//             prevInvCell.textContent = `${lot.previous_inventory_weight.toFixed(2)} lbs`;
-//             if (lot.previous_inventory_date) {
-//                 prevInvCell.title = `As of ${lot.previous_inventory_date}`;
-//             }
-//         } else {
-//             prevInvCell.textContent = '-';
-//         }
-//         row.appendChild(prevInvCell);
-        
-//         // Difference cell
-//         const diffCell = document.createElement('td');
-//         if (lot.inventory_difference !== null) {
-//             const sign = lot.inventory_difference > 0 ? '+' : '';
-//             diffCell.textContent = `${sign}${lot.inventory_difference.toFixed(2)}`;
-            
-//             if (lot.inventory_difference > 0) {
-//                 diffCell.className = 'positive-diff';
-//             } else if (lot.inventory_difference < 0) {
-//                 diffCell.className = 'negative-diff';
-//             } else {
-//                 diffCell.className = 'neutral-diff';
-//             }
-//         } else {
-//             diffCell.textContent = '-';
-//             diffCell.className = 'neutral-diff';
-//         }
-//         row.appendChild(diffCell);
-        
-//         // Germination cells
-//         appData.germYears.forEach(year => {
-//             const germCell = document.createElement('td');
-//             const display = getGerminationDisplay(lot, year);
-//             germCell.textContent = display.text;
-//             germCell.className = display.className;
-//             row.appendChild(germCell);
-//         });
-        
-//         tbody.appendChild(row);
-//     });
-// }
 
 
 function showMessage(text, type = 'error') {

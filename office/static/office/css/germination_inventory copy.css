@@ -212,27 +212,20 @@ body {
 }
 
 /* Column specific styling */
-/* .data-table .variety-cell {
-    font-weight: 600;
-    color: #333;
-    max-width: 200px;
-    text-align: left !important;
-} */
-.data-table .variety-cell,
-.data-table .variety-header-cell {
+.data-table .variety-cell {
     font-weight: 600;
     color: #333;
     max-width: 200px;
     text-align: left !important;
 }
 
-/* .variety-cell-content {
+.variety-cell-content {
     display: flex;
     align-items: center;
     gap: 8px;
-} */
+}
 
-/* .print-icon {
+.print-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -256,7 +249,7 @@ body {
     color: white;
     transform: translateY(-1px) scale(1.05);
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-} */
+}
 
 /* Secondary button style for bulk pre-pack "No" option */
 .print-action-btn.secondary-btn {
@@ -323,10 +316,10 @@ body {
     text-decoration: none;
 }
 
-/* .lot-cell {
+.lot-cell {
     font-weight: 500;
     color: #495057;
-} */
+}
 
 .inventory-cell {
     font-weight: 500;
@@ -1247,112 +1240,6 @@ body {
     transition: all 0.2s;
 }
 
-
-/* ========================================
-   VARIETY GROUPING STYLES
-   ======================================== */
-
-/* Variety header row - contains variety name and first lot */
-.variety-header-row {
-    background-color: #f8f9fa;
-    border-top: 2px solid #dee2e6;
-}
-
-.variety-header-row.no-lots-row {
-    opacity: 0.7;
-}
-
-/* Override the default hover for variety header rows */
-.data-table tbody tr.variety-header-row:hover {
-    background: rgba(102, 126, 234, 0.08);
-}
-
-.data-table tbody tr.variety-header-row:nth-child(even) {
-    background: #f8f9fa;
-}
-
-.data-table tbody tr.variety-header-row:nth-child(even):hover {
-    background: rgba(102, 126, 234, 0.1);
-}
-
-/* Variety cell styling - left column with variety name */
-.variety-header-cell {
-    font-weight: 600;
-    background-color: #e9ecef;
-    border-right: 2px solid #dee2e6;
-    padding: 12px 8px !important;
-    vertical-align: middle;
-}
-
-/* Override alignment for variety header cell */
-.variety-header-cell .variety-cell-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Lot detail rows - subsequent lots under a variety */
-.lot-detail-row {
-    background-color: #ffffff;
-}
-
-.lot-detail-row:hover {
-    background: rgba(102, 126, 234, 0.04) !important;
-}
-
-.lot-detail-variety-cell {
-    background-color: #f8f9fa;
-    border-right: 2px solid #dee2e6;
-    width: 40px;
-    padding: 8px 4px !important;
-}
-
-/* Alternating row colors for lot details */
-.data-table tbody tr.lot-detail-row:nth-child(even) .lot-detail-variety-cell {
-    background-color: #e9ecef;
-}
-
-/* Lot cell with print icon */
-.lot-cell-content {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    justify-content: flex-start;
-}
-
-/* Small print icon next to lot codes */
-.print-icon-small {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    color: #6c757d;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.print-icon-small:hover {
-    color: #28a745;
-    transform: translateY(-1px) scale(1.1);
-}
-
-.print-icon-small svg {
-    width: 100%;
-    height: 100%;
-}
-
-/* No active lots message */
-.no-lots-cell {
-    text-align: center;
-    font-style: italic;
-    color: #6c757d;
-    padding: 12px;
-    background-color: #f8f9fa;
-}
-
-/* Ensure lot cell is left-aligned */
-.data-table .lot-cell {
-    text-align: left !important;
-}
 
 /* Responsive Design */
 @media (max-width: 1400px) {

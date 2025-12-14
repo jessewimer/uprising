@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Uprising Seeds - Wholesale Order</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -1168,7 +1169,7 @@
             var formData = new FormData();
             
             // Add CSRF token
-            var csrfToken = getCookie('csrftoken');
+            var csrfToken = getCSRFToken();
             if (csrfToken) {
                 formData.append('csrfmiddlewaretoken', csrfToken);
             }
@@ -1216,7 +1217,7 @@
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') // Django CSRF token
+                    'X-CSRFToken': getCSRFToken() // Django CSRF token
                 }
             })
             .then(response => response.json())
@@ -1238,15 +1239,8 @@
             closeViewOrdersModal();
         }
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                document.cookie.split(';').forEach(cookie => {
-                    const [k, v] = cookie.trim().split('=');
-                    if (k === name) cookieValue = decodeURIComponent(v);
-                });
-            }
-            return cookieValue;
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
 
 
