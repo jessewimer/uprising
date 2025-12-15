@@ -198,7 +198,7 @@ body {
 .data-table tbody tr {
     transition: all 0.3s ease;
 }
-/* 
+
 .data-table tbody tr:hover {
     background: rgba(102, 126, 234, 0.05);
 }
@@ -209,7 +209,7 @@ body {
 
 .data-table tbody tr:nth-child(even):hover {
     background: rgba(102, 126, 234, 0.08);
-} */
+}
 
 /* Column specific styling */
 /* .data-table .variety-cell {
@@ -1247,29 +1247,38 @@ body {
     transition: all 0.2s;
 }
 
+
 /* ========================================
    VARIETY GROUPING STYLES
    ======================================== */
 
 /* Variety header row - contains variety name and first lot */
 .variety-header-row {
-    background-color: white;  /* Changed from #f8f9fa */
-    border-top: 2px solid #667eea;  /* Thicker, colored border between varieties */
+    background-color: #f8f9fa;
+    border-top: 2px solid #dee2e6;
 }
 
 .variety-header-row.no-lots-row {
     opacity: 0.7;
 }
 
-/* Remove alternating colors for variety header */
+/* Override the default hover for variety header rows */
+.data-table tbody tr.variety-header-row:hover {
+    background: rgba(102, 126, 234, 0.08);
+}
+
 .data-table tbody tr.variety-header-row:nth-child(even) {
-    background: white;  /* Same as odd */
+    background: #f8f9fa;
+}
+
+.data-table tbody tr.variety-header-row:nth-child(even):hover {
+    background: rgba(102, 126, 234, 0.1);
 }
 
 /* Variety cell styling - left column with variety name */
 .variety-header-cell {
     font-weight: 600;
-    background-color: white;  /* Changed from #e9ecef */
+    background-color: #e9ecef;
     border-right: 2px solid #dee2e6;
     padding: 12px 8px !important;
     vertical-align: middle;
@@ -1284,32 +1293,23 @@ body {
 
 /* Lot detail rows - subsequent lots under a variety */
 .lot-detail-row {
-    background-color: white;  /* All rows white */
+    background-color: #ffffff;
+}
+
+.lot-detail-row:hover {
+    background: rgba(102, 126, 234, 0.04) !important;
 }
 
 .lot-detail-variety-cell {
-    background-color: white;  /* Changed from #f8f9fa */
+    background-color: #f8f9fa;
     border-right: 2px solid #dee2e6;
     width: 40px;
     padding: 8px 4px !important;
 }
 
-/* Remove alternating row colors for lot details */
+/* Alternating row colors for lot details */
 .data-table tbody tr.lot-detail-row:nth-child(even) .lot-detail-variety-cell {
-    background-color: white;  /* Changed from #e9ecef */
-}
-
-/* Hover effect for entire variety group */
-.variety-header-row:hover,
-.variety-header-row:hover ~ .lot-detail-row[data-variety-group],
-.lot-detail-row:hover,
-.lot-detail-row:hover ~ .lot-detail-row[data-variety-group] {
-    background-color: rgba(102, 126, 234, 0.08) !important;
-}
-
-/* When hovering variety header, highlight all its lot rows */
-.variety-group-hover {
-    background-color: rgba(102, 126, 234, 0.08) !important;
+    background-color: #e9ecef;
 }
 
 /* Lot cell with print icon */
@@ -1346,7 +1346,7 @@ body {
     font-style: italic;
     color: #6c757d;
     padding: 12px;
-    background-color: white;  /* Changed from #f8f9fa */
+    background-color: #f8f9fa;
 }
 
 /* Ensure lot cell is left-aligned */
