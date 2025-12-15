@@ -16,7 +16,6 @@ class Variety(models.Model):
     group = models.CharField(max_length=255, blank=True, null=True)
     veg_type = models.CharField(max_length=255, blank=True, null=True)
     species = models.CharField(max_length=255, blank=True, null=True)
-    # supergroup = models.CharField(max_length=255, blank=True, null=True)
     subtype = models.CharField(max_length=255, blank=True, null=True)
     days = models.CharField(max_length=50, blank=True, null=True)
     active = models.BooleanField(default=True)

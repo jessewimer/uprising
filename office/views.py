@@ -319,7 +319,6 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'categories': settings.CATEGORIES,
         'crops': settings.CROPS,
         'subtypes': settings.SUBTYPES,
-        # 'supergroups': settings.SUPERGROUPS,
         'veg_types': settings.VEG_TYPES,
         'packed_for_year': packed_for_year,
         'transition': settings.TRANSITION,
@@ -1436,7 +1435,6 @@ def admin_dashboard(request):
         'crops': settings.CROPS,
         'groups': settings.GROUPS,
         'veg_types': settings.VEG_TYPES,
-        # 'supergroups': settings.SUPERGROUPS,
         'subtypes': settings.SUBTYPES,
         'categories': settings.CATEGORIES,
         'user_name': request.user.get_full_name() or request.user.username,
@@ -3425,7 +3423,6 @@ def edit_variety(request):
         variety.group = data.get('group', variety.group)
         variety.veg_type = data.get('veg_type').upper() if data.get('veg_type') else None
         variety.species = data.get('species', variety.species)
-        # variety.supergroup = data.get('supergroup', variety.supergroup)
         variety.subtype = data.get('subtype', variety.subtype)
         variety.days = data.get('days', variety.days)
         variety.active = data.get('active', variety.active)

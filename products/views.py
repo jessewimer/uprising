@@ -13,8 +13,8 @@ import os
 from datetime import datetime
 import io
 from django.http import JsonResponse
-
-from django.views.decorators.http import require_http_methods
+from django.conf import settings
+from django.views.decorators.http import require_http_methods, require_POST
 import pandas as pd
 
 # Handles requests from the admin user to edit the available products for a store
@@ -304,25 +304,38 @@ def wholesale_availability(request):
     ).order_by('category', 'veg_type', 'var_name').values(
         'sku_prefix',
         'var_name',
-        'crop',
         'veg_type',
-        # 'supergroup',
         'category',
         'wholesale',
         'wholesale_rack_designation'
     )
-
-    for v in varieties:
-        if not v['category']:
-            print(f"Variety missing category: {v['sku_prefix']} - {v['var_name']}")
-
-    print("\n-----------------------\n")
-    # for v in varieties:
-    #     if not v['supergroup']:
-    #         print(f"Variety missing supergroup: {v['sku_prefix']} - {v['var_name']}")
     
-    
+    rack_designations = ['1', '2', '3', 'C']
     context = {
         'varieties': list(varieties),
+        'categories': settings.CATEGORIES,
+        'veg_types': settings.VEG_TYPES,
+        'rack_designations': rack_designations,
+
     }
     return render(request, 'products/wholesale_availability.html', context)
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_POST
+def save_wholesale_availability(request):
+    try:
+        data = json.loads(request.body)
+        changes = data.get('changes', [])
+        
+        updated_count = 0
+        for change in changes:
+            Variety.objects.filter(sku_prefix=change['sku_prefix']).update(
+                wholesale=change['wholesale'],
+                wholesale_rack_designation=change['wholesale_rack_designation'] if change['wholesale_rack_designation'] else None
+            )
+            updated_count += 1
+        
+        return JsonResponse({'success': True, 'updated_count': updated_count})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
