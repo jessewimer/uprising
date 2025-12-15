@@ -294,3 +294,35 @@ def shopify_inventory(request):
         print(">>> Unexpected error:", str(e))
         print(traceback.format_exc())
         return JsonResponse({'error': f"Unexpected error: {str(e)}"}, status=500)
+
+# View to display wholesale availability of products  
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+def wholesale_availability(request):
+    varieties = Variety.objects.exclude(
+        sku_prefix__in=['MIX-LB', 'MIX-SB', 'MIX-MB']
+    ).order_by('category', 'veg_type', 'var_name').values(
+        'sku_prefix',
+        'var_name',
+        'crop',
+        'veg_type',
+        # 'supergroup',
+        'category',
+        'wholesale',
+        'wholesale_rack_designation'
+    )
+
+    for v in varieties:
+        if not v['category']:
+            print(f"Variety missing category: {v['sku_prefix']} - {v['var_name']}")
+
+    print("\n-----------------------\n")
+    # for v in varieties:
+    #     if not v['supergroup']:
+    #         print(f"Variety missing supergroup: {v['sku_prefix']} - {v['var_name']}")
+    
+    
+    context = {
+        'varieties': list(varieties),
+    }
+    return render(request, 'products/wholesale_availability.html', context)

@@ -245,10 +245,10 @@ VEG_TYPES = ["ARUGULA", "ASIAN GREENS", "BEAN", "BEET", "BOK CHOI", "BROCCOLI", 
              "YARROW", "ZINNIA", "BASIL", "CHAMOMILE", "CHERVIL", "CILANTRO", "DILL", "ECHINACEA", "HYSSOP",
              "LICORICE MINT", "MARSHMALLOW", "MONARDA", "PARSLEY"]
 
-SUPERGROUPS = ["Vegetable", 
-               "Flower",
-               "Herb",
-              ] 
+# SUPERGROUPS = ["Vegetable", 
+#                "Flower",
+#                "Herb",
+#               ] 
 
 SUBTYPES = ["AMARANTH", "ARUGULA", "ASIAN", "BIBB/ROMAINE", "BRAISING", "BREADSEED", "BUTTERHEAD", "CALIFORNIA",
             "CARVING", "CHERRY", "CHINA", "CHINESE", "CRESS", "CRISPHEAD", "DRY", "DRY/BUSH", "DRY/POLE",

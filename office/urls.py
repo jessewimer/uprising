@@ -45,6 +45,7 @@ urlpatterns = [
     path('get-product-packing-history/', get_product_packing_history, name='get_product_packing_history'),
     path('edit-packing-record/', edit_packing_record, name='edit_packing_record'),
     path('delete-packing-record/', delete_packing_record, name='delete_packing_record'),
+    path('wholesale-availability/', product_views.wholesale_availability, name='wholesale_availability'),
     
     # ============================================================================
     # MIX PRODUCTS
