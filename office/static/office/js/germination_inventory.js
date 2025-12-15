@@ -484,10 +484,20 @@ function renderTable() {
     tbody.addEventListener('mouseleave', handleVarietyGroupLeave, true);
 }
 
+
 // Handle variety group hover - highlight all rows in the group
 function handleVarietyGroupHover(e) {
     const row = e.target.closest('tr');
     if (!row) return;
+    
+    // Don't do anything if this row is already part of a highlighted group
+    if (row.classList.contains('variety-group-hover')) return;
+    
+    // First, clear any existing highlights
+    const tbody = document.getElementById('tableBody');
+    tbody.querySelectorAll('.variety-group-hover').forEach(r => {
+        r.classList.remove('variety-group-hover');
+    });
     
     const groupRows = [row];
     
@@ -523,8 +533,16 @@ function handleVarietyGroupHover(e) {
     groupRows.forEach(r => r.classList.add('variety-group-hover'));
 }
 
-// Handle variety group leave - remove highlight from all rows
+// Handle variety group leave - remove highlight only when leaving the entire group
 function handleVarietyGroupLeave(e) {
+    const relatedTarget = e.relatedTarget;
+    
+    // If we're moving to another row, let the mouseenter handle it
+    if (relatedTarget && relatedTarget.closest('tr')) {
+        return;
+    }
+    
+    // Only clear if we're actually leaving the table area
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
     
@@ -533,124 +551,56 @@ function handleVarietyGroupLeave(e) {
         r.classList.remove('variety-group-hover');
     });
 }
-// // Render table
-// function renderTable() {
-//     const tbody = document.getElementById('tableBody');
-//     const emptyState = document.getElementById('emptyState');
+// // Handle variety group hover - highlight all rows in the group
+// function handleVarietyGroupHover(e) {
+//     const row = e.target.closest('tr');
+//     if (!row) return;
     
-//     tbody.innerHTML = '';
+//     const groupRows = [row];
     
-//     if (appData.filteredLots.length === 0) {
-//         emptyState.style.display = 'block';
-//         return;
+//     // If it's a header row, get all following detail rows
+//     if (row.classList.contains('variety-header-row')) {
+//         let nextRow = row.nextElementSibling;
+//         while (nextRow && nextRow.classList.contains('lot-detail-row')) {
+//             groupRows.push(nextRow);
+//             nextRow = nextRow.nextElementSibling;
+//         }
+//     } 
+//     // If it's a detail row, find the header and all siblings
+//     else if (row.classList.contains('lot-detail-row')) {
+//         // Find the header row (go backwards)
+//         let prevRow = row.previousElementSibling;
+//         while (prevRow && prevRow.classList.contains('lot-detail-row')) {
+//             groupRows.unshift(prevRow);
+//             prevRow = prevRow.previousElementSibling;
+//         }
+//         if (prevRow && prevRow.classList.contains('variety-header-row')) {
+//             groupRows.unshift(prevRow);
+//         }
+        
+//         // Find remaining detail rows (go forwards)
+//         let nextRow = row.nextElementSibling;
+//         while (nextRow && nextRow.classList.contains('lot-detail-row')) {
+//             groupRows.push(nextRow);
+//             nextRow = nextRow.nextElementSibling;
+//         }
 //     }
     
-//     emptyState.style.display = 'none';
+//     // Apply hover class to all rows in group
+//     groupRows.forEach(r => r.classList.add('variety-group-hover'));
+// }
+
+// // Handle variety group leave - remove highlight from all rows
+// function handleVarietyGroupLeave(e) {
+//     const tbody = document.getElementById('tableBody');
+//     if (!tbody) return;
     
-//     // Group lots by variety (SKU prefix)
-//     const lotsByVariety = {};
-//     appData.filteredLots.forEach(lot => {
-//         if (!lotsByVariety[lot.sku_prefix]) {
-//             lotsByVariety[lot.sku_prefix] = [];
-//         }
-//         lotsByVariety[lot.sku_prefix].push(lot);
-//     });
-    
-//     // Render each variety group
-//     Object.keys(lotsByVariety).forEach(skuPrefix => {
-//         const lots = lotsByVariety[skuPrefix];
-//         const firstLot = lots[0]; // Use first lot for variety info
-        
-//         // Check if this is an empty variety (no lot_id)
-//         const hasActiveLots = firstLot.lot_id !== null;
-        
-//         if (hasActiveLots) {
-//             // FIRST ROW: Variety header with first lot data
-//             const varietyRow = document.createElement('tr');
-//             varietyRow.className = 'variety-header-row';
-            
-//             // Variety cell (spans the variety info)
-//             const varietyCell = document.createElement('td');
-//             varietyCell.className = 'variety-header-cell';
-            
-//             const varietyCellContent = document.createElement('div');
-//             varietyCellContent.className = 'variety-cell-content';
-            
-//             // Bulk icon (B)
-//             const bulkIcon = document.createElement('div');
-//             bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-//             bulkIcon.innerHTML = 'B';
-//             bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
-            
-//             // Variety link
-//             const varietyLink = document.createElement('a');
-//             varietyLink.className = 'variety-link';
-//             varietyLink.textContent = firstLot.variety_name;
-//             varietyLink.addEventListener('click', () => showSalesData(firstLot.sku_prefix, firstLot.variety_name));
-            
-//             varietyCellContent.appendChild(bulkIcon);
-//             varietyCellContent.appendChild(varietyLink);
-//             varietyCell.appendChild(varietyCellContent);
-//             varietyRow.appendChild(varietyCell);
-            
-//             // First lot data cells
-//             appendLotDataCells(varietyRow, firstLot, true); // true = first lot
-//             tbody.appendChild(varietyRow);
-            
-//             // SUBSEQUENT ROWS: Additional lots for this variety
-//             for (let i = 1; i < lots.length; i++) {
-//                 const lotRow = document.createElement('tr');
-//                 lotRow.className = 'lot-detail-row';
-                
-//                 // Empty cell for variety column
-//                 const emptyVarietyCell = document.createElement('td');
-//                 emptyVarietyCell.className = 'lot-detail-variety-cell';
-//                 lotRow.appendChild(emptyVarietyCell);
-                
-//                 // Lot data cells
-//                 appendLotDataCells(lotRow, lots[i], false); // false = not first lot
-//                 tbody.appendChild(lotRow);
-//             }
-//         } else {
-//             // NO ACTIVE LOTS - show variety header with "no active lots" message
-//             const varietyRow = document.createElement('tr');
-//             varietyRow.className = 'variety-header-row no-lots-row';
-            
-//             // Variety cell
-//             const varietyCell = document.createElement('td');
-//             varietyCell.className = 'variety-header-cell';
-            
-//             const varietyCellContent = document.createElement('div');
-//             varietyCellContent.className = 'variety-cell-content';
-            
-//             // Bulk icon (B)
-//             const bulkIcon = document.createElement('div');
-//             bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-//             bulkIcon.innerHTML = 'B';
-//             bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
-            
-//             // Variety link
-//             const varietyLink = document.createElement('a');
-//             varietyLink.className = 'variety-link';
-//             varietyLink.textContent = firstLot.variety_name;
-//             varietyLink.addEventListener('click', () => showSalesData(firstLot.sku_prefix, firstLot.variety_name));
-            
-//             varietyCellContent.appendChild(bulkIcon);
-//             varietyCellContent.appendChild(varietyLink);
-//             varietyCell.appendChild(varietyCellContent);
-//             varietyRow.appendChild(varietyCell);
-            
-//             // "No active lots" message spanning remaining columns
-//             const noLotsCell = document.createElement('td');
-//             noLotsCell.colSpan = 4 + appData.germYears.length; // Lot + 3 inventory cols + germ cols
-//             noLotsCell.className = 'no-lots-cell';
-//             noLotsCell.textContent = 'No active lots';
-//             varietyRow.appendChild(noLotsCell);
-            
-//             tbody.appendChild(varietyRow);
-//         }
+//     // Remove hover class from all rows
+//     tbody.querySelectorAll('.variety-group-hover').forEach(r => {
+//         r.classList.remove('variety-group-hover');
 //     });
 // }
+
 
 // Helper function to append lot data cells (lot code, inventory, germination)
 function appendLotDataCells(row, lot, isFirstLot) {
