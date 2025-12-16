@@ -122,31 +122,7 @@ def edit_products(request):
                         continue
 
             return JsonResponse({'success': True})
-
-
-        # --- Sync store from most recent order - UPDATED --- THIS IS NOT IMPLEMENTED YET
-        # elif "store_to_sync" in request.POST:
-        #     store_to_sync = json.loads(request.POST.get('store_to_sync'))
-        #     store = Store.objects.get(store_number=store_to_sync)
-        #     most_recent_order = StoreOrder.objects.filter(order_number__startswith=store_to_sync).order_by('-order_number').first()
-        #     if most_recent_order:
-        #         # First set all products for this store to not available
-        #         StoreProduct.objects.filter(store=store).update(is_available=False)
-                
-        #         # Then set products from the order to available
-        #         products_in_order = most_recent_order.products.all()
-        #         for product in products_in_order:
-        #             store_product, created = StoreProduct.objects.get_or_create(
-        #                 store=store, 
-        #                 product=product,
-        #                 defaults={'is_available': True}
-        #             )
-        #             if not created:
-        #                 store_product.is_available = True
-        #                 store_product.save()
-        #     return JsonResponse({'success': True})
-        # else:
-        #     return JsonResponse({'success': False})
+     
     else:
         # GET request → render form with seed availabilities for first store (optional)
         varieties = Variety.objects.filter(wholesale=True).order_by('category', 'veg_type', 'var_name')

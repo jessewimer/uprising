@@ -668,6 +668,15 @@
             background: #5568d3;
         }
 
+        /* Add this CSS rule for centering table headers */
+        .product-table th.center {
+            text-align: center;
+        }
+
+        .product-table td.center {
+            text-align: center;
+        }
+
         /* Category badges */
         .category-badge {
             padding: 6px 12px;
@@ -921,7 +930,6 @@
                 <!-- Store Filter -->
                 <div class="filter-group">
                     <label class="filter-label" for="store-filter">Store</label>
-                    <!-- <select id="store-filter" class="styled-select"> -->
                     <select id="storeFilter" class="styled-select">
                         <option value="">All Stores</option>
                         {% for store in stores %}
@@ -992,7 +1000,8 @@
                 <table class="product-table" id="product-table">
                     <thead>
                         <tr>
-                            <th style="width: 80px;">Select</th>
+                            <th class="center" style="width: 80px;">Select</th>
+                            <th class="center" style="width: 60px;">Rack</th> 
                             <th style="width: 120px;">Category</th>
                             <th>Type</th>
                             <th>Sub Type</th>
@@ -1018,6 +1027,11 @@
                                         data-sku-prefix="{{ variety.sku_prefix }}">
                                     <span class="checkbox-checkmark"></span>
                                 </label>
+                            </td>
+                            
+                            <!-- Rack Designation - ADD THIS NEW CELL -->
+                            <td class="center" style="font-weight: 600; color: #667eea;">
+                                {{ variety.wholesale_rack_designation|default:"-" }}
                             </td>
 
                             <!-- Category -->
