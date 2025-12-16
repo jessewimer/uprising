@@ -436,6 +436,7 @@ def assign_wholesale_products_to_all_stores():
     print(f"\n✅ Created {created_count} new assignments")
     print(f"✅ Updated {updated_count} existing assignments")
 
+
 def reset_storeproduct_table():
     """Reset StoreProduct table - delete all and recreate with is_available=False"""
     print("\n" + "="*60)
@@ -459,9 +460,14 @@ def reset_storeproduct_table():
     StoreProduct.objects.all().delete()
     print(f"✓ Deleted {deleted_count} StoreProduct records")
     
-    # Reset auto-increment
+    # Reset auto-increment based on database backend
     with connection.cursor() as cursor:
-        cursor.execute("ALTER TABLE stores_storeproduct AUTO_INCREMENT = 1;")
+        if connection.vendor == 'sqlite':
+            cursor.execute("DELETE FROM sqlite_sequence WHERE name='stores_storeproduct';")
+        elif connection.vendor == 'mysql':
+            cursor.execute("ALTER TABLE stores_storeproduct AUTO_INCREMENT = 1;")
+        elif connection.vendor == 'postgresql':
+            cursor.execute("ALTER SEQUENCE stores_storeproduct_id_seq RESTART WITH 1;")
     print("✓ Reset AUTO_INCREMENT")
     
     # Create all combinations
@@ -478,6 +484,48 @@ def reset_storeproduct_table():
     StoreProduct.objects.bulk_create(to_create)
     print(f"✓ Created {len(to_create)} StoreProduct entries")
     print(f"\n✅ StoreProduct table reset complete")
+# def reset_storeproduct_table():
+#     """Reset StoreProduct table - delete all and recreate with is_available=False"""
+#     print("\n" + "="*60)
+#     print("⚠️  RESET STOREPRODUCT TABLE")
+#     print("="*60)
+#     print("This will:")
+#     print("  1. Delete ALL StoreProduct records")
+#     print("  2. Reset auto-increment")
+#     print("  3. Create new records (all stores × all products)")
+#     print("  4. Set all is_available=False")
+#     print("\nThis operation cannot be undone!")
+    
+#     confirm = input("\nType 'RESET' to confirm: ").strip()
+    
+#     if confirm != 'RESET':
+#         print("Reset cancelled")
+#         return
+    
+#     # Delete all records
+#     deleted_count = StoreProduct.objects.count()
+#     StoreProduct.objects.all().delete()
+#     print(f"✓ Deleted {deleted_count} StoreProduct records")
+    
+#     # Reset auto-increment
+#     with connection.cursor() as cursor:
+#         cursor.execute("ALTER TABLE stores_storeproduct AUTO_INCREMENT = 1;")
+#     print("✓ Reset AUTO_INCREMENT")
+    
+#     # Create all combinations
+#     stores = Store.objects.all()
+#     products = Product.objects.all()
+    
+#     to_create = []
+#     for store in stores:
+#         for product in products:
+#             to_create.append(
+#                 StoreProduct(store=store, product=product, is_available=False)
+#             )
+    
+#     StoreProduct.objects.bulk_create(to_create)
+#     print(f"✓ Created {len(to_create)} StoreProduct entries")
+#     print(f"\n✅ StoreProduct table reset complete")
 
 
 # ============================================================================

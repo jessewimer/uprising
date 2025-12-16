@@ -339,3 +339,64 @@ def save_wholesale_availability(request):
         return JsonResponse({'success': True, 'updated_count': updated_count})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_POST
+def apply_store_template(request):
+    try:
+        data = json.loads(request.body)
+        store_num = data.get('store_num')
+        selected_racks = data.get('racks', [])
+        
+        print(f"Store: {store_num}, Racks: {selected_racks}")  # DEBUG
+        
+        if not store_num or not selected_racks:
+            return JsonResponse({'success': False, 'error': 'Missing required data'}, status=400)
+        
+        # Get the store
+        store = Store.objects.get(store_num=store_num)
+        
+        # Step 1: Reset all products for this store
+        StoreProduct.objects.filter(store=store).update(is_available=False)
+        print(f"Reset all products for store {store.store_name}")  # DEBUG
+        
+        # Step 2: Get all varieties matching the selected racks
+        matching_varieties = Variety.objects.filter(
+            wholesale=True,
+            wholesale_rack_designation__in=selected_racks
+        )
+        print(f"Found {matching_varieties.count()} matching varieties")  # DEBUG
+        
+        # Step 3: For each variety, find the 'pkt' product and set availability
+        products_added = 0
+        for variety in matching_varieties:
+            try:
+                pkt_product = Product.objects.get(variety=variety, sku_suffix='pkt')
+                store_product, created = StoreProduct.objects.get_or_create(
+                    store=store,
+                    product=pkt_product
+                )
+                store_product.is_available = True
+                store_product.save()
+                products_added += 1
+                print(f"Added: {variety.sku_prefix}-pkt")  # DEBUG
+            except Product.DoesNotExist:
+                print(f"No pkt product for {variety.sku_prefix}")  # DEBUG
+                continue
+        
+        print(f"Total products added: {products_added}")  # DEBUG
+        
+        return JsonResponse({
+            'success': True,
+            'products_added': products_added,
+            'store_name': store.store_name
+        })
+        
+    except Store.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Store not found'}, status=404)
+    except Exception as e:
+        print(f"Error: {str(e)}")  # DEBUG
+        import traceback
+        traceback.print_exc()  # DEBUG
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

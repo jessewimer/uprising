@@ -38,6 +38,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 99;
         }
 
         .header-left h1 {
@@ -107,6 +110,9 @@
             padding: 30px 40px;
             background: #f9fafb;
             border-bottom: 2px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 99;
         }
 
         .filters-grid {
@@ -740,16 +746,22 @@
             }
             
             const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.classList.add('show');
             
             // Collect all modified varieties
             const changes = [];
             const rows = document.querySelectorAll('#varietyTableBody tr');
+            let validationErrors = [];
             
             rows.forEach(row => {
                 if (modifiedRows.has(row.dataset.sku)) {
                     const checkbox = row.querySelector('.wholesale-checkbox');
                     const rackDropdown = row.querySelector('.rack-dropdown');
+                    const varietyName = row.querySelector('td:nth-child(3)')?.textContent || row.dataset.sku;
+                    
+                    // Validate: if wholesale is checked, rack must be selected
+                    if (checkbox.checked && (!rackDropdown.value || rackDropdown.value === '')) {
+                        validationErrors.push(varietyName);
+                    }
                     
                     changes.push({
                         sku_prefix: row.dataset.sku,
@@ -758,6 +770,23 @@
                     });
                 }
             });
+            
+            // Check for validation errors
+            if (validationErrors.length > 0) {
+                const errorList = validationErrors.length <= 3 
+                    ? validationErrors.join(', ')
+                    : `${validationErrors.slice(0, 3).join(', ')} and ${validationErrors.length - 3} more`;
+                
+                showToast(
+                    'warning', 
+                    'Rack Required', 
+                    `Please select a rack designation for: ${errorList}`,
+                    8000
+                );
+                return;
+            }
+            
+            loadingOverlay.classList.add('show');
             
             try {
                 const response = await fetch('{% url "save_wholesale_availability" %}', {
@@ -780,14 +809,24 @@
                             const checkbox = row.querySelector('.wholesale-checkbox');
                             const rackDropdown = row.querySelector('.rack-dropdown');
                             
-                            row.dataset.originalWholesale = checkbox.checked.toString();
-                            row.dataset.originalRack = checkbox.checked ? rackDropdown.value : '';
+                            const newWholesale = checkbox.checked.toString();
+                            const newRack = checkbox.checked ? rackDropdown.value : '';
+                            
+                            // Update both the original AND current data attributes
+                            row.dataset.originalWholesale = newWholesale;
+                            row.dataset.originalRack = newRack;
+                            row.dataset.wholesale = newWholesale;
+                            row.dataset.rack = newRack;
+                            
                             row.classList.remove('modified');
                         }
                     });
                     
                     modifiedRows.clear();
                     updateUnsavedIndicator();
+                    
+                    // Reapply filters to reflect the new data
+                    applyFilters();
                 } else {
                     showToast('error', 'Save Failed', data.error || 'An error occurred while saving changes.');
                 }
@@ -798,7 +837,7 @@
                 loadingOverlay.classList.remove('show');
             }
         }
-
+        
         // Warn user about unsaved changes
         window.addEventListener('beforeunload', function(e) {
             if (hasUnsavedChanges) {

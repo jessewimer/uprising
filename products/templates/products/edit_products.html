@@ -479,20 +479,193 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
-        /* Error Message Styling */
-        .error-message {
-            display: none;
+
+
+        /* Toast Notification */
+        .toast-container {
             position: fixed;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 16px 24px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.warning {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .toast-icon {
+            font-size: 24px;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #1f2937;
+        }
+
+        .toast-message {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .toast-close:hover {
+            color: #374151;
+        }
+
+        /* Template Modal */
+        .template-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .template-modal.show {
+            display: flex;
+        }
+
+        .template-modal-content {
+            background: white;
             border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
-            z-index: 1001;
-            font-weight: 500;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .template-modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .template-modal-description {
+            color: #6b7280;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .rack-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .rack-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .rack-option:hover {
+            border-color: #667eea;
+            background: #f9fafb;
+        }
+
+        .rack-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .rack-option label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .template-modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .template-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .template-btn-cancel {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .template-btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .template-btn-save {
+            background: #667eea;
+            color: white;
+        }
+
+        .template-btn-save:hover {
+            background: #5568d3;
         }
 
         /* Category badges */
@@ -733,7 +906,8 @@
                         <button class="btn btn-primary" onclick="showSaveModal()">Save</button>
 
                         <!--<button class="btn btn-primary" id="view-orders">View Orders</button>-->
-                        <button type="button" class="btn btn-primary" onclick="showViewTemplatesModal()">Templates</button>
+                        <!-- <button type="button" class="btn btn-primary" onclick="showViewTemplatesModal()">Templates</button> -->
+                        <button class="btn btn-warning" onclick="showTemplateModal()">Templates</button>
                         <button class="btn btn-danger" id="logout-button">Dashboard</button>
                     </div>
 
@@ -747,7 +921,8 @@
                 <!-- Store Filter -->
                 <div class="filter-group">
                     <label class="filter-label" for="store-filter">Store</label>
-                    <select id="store-filter" class="styled-select">
+                    <!-- <select id="store-filter" class="styled-select"> -->
+                    <select id="storeFilter" class="styled-select">
                         <option value="">All Stores</option>
                         {% for store in stores %}
                             <option value="{{ store.store_num }}">{{ store.store_name }}</option>
@@ -955,11 +1130,44 @@
         </div>
     </div>
 
-    <!-- Error Message -->
-    <div class="error-message" id="errorMessage">
-        <span id="error-text">Error message goes here</span>
-        <button onclick="closeErrorMessage()" style="margin-left: 15px; background: none; border: none; color: white; cursor: pointer;">✕</button>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Template Modal -->
+    <div class="template-modal" id="templateModal">
+        <div class="template-modal-content">
+            <h2 class="template-modal-header">Select Rack Templates</h2>
+            <p class="template-modal-description">
+                Choose which rack designations to include for this store. All existing products will be cleared first.
+            </p>
+            
+            <div class="rack-options">
+                <div class="rack-option">
+                    <input type="checkbox" id="rack1" value="1">
+                    <label for="rack1">Rack 1</label>
+                </div>
+                <div class="rack-option">
+                    <input type="checkbox" id="rack2" value="2">
+                    <label for="rack2">Rack 2</label>
+                </div>
+                <div class="rack-option">
+                    <input type="checkbox" id="rack3" value="3">
+                    <label for="rack3">Rack 3</label>
+                </div>
+                <div class="rack-option">
+                    <input type="checkbox" id="rackC" value="C">
+                    <label for="rackC">Rack C</label>
+                </div>
+            </div>
+            
+            <div class="template-modal-buttons">
+                <button class="template-btn template-btn-cancel" onclick="closeTemplateModal()">Cancel</button>
+                <button class="template-btn template-btn-save" onclick="saveTemplate()">Save Template</button>
+            </div>
+        </div>
     </div>
+
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -1048,7 +1256,9 @@
 
         // Function to handle store filter changes
         function handleStoreFilterChange(event) {
-            const storeId = event.target.value;
+            // const storeId = event.target.value;
+            // currentStore = storeId;
+            const storeId = event && event.target ? event.target.value : document.getElementById('storeFilter').value;
             currentStore = storeId;
 
             // Reset all other filters to default whenever ANY store is selected (including "All Stores")
@@ -1088,6 +1298,7 @@
         // Function to filter table based on all active filters
         function filterTable() {
             const storeFilter = document.getElementById('store-filter').value;
+            // const storeFilter = document.getElementById('storeFilter').value;
             const categoryFilter = document.getElementById('category-filter').value.toLowerCase();
             const vegtypeFilter = document.getElementById('vegtype-filter').value.toLowerCase();
             const viewCheckedFilter = document.getElementById('view-checked-filter').value;
@@ -1124,18 +1335,18 @@
 
             updateSelectedItemCount();
         }
-
+        
         // Function to show save modal
         function showSaveModal() {
             // Check if "All Stores" is selected
             if (!currentStore || currentStore === '') {
-                showErrorMessage('Save not available for "All Stores"');
+                showToast('warning', 'Save Not Available', 'Save not available for "All Stores". Please select a specific store.');
                 return;
             }
 
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             
-            const storeName = document.querySelector(`#store-filter option[value="${currentStore}"]`).textContent;
+            const storeName = document.querySelector(`#storeFilter option[value="${currentStore}"]`).textContent;
 
             const summary = `Save ${selectedCheckboxes.length} selected items to ${storeName}?`;
             document.getElementById('save-summary').textContent = summary;
@@ -1162,16 +1373,13 @@
                 
                 if (data.success) {
                     closeModal();
-                    document.getElementById('successModalOverlay').style.display = 'flex';
-                    setTimeout(() => {
-                        closeModal();
-                    }, 2000);
+                    showToast('success', 'Changes Saved', `Successfully saved ${selectedCheckboxes.length} items.`);
                 } else {
-                    showErrorMessage('Failed to save changes');
+                    showToast('error', 'Save Failed', data.error || 'Failed to save changes');
                 }
             } catch (error) {
                 console.error('Error saving changes:', error);
-                showErrorMessage('Failed to save changes');
+                showToast('error', 'Save Failed', 'An unexpected error occurred while saving.');
             }
         }
 
@@ -1180,7 +1388,7 @@
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             
             if (selectedCheckboxes.length === 0) {
-                showErrorMessage('Please select at least one item to add.');
+                showToast('warning', 'No Items Selected', 'Please select at least one item to add.');
                 return;
             }
 
@@ -1194,7 +1402,7 @@
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             
             if (selectedCheckboxes.length === 0) {
-                showErrorMessage('Please select at least one item to remove.');
+                showToast('warning', 'No Items Selected', 'Please select at least one item to remove.');
                 return;
             }
 
@@ -1212,26 +1420,25 @@
                 const formData = new FormData();
                 formData.append('varieties_to_add', JSON.stringify(selectedSkuPrefixes));
                 formData.append('csrfmiddlewaretoken', getCSRFToken());
-
+                
                 const response = await fetch('', {
                     method: 'POST',
                     body: formData
                 });
-
+                
                 const data = await response.json();
                 
                 if (data.success) {
                     closeModal();
-                    document.getElementById('successModalOverlay').style.display = 'flex';
-                    setTimeout(() => {
-                        closeModal();
-                    }, 2000);
+                    showToast('success', 'Items Added', `Successfully added ${selectedCheckboxes.length} items to all stores.`);
                 } else {
-                    showErrorMessage('Failed to add items to all stores');
+                    closeModal();
+                    showToast('error', 'Add Failed', data.error || 'Failed to add items to all stores');
                 }
             } catch (error) {
                 console.error('Error adding items to all stores:', error);
-                showErrorMessage('Failed to add items to all stores');
+                closeModal();
+                showToast('error', 'Add Failed', 'An unexpected error occurred while adding items.');
             }
         }
 
@@ -1244,28 +1451,28 @@
                 const formData = new FormData();
                 formData.append('varieties_to_remove', JSON.stringify(selectedSkuPrefixes));
                 formData.append('csrfmiddlewaretoken', getCSRFToken());
-
+                
                 const response = await fetch('', {
                     method: 'POST',
                     body: formData
                 });
-
+                
                 const data = await response.json();
                 
                 if (data.success) {
                     closeModal();
-                    document.getElementById('successModalOverlay').style.display = 'flex';
-                    setTimeout(() => {
-                        closeModal();
-                    }, 2000);
+                    showToast('success', 'Items Removed', `Successfully removed ${selectedCheckboxes.length} items from all stores.`);
                 } else {
-                    showErrorMessage('Failed to remove items from all stores');
+                    closeModal();
+                    showToast('error', 'Remove Failed', data.error || 'Failed to remove items from all stores');
                 }
             } catch (error) {
                 console.error('Error removing items from all stores:', error);
-                showErrorMessage('Failed to remove items from all stores');
+                closeModal();
+                showToast('error', 'Remove Failed', 'An unexpected error occurred while removing items.');
             }
         }
+
 
         // Function to open photo modal
         function openPhotoModal(photoUrl, varietyName) {
@@ -1351,42 +1558,146 @@
             closeModal();
         }
 
-        // Function to show error message
-        function showErrorMessage(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            const errorText = document.getElementById('error-text');
-            errorText.textContent = message;
-            errorMessage.style.display = 'block';
-
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                closeErrorMessage();
-            }, 5000);
+        // Toast notification system
+        function showToast(type, title, message, duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="closeToast(this)">&times;</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => closeToast(toast.querySelector('.toast-close')), duration);
         }
 
-        // Function to close error message
-        function closeErrorMessage() {
-            document.getElementById('errorMessage').style.display = 'none';
+        function closeToast(button) {
+            const toast = button.closest('.toast');
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 400);
         }
+
+        // Template Modal Functions
+        function showTemplateModal() {
+            const storeSelect = document.getElementById('storeFilter');
+            const selectedStore = storeSelect.value;
+            
+            if (!selectedStore || selectedStore === '') {
+                showToast('warning', 'No Store Selected', 'Please select a specific store before using templates.');
+                return;
+            }
+            
+            // Clear previous selections
+            document.getElementById('rack1').checked = false;
+            document.getElementById('rack2').checked = false;
+            document.getElementById('rack3').checked = false;
+            document.getElementById('rackC').checked = false;
+            
+            document.getElementById('templateModal').classList.add('show');
+        }
+
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.remove('show');
+        }
+
+        async function saveTemplate() {
+            const storeSelect = document.getElementById('storeFilter');
+            const selectedStore = storeSelect.value;
+            
+            if (!selectedStore || selectedStore === '') {
+                showToast('error', 'Error', 'No store selected.');
+                return;
+            }
+            
+            // Get selected racks
+            const selectedRacks = [];
+            if (document.getElementById('rack1').checked) selectedRacks.push('1');
+            if (document.getElementById('rack2').checked) selectedRacks.push('2');
+            if (document.getElementById('rack3').checked) selectedRacks.push('3');
+            if (document.getElementById('rackC').checked) selectedRacks.push('C');
+            
+            if (selectedRacks.length === 0) {
+                showToast('warning', 'No Racks Selected', 'Please select at least one rack designation.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('{% url "apply_store_template" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({
+                        store_num: selectedStore,
+                        racks: selectedRacks
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('success', 'Template Applied', `Successfully added ${data.products_added} products to ${data.store_name}.`);
+                    closeTemplateModal();
+                    
+                    // Save the selected store to localStorage before reload
+                    localStorage.setItem('selectedStore', selectedStore);
+                    
+                    // Refresh page after short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast('error', 'Error', data.error || 'Failed to apply template.');
+                }
+            } catch (error) {
+                console.error('Template error:', error);
+                showToast('error', 'Error', 'An unexpected error occurred.');
+            }
+        }
+
+        // Close modal on outside click
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('templateModal');
+            if (event.target === modal) {
+                closeTemplateModal();
+            }
+        });
+
+
 
         // Function to go to dashboard
         function goToDashboard() {
             window.location.href = "/office/dashboard/";
         }
 
-        // Placeholder function for templates modal
-        function showViewTemplatesModal() {
-            showErrorMessage('Templates functionality not yet implemented');
-        }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // console.log('Dashboard loaded');
+   
+            const savedStore = localStorage.getItem('selectedStore');
 
-            // Clear all checkboxes immediately on page load
-            document.querySelectorAll('.product-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            selectedItems = {};
+            // Only clear checkboxes if NOT coming from a template save
+            if (!savedStore) {
+                document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                selectedItems = {};
+            }
 
             // Event Listeners
             const logoutButton = document.getElementById('logout-button');
@@ -1394,7 +1705,7 @@
                 logoutButton.addEventListener('click', goToDashboard);
             }
 
-            const storeFilter = document.getElementById('store-filter');
+            const storeFilter = document.getElementById('storeFilter');
             if (storeFilter) {
                 storeFilter.addEventListener('change', handleStoreFilterChange);
             }
@@ -1443,17 +1754,33 @@
             // Initialize page
             sortTable();
             updateSelectedItemCount();
-            filterTable();
-
-            // Force "All Stores" to be selected on page load
-            if (storeFilter) {
-                storeFilter.value = ''; // Set to "All Stores"
-                currentStore = ''; // Update the global variable
+            
+            // Check if there's a saved store selection from template operation
+            if (savedStore) {
+                if (storeFilter) {
+                    storeFilter.value = savedStore;
+                    currentStore = savedStore;
+                    // Wait a moment to ensure DOM is ready, then trigger the change
+                    setTimeout(() => {
+                        handleStoreFilterChange();
+                        localStorage.removeItem('selectedStore');
+                    }, 100);
+                }
+            } else {
+                // Force "All Stores" to be selected on page load
+                if (storeFilter) {
+                    storeFilter.value = ''; // Set to "All Stores"
+                    currentStore = ''; // Update the global variable
+                }
+                
+                // Initialize bulk actions visibility - show for "All Stores"
+                const bulkActions = document.getElementById('bulk-actions');
+                if (bulkActions) {
+                    bulkActions.classList.add('show');
+                }
             }
 
-            // Initialize bulk actions visibility - show for "All Stores"
-            const bulkActions = document.getElementById('bulk-actions');
-            bulkActions.classList.add('show');
+            filterTable();
 
             // Close modals when clicking outside
             document.addEventListener('click', function(event) {
@@ -1474,7 +1801,6 @@
                 if (event.key === 'Escape') {
                     closeModal();
                     closePhotoModal();
-                    closeErrorMessage();
                 }
             });
 
