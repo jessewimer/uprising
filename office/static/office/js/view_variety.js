@@ -1198,6 +1198,8 @@ function continuePrintDespiteBackMismatch() {
     proceedWithActualPrint();
 }
 
+
+
 function proceedWithActualPrint() {
     const quantity = document.getElementById('printQuantity').value;
     
@@ -1221,8 +1223,46 @@ function proceedWithActualPrint() {
     printBtn.textContent = 'Printing...';
 
     try {
-        // Collect all data from the page
-        const printData = collectPrintData(currentProductId, quantity);
+        // Get the original product row
+        const originalProductRow = document.querySelector(`tr[data-product-id="${currentProductId}"]`);
+        if (!originalProductRow) {
+            showMessage('Could not find product data', 'error');
+            resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+            return;
+        }
+
+        // Check if we need to use alt_sku
+        const skuSuffix = originalProductRow.dataset.skuSuffix;
+        const altSku = originalProductRow.dataset.altSku;
+        const envMultiplier = originalProductRow.dataset.envMultiplier;
+        
+        let printData;
+        let actualQuantity = parseInt(quantity);
+        
+        // If this is a bulk item with alt_sku and env_multiplier, use the alt_sku product data
+        if (skuSuffix && skuSuffix.toLowerCase() !== 'pkt' && altSku && envMultiplier) {
+            // Find the product row where the complete SKU matches alt_sku
+            // Complete SKU = variety sku_prefix + product sku_suffix
+            const altProductRow = Array.from(document.querySelectorAll('tr[data-product-id]')).find(row => {
+                const rowCompleteSku = `${VARIETY_SKU_PREFIX}-${row.dataset.skuSuffix}`;
+                return rowCompleteSku === altSku;
+            });
+            
+            if (!altProductRow) {
+                showMessage(`Could not find alt_sku product: ${altSku}`, 'error');
+                resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+                return;
+            }
+            
+            // Use alt product data but multiply quantity by env_multiplier
+            actualQuantity = parseInt(quantity) * parseInt(envMultiplier);
+            printData = collectPrintData(currentProductId, actualQuantity, altProductRow);
+            
+            console.log(`Using alt_sku: ${altSku}, multiplied quantity: ${quantity} × ${envMultiplier} = ${actualQuantity}`);
+        } else {
+            // Normal printing - use original product data
+            printData = collectPrintData(currentProductId, actualQuantity);
+        }
         
         if (!printData) {
             showMessage('Could not collect print data', 'error');
@@ -1265,7 +1305,7 @@ function proceedWithActualPrint() {
                 // Step 2: Calculate bulk_pre_pack quantity if needed
                 let bulkPrePackQty = 0;
                 if (bulkPrePackDecision === true) {
-                    bulkPrePackQty = parseInt(quantity);
+                    bulkPrePackQty = parseInt(quantity);  // Use ORIGINAL quantity for bulk pre-pack
                     if (selectedPrintOption === 'front_sheet' || selectedPrintOption === 'front_back_sheet') {
                         bulkPrePackQty *= 30;
                     }
@@ -1279,9 +1319,9 @@ function proceedWithActualPrint() {
                         'X-CSRFToken': getCSRFToken()
                     },
                     body: JSON.stringify({
-                        product_id: currentProductId,
+                        product_id: currentProductId,  // Use ORIGINAL product ID
                         print_type: selectedPrintOption,
-                        quantity: quantity,
+                        quantity: quantity,  // Use ORIGINAL quantity for record
                         packed_for_year: printData.for_year,
                         add_to_bulk_pre_pack: bulkPrePackDecision === true,
                         bulk_pre_pack_qty: bulkPrePackQty
@@ -1291,7 +1331,7 @@ function proceedWithActualPrint() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    let message = `Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`;
+                    let message = `Successfully printed ${actualQuantity} ${selectedPrintOption.replace('_', ' ')} label(s)`;
                     if (bulkPrePackDecision === true) {
                         message += ` and added to bulk pre-pack`;
                     }
@@ -1327,6 +1367,136 @@ function proceedWithActualPrint() {
 }
 
 
+
+// function proceedWithActualPrint() {
+//     const quantity = document.getElementById('printQuantity').value;
+    
+//     if (!currentProductId || !quantity || quantity < 1) {
+//         showMessage('Please enter a valid quantity', 'error');
+//         return;
+//     }
+
+//     // Disable buttons and show loading state immediately
+//     const printBtn = document.querySelector('.print-btn');
+//     const cancelBtn = document.querySelector('.cancel-btn');
+//     const popup = document.querySelector('.print-popup');
+    
+//     printBtn.disabled = true;
+//     cancelBtn.disabled = true;
+//     printBtn.classList.add('loading');
+//     popup.classList.add('loading');
+    
+//     // Change button text to indicate loading
+//     const originalPrintText = printBtn.textContent;
+//     printBtn.textContent = 'Printing...';
+
+//     try {
+//         // Collect all data from the page
+//         const printData = collectPrintData(currentProductId, quantity);
+        
+//         if (!printData) {
+//             showMessage('Could not collect print data', 'error');
+//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//             return;
+//         }
+
+//         // Determine Flask endpoints based on print option
+//         const endpoints = getFlaskEndpoints(selectedPrintOption);
+        
+//         if (endpoints.length === 0) {
+//             showMessage('Invalid print option selected', 'error');
+//             resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//             return;
+//         }
+
+//         console.log('Sending to Flask:', printData);
+
+//         // Step 1: Send to Flask for printing - SEQUENTIALLY to maintain order
+//         let printPromise = Promise.resolve();
+        
+//         endpoints.forEach(endpoint => {
+//             printPromise = printPromise.then(() => 
+//                 fetch(`http://localhost:5000${endpoint}`, {
+//                     method: 'POST',
+//                     headers: { 'Content-Type': 'application/json' },
+//                     body: JSON.stringify(printData)
+//                 })
+//                 .then(response => {
+//                     if (!response.ok) {
+//                         throw new Error(`Flask endpoint ${endpoint} failed`);
+//                     }
+//                     return response;
+//                 })
+//             );
+//         });
+
+//         printPromise
+//             .then(() => {
+//                 // Step 2: Calculate bulk_pre_pack quantity if needed
+//                 let bulkPrePackQty = 0;
+//                 if (bulkPrePackDecision === true) {
+//                     bulkPrePackQty = parseInt(quantity);
+//                     if (selectedPrintOption === 'front_sheet' || selectedPrintOption === 'front_back_sheet') {
+//                         bulkPrePackQty *= 30;
+//                     }
+//                 }
+                
+//                 // Step 3: Record print job in Django after all printing is complete
+//                 return fetch('/office/print-product-labels/', {
+//                     method: 'POST',
+//                     headers: {
+//                         'Content-Type': 'application/json',
+//                         'X-CSRFToken': getCSRFToken()
+//                     },
+//                     body: JSON.stringify({
+//                         product_id: currentProductId,
+//                         print_type: selectedPrintOption,
+//                         quantity: quantity,
+//                         packed_for_year: printData.for_year,
+//                         add_to_bulk_pre_pack: bulkPrePackDecision === true,
+//                         bulk_pre_pack_qty: bulkPrePackQty
+//                     })
+//                 });
+//             })
+//             .then(response => response.json())
+//             .then(data => {
+//                 if (data.success) {
+//                     let message = `Successfully printed ${quantity} ${selectedPrintOption.replace('_', ' ')} label(s)`;
+//                     if (bulkPrePackDecision === true) {
+//                         message += ` and added to bulk pre-pack`;
+//                     }
+//                     showMessage(message, 'success');
+//                     hidePrintPopup();
+//                     // Reset bulk pre-pack decision
+//                     bulkPrePackDecision = null;
+//                     // Refresh page after 2 seconds to show updated print count
+//                     setTimeout(() => {
+//                         window.location.href = window.location.pathname;
+//                     }, 2000);
+//                 } else {
+//                     showMessage('Print sent but failed to record: ' + (data.error || 'Unknown error'), 'error');
+//                     hidePrintPopup();
+//                     bulkPrePackDecision = null;
+//                 }
+//             })
+//             .catch(error => {
+//                 console.error('Print job error:', error);
+//                 console.log('This is the data that would be sent to Flask:', printData);
+//                 showMessage('Printing failed: ' + error.message, 'error');
+//                 resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//                 bulkPrePackDecision = null;
+//             });
+
+//     } catch (error) {
+//         console.error('Data collection error:', error);
+//         console.log('This is the data that would be sent to Flask: [Data collection failed]');
+//         showMessage('Failed to collect print data', 'error');
+//         resetPrintButtons(printBtn, cancelBtn, popup, originalPrintText);
+//         bulkPrePackDecision = null;
+//     }
+// }
+
+
 // Helper function to reset button states
 function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
     printBtn.disabled = false;
@@ -1336,9 +1506,9 @@ function resetPrintButtons(printBtn, cancelBtn, popup, originalText) {
     printBtn.textContent = originalText;
 }
 
-
-function collectPrintData(productId, quantity) {
-    const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+function collectPrintData(productId, quantity, overrideProductRow = null) {
+    // Use override row if provided, otherwise find by productId
+    const productRow = overrideProductRow || document.querySelector(`tr[data-product-id="${productId}"]`);
     if (!productRow) return null;
     
     // Get the selected year from either input or dropdown
@@ -1366,7 +1536,7 @@ function collectPrintData(productId, quantity) {
         env_type: productRow.dataset.envType,
         lot_code: productRow.dataset.lotCode,
         germination: productRow.dataset.germination,
-        for_year: selectedYear, // Use the selected year instead of fixed value
+        for_year: selectedYear,
         rad_type: productRow.dataset.radType,
         desc1: productRow.dataset.desc1,
         desc2: productRow.dataset.desc2,
@@ -1380,6 +1550,49 @@ function collectPrintData(productId, quantity) {
         back7: productRow.dataset.back7
     };
 }
+// function collectPrintData(productId, quantity) {
+//     const productRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+//     if (!productRow) return null;
+    
+//     // Get the selected year from either input or dropdown
+//     let selectedYear;
+//     const inputElement = document.getElementById('packedForYearInput');
+//     const selectElement = document.getElementById('packedForYearSelect');
+    
+//     if (inputElement.style.display !== 'none') {
+//         // Using input - extract 2-digit year from "20XX" format
+//         selectedYear = inputElement.value.slice(-2);
+//     } else {
+//         // Using dropdown - convert selected value to 2-digit string
+//         const selectedValue = parseInt(selectElement.value);
+//         selectedYear = selectedValue.toString().padStart(2, '0');
+//     }
+    
+//     return {
+//         quantity: parseInt(quantity),
+//         variety_name: productRow.dataset.varietyName,
+//         crop: productRow.dataset.crop,
+//         common_name: productRow.dataset.commonName,
+//         days: productRow.dataset.days,
+//         sku_suffix: productRow.dataset.skuSuffix,
+//         pkg_size: productRow.dataset.pkgSize,
+//         env_type: productRow.dataset.envType,
+//         lot_code: productRow.dataset.lotCode,
+//         germination: productRow.dataset.germination,
+//         for_year: selectedYear, // Use the selected year instead of fixed value
+//         rad_type: productRow.dataset.radType,
+//         desc1: productRow.dataset.desc1,
+//         desc2: productRow.dataset.desc2,
+//         desc3: productRow.dataset.desc3,
+//         back1: productRow.dataset.back1,
+//         back2: productRow.dataset.back2,
+//         back3: productRow.dataset.back3,
+//         back4: productRow.dataset.back4,
+//         back5: productRow.dataset.back5,
+//         back6: productRow.dataset.back6,
+//         back7: productRow.dataset.back7
+//     };
+// }
 
 
 function getFlaskEndpoints(printOption) {
