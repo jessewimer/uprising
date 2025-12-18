@@ -366,6 +366,44 @@ def delete_mix_variety_lots():
     else:
         print("Deletion cancelled.")
 
+def find_lots_with_pending_germs():
+    """Find all lots with pending germination records for a specific year."""
+    year_input = input("\nEnter year (e.g., 25 or 26): ").strip()
+    
+    if not year_input.isdigit():
+        print("Invalid year format.")
+        return
+    
+    year = int(year_input)
+    
+    # Find all lots that have pending germinations for this year
+    lots_with_pending = Lot.objects.filter(
+        germinations__for_year=year,
+        germinations__status='pending'
+    ).distinct().select_related('variety', 'grower').prefetch_related('germinations')
+    
+    if not lots_with_pending.exists():
+        print(f"\nNo lots found with pending germinations for 20{year}")
+        return
+    
+    print(f"\n{'='*80}")
+    print(f"Lots with Pending Germinations for 20{year}")
+    print(f"{'='*80}")
+    
+    for lot in lots_with_pending:
+        pending_germs = lot.germinations.filter(for_year=year, status='pending')
+        
+        print(f"\nLot: {lot.build_lot_code()}")
+        print(f"Variety: {lot.variety.name if hasattr(lot.variety, 'name') else lot.variety}")
+        print(f"Grower: {lot.grower}")
+        print(f"Pending Germs: {pending_germs.count()}")
+        
+        for germ in pending_germs:
+            print(f"  - Rate: {germ.germination_rate}%, Test Date: {germ.test_date or 'Not set'}")
+            if germ.notes:
+                print(f"    Notes: {germ.notes}")
+    
+    print(f"\nTotal lots with pending germs: {lots_with_pending.count()}")
 
 def lot_menu():
     """Lot management submenu"""
@@ -381,9 +419,10 @@ def lot_menu():
         print("5. Retire lot")
         print("6. Find lots without germ entry for year")
         print("7. Delete all mix variety lots")
+        print("8. Find lots with pending germination")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8'])
         
         if choice == '0':
             break
@@ -407,6 +446,9 @@ def lot_menu():
             pause()
         elif choice == '7':
             delete_mix_variety_lots()
+            pause()
+        elif choice == '8':
+            find_lots_with_pending_germs()
             pause()
 
 
