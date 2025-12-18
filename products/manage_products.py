@@ -810,12 +810,83 @@ def edit_product():
     print("  - Toggle print_back flag")
 
 def delete_product():
-    """Delete a product - PLACEHOLDER"""
-    print("\n⚠️  DELETE PRODUCT - Function placeholder")
-    print("This would allow you to:")
-    print("  - Select product by SKU")
-    print("  - Confirm deletion")
-    print("  - Handle cascading deletes")
+    """Delete a product with cascade handling"""
+    sku_prefix = input("\nEnter SKU prefix (e.g., BEA-RN): ").strip().upper()
+    
+    if not sku_prefix:
+        print("❌ SKU prefix is required")
+        return
+    
+    # Find all products matching the SKU prefix
+    products = Product.objects.filter(variety__sku_prefix=sku_prefix).select_related('variety')
+    
+    if not products.exists():
+        print(f"\n❌ No products found with SKU prefix '{sku_prefix}'")
+        return
+    
+    # Display all matching products
+    print(f"\n{'='*80}")
+    print(f"PRODUCTS FOR {sku_prefix}")
+    print(f"{'='*80}")
+    print(f"{'#':<4} {'SKU Suffix':<15} {'Package Size':<30}")
+    print("-"*80)
+    
+    product_list = list(products)
+    for idx, product in enumerate(product_list, 1):
+        print(f"{idx:<4} {product.sku_suffix or '--':<15} {product.pkg_size or '--':<30}")
+    
+    print(f"\nTotal: {len(product_list)} products")
+    
+    # Get user selection
+    selection = input("\nEnter product number to delete (or 'cancel'): ").strip()
+    
+    if selection.lower() == 'cancel':
+        print("Deletion cancelled")
+        return
+    
+    try:
+        idx = int(selection)
+        if idx < 1 or idx > len(product_list):
+            print(f"❌ Invalid selection. Please enter a number between 1 and {len(product_list)}")
+            return
+    except ValueError:
+        print("❌ Invalid input. Please enter a number")
+        return
+    
+    # Get the selected product
+    product = product_list[idx - 1]
+    full_sku = f"{product.variety.sku_prefix}-{product.sku_suffix}"
+    
+    # Show what will be deleted
+    print(f"\n{'='*80}")
+    print(f"PRODUCT TO DELETE: {full_sku}")
+    print(f"{'='*80}")
+    print(f"Variety: {product.variety.var_name or '--'}")
+    print(f"Package Size: {product.pkg_size or '--'}")
+    
+    # Check for related records
+    sales_count = product.sales.count()
+    label_prints_count = product.label_prints.count()
+    
+    print(f"\n⚠️  RELATED RECORDS THAT WILL BE DELETED:")
+    print(f"  - Sales records: {sales_count}")
+    print(f"  - Label print records: {label_prints_count}")
+    
+    if sales_count > 0 or label_prints_count > 0:
+        print(f"\n⚠️  WARNING: This product has {sales_count + label_prints_count} related records!")
+    
+    # Confirm deletion
+    print(f"\n⚠️  You are about to permanently delete product {full_sku} and all related records")
+    confirm = input("Type 'DELETE' to confirm: ").strip()
+    
+    if confirm == 'DELETE':
+        with transaction.atomic():
+            product.delete()
+        print(f"\n✅ Successfully deleted product {full_sku}")
+        print(f"   - Deleted {sales_count} sales records")
+        print(f"   - Deleted {label_prints_count} label print records")
+    else:
+        print("Deletion cancelled")
 
 def product_menu():
     """Product management submenu"""
