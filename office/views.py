@@ -23,6 +23,8 @@ import pytz
 from decimal import Decimal, InvalidOperation
 from stores.models import WholesalePktPrice
 import math
+import csv
+import io
 
 
 BASE_COMPONENT_MIXES = {
@@ -1438,6 +1440,7 @@ def admin_dashboard(request):
         'subtypes': settings.SUBTYPES,
         'categories': settings.CATEGORIES,
         'user_name': request.user.get_full_name() or request.user.username,
+        'current_order_year': settings.CURRENT_ORDER_YEAR,
     }
     return render(request, 'office/admin_dashboard.html', context)
 
@@ -3817,3 +3820,165 @@ def update_variety_growout(request, sku_prefix):
         return JsonResponse({'error': 'Variety not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def process_pre_opening_report_v2(request):
+    """
+    Process uploaded CSV and generate pre-opening report
+    """
+    try:
+        current_order_year = settings.CURRENT_ORDER_YEAR
+        
+        csv_file = request.FILES.get('csv_file')
+        if not csv_file:
+            return JsonResponse({'error': 'No file uploaded'}, status=400)
+        
+        if not csv_file.name.endswith('.csv'):
+            return JsonResponse({'error': 'File must be a CSV'}, status=400)
+        
+        # Read entire CSV into memory
+        decoded_file = csv_file.read().decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(decoded_file))
+        
+        # Store CSV data with title forward-filling
+        csv_products = {}
+        last_title = ""
+        
+        for row in csv_reader:
+            sku = row.get('Variant SKU', '').strip()
+            title = row.get('Title', '').strip()
+            
+            # Forward-fill title if blank (same variety, different variant)
+            if title:
+                last_title = title
+            elif last_title:
+                title = last_title
+            
+            if sku:
+                csv_products[sku] = {
+                    'title': title,
+                    'tracker': row.get('Variant Inventory Tracker', '').strip(),
+                    'qty': int(row.get('Variant Inventory Qty', '0').strip() or 0)
+                }
+        
+        # Check 1: Products in CSV not in database
+        products_not_in_db = []
+        for sku, data in csv_products.items():
+            if not check_product_exists(sku):
+                products_not_in_db.append({
+                    'sku': sku,
+                    'title': data['title'],
+                    'tracker': data['tracker'],
+                    'qty': data['qty']
+                })
+        
+        # Check 2: Tracked products without active germinations
+        products_without_germ = []
+        for sku, data in csv_products.items():
+            if data['tracker'].lower() == 'shopify':
+                if check_product_exists(sku) and not check_active_germination(sku, current_order_year):
+                    products_without_germ.append({
+                        'sku': sku,
+                        'title': data['title'],
+                        'qty': data['qty']
+                    })
+        
+        # Check 3: Varieties with active germ but pkt product inventory <=0
+        varieties_with_germ_but_no_inventory = []
+        
+        varieties_with_active_germ = Variety.objects.filter(
+            lots__germinations__status='active',
+            lots__germinations__for_year=current_order_year
+        ).distinct()
+        
+        for variety in varieties_with_active_germ:
+            pkt_sku = f"{variety.sku_prefix}-pkt"
+            
+            if pkt_sku in csv_products:
+                csv_data = csv_products[pkt_sku]
+                
+                # Check if tracked and inventory <=0
+                if csv_data['tracker'].lower() == 'shopify' and csv_data['qty'] <= 0:
+                    varieties_with_germ_but_no_inventory.append({
+                        'variety': variety.sku_prefix,
+                        'var_name': variety.var_name or '',
+                        'sku': pkt_sku,
+                        'qty': csv_data['qty'],
+                        'title': csv_data['title']
+                    })
+        
+        report_data = {
+            'current_order_year': current_order_year,
+            'products_not_in_db': products_not_in_db,
+            'products_without_germ': products_without_germ,
+            'varieties_with_germ_but_no_inventory': varieties_with_germ_but_no_inventory,
+            'summary': {
+                'total_not_in_db': len(products_not_in_db),
+                'total_without_germ': len(products_without_germ),
+                'total_germ_but_no_inv': len(varieties_with_germ_but_no_inventory),
+                'total_csv_products': len(csv_products)
+            }
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'report': report_data
+        })
+        
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+
+def check_product_exists(variant_sku):
+    """
+    Check if a product exists in either Product or MiscProduct table
+    """
+    # Check MiscProduct first (simpler - just match SKU)
+    if MiscProduct.objects.filter(sku=variant_sku).exists():
+        return True
+    
+    # Check Product table (need to parse SKU)
+    # SKU format: PREFIX-SUFFIX (e.g., "PEA-SP-pkt")
+    parts = variant_sku.rsplit('-', 1)  # Split from right, only once
+    
+    if len(parts) == 2:
+        sku_prefix = parts[0]
+        sku_suffix = parts[1]
+        
+        if Product.objects.filter(
+            variety__sku_prefix=sku_prefix,
+            sku_suffix=sku_suffix
+        ).exists():
+            return True
+    
+    return False
+
+
+def check_active_germination(variant_sku, current_order_year):
+    """
+    Check if a product has an active germination for the current order year
+    """
+    # Parse SKU to get variety prefix
+    parts = variant_sku.rsplit('-', 1)
+    
+    if len(parts) != 2:
+        return False
+    
+    sku_prefix = parts[0]
+    
+    # Check if variety has any lots with active germinations for current year
+    has_active_germ = Germination.objects.filter(
+        lot__variety__sku_prefix=sku_prefix,
+        status='active',
+        for_year=current_order_year
+    ).exists()
+    
+    return has_active_germ

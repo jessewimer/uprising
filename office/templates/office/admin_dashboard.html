@@ -38,11 +38,12 @@
             </div>
 
             <!-- Database Management -->
-            <a href="#" class="admin-card">
-                <div class="admin-icon">🗄️</div>
-                <h3 class="admin-title">Database Admin</h3>
-                <p class="admin-description">Direct access to Django admin interface</p>
-            </a>
+            <!-- Replace the existing Database Admin card with: -->
+            <div class="admin-card" onclick="openPreOpeningReportModal()">
+                <div class="admin-icon">📊</div>
+                <h2 class="admin-title">Pre Opening Report</h2>
+                <p class="admin-description">Upload and process product CSV for pre-opening analysis</p>
+            </div>
 
             <!-- Logs & Monitoring -->
             <a href="#" class="admin-card">
@@ -428,12 +429,65 @@
         </div>
     </div>
 
+    <!-- Pre Opening Report Modal -->
+    <div id="preOpeningReportModal" class="modal-overlay">
+        <div class="modal">
+            <button class="close-modal" onclick="closePreOpeningReportModal()">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Pre Opening Report</h2>
+                <p class="modal-subtitle">Upload a product CSV file to generate the report</p>
+            </div>
+            
+            <div class="success-message" id="preOpeningSuccessMessage">
+                File uploaded successfully!
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="csvFileInput">Select CSV File</label>
+                    <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileUpload(event)">
+                    <div class="error-message" id="csvFile_error"></div>
+                    <div id="fileInfo" class="file-info" style="display: none;">
+                        <span class="file-info-icon">✓</span>
+                        <span id="fileName"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-primary" id="processButton" onclick="processCSV()" disabled>
+                    <span>📈</span> Process Report
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closePreOpeningReportModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Results Modal -->
+    <div id="reportResultsModal" class="modal-overlay">
+        <div class="modal modal-large">
+            <button class="close-modal" onclick="closeReportResultsModal()">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Pre Opening Report Results</h2>
+                <p class="modal-subtitle">Analysis complete</p>
+            </div>
+            
+            <div id="reportContent" class="report-content">
+                <!-- Report content will be inserted here -->
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeReportResultsModal()">Close</button>
+            </div>
+        </div>
+    </div>
     <!-- In admin_dashboard.html -->
     <script>
         window.appUrls = {
             setWholesalePrice: "{% url 'set_wholesale_price' %}",
             addVariety: "{% url 'add_variety' %}",
-            addProduct: "{% url 'add_product' %}"
+            addProduct: "{% url 'add_product' %}",
+            processPreOpeningReport: "{% url 'process_pre_opening_report' %}"
         };
     </script>
     <script src="{% static 'office/js/admin_dashboard.js' %}"></script>

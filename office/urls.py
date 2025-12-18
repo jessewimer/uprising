@@ -46,6 +46,7 @@ urlpatterns = [
     path('edit-packing-record/', edit_packing_record, name='edit_packing_record'),
     path('delete-packing-record/', delete_packing_record, name='delete_packing_record'),
     path('wholesale-availability/', product_views.wholesale_availability, name='wholesale_availability'),
+    path('admin/process-pre-opening-report/', process_pre_opening_report_v2, name='process_pre_opening_report'),
     
     # ============================================================================
     # MIX PRODUCTS
