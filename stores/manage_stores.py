@@ -214,6 +214,95 @@ def update_store_name():
     except Store.DoesNotExist:
         print(f"\n❌ No store found with number {store_num}")
 
+def delete_store():
+    """Delete a store and handle all cascading deletes."""
+    stores = Store.objects.all().order_by('store_num')
+    
+    if not stores.exists():
+        print("\nNo stores found.")
+        return
+    
+    print("\n" + "="*80)
+    print("Available Stores")
+    print("="*80)
+    
+    for store in stores:
+        print(f"{store.store_num}. {store.store_name}")
+    
+    print("\n0. Cancel")
+    
+    try:
+        choice = input("\nSelect store number to delete: ").strip()
+        
+        if choice == "0":
+            print("Cancelled.")
+            return
+        
+        store_num = int(choice)
+        store = Store.objects.get(store_num=store_num)
+        
+    except (ValueError, Store.DoesNotExist):
+        print("Invalid store number.")
+        return
+    
+    # Show what will be deleted
+    print(f"\n{'='*80}")
+    print(f"WARNING: About to delete store: {store.store_name}")
+    print(f"{'='*80}")
+    
+    # Count related objects
+    orders_count = store.orders.count()
+    notes_count = store.notes.count()
+    returns_count = store.returns.count()
+    store_products_count = StoreProduct.objects.filter(store=store).count()
+    
+    print(f"\nThis will also delete:")
+    print(f"  - {orders_count} order(s)")
+    print(f"  - {notes_count} note(s)")
+    print(f"  - {returns_count} return record(s)")
+    print(f"  - {store_products_count} store product relationship(s)")
+    
+    if orders_count > 0:
+        # Count order items
+        total_items = 0
+        pick_lists = 0
+        for order in store.orders.all():
+            total_items += order.items.count()
+            if hasattr(order, 'pick_list_record'):
+                pick_lists += 1
+        
+        print(f"  - {total_items} order item(s)")
+        print(f"  - {pick_lists} pick list record(s)")
+    
+    user_to_delete = None
+    if store.store_user:
+        user_to_delete = store.store_user
+        print(f"\nAssociated user account: {user_to_delete.username}")
+        print("  - User account WILL BE DELETED")
+        
+        # Check if user has LastSelectedStore record
+        if hasattr(user_to_delete, 'last_selected_store'):
+            print("  - Last selected store record")
+    
+    print(f"\n{'='*80}")
+    confirm = input('Type "DELETE" to confirm deletion: ').strip()
+    
+    if confirm != "DELETE":
+        print("Deletion cancelled.")
+        return
+    
+    # Perform deletion
+    store_name = store.store_name
+    username = user_to_delete.username if user_to_delete else None
+    
+    store.delete()  # This deletes the store and cascades to related objects
+    
+    if user_to_delete:
+        user_to_delete.delete()  # Delete the user account
+        print(f"\n✓ Store '{store_name}', user '{username}', and all related records have been deleted.")
+    else:
+        print(f"\n✓ Store '{store_name}' and all related records have been deleted.")
+        
 
 # ============================================================================
 # STORE PRODUCT MANAGEMENT
@@ -484,48 +573,6 @@ def reset_storeproduct_table():
     StoreProduct.objects.bulk_create(to_create)
     print(f"✓ Created {len(to_create)} StoreProduct entries")
     print(f"\n✅ StoreProduct table reset complete")
-# def reset_storeproduct_table():
-#     """Reset StoreProduct table - delete all and recreate with is_available=False"""
-#     print("\n" + "="*60)
-#     print("⚠️  RESET STOREPRODUCT TABLE")
-#     print("="*60)
-#     print("This will:")
-#     print("  1. Delete ALL StoreProduct records")
-#     print("  2. Reset auto-increment")
-#     print("  3. Create new records (all stores × all products)")
-#     print("  4. Set all is_available=False")
-#     print("\nThis operation cannot be undone!")
-    
-#     confirm = input("\nType 'RESET' to confirm: ").strip()
-    
-#     if confirm != 'RESET':
-#         print("Reset cancelled")
-#         return
-    
-#     # Delete all records
-#     deleted_count = StoreProduct.objects.count()
-#     StoreProduct.objects.all().delete()
-#     print(f"✓ Deleted {deleted_count} StoreProduct records")
-    
-#     # Reset auto-increment
-#     with connection.cursor() as cursor:
-#         cursor.execute("ALTER TABLE stores_storeproduct AUTO_INCREMENT = 1;")
-#     print("✓ Reset AUTO_INCREMENT")
-    
-#     # Create all combinations
-#     stores = Store.objects.all()
-#     products = Product.objects.all()
-    
-#     to_create = []
-#     for store in stores:
-#         for product in products:
-#             to_create.append(
-#                 StoreProduct(store=store, product=product, is_available=False)
-#             )
-    
-#     StoreProduct.objects.bulk_create(to_create)
-#     print(f"✓ Created {len(to_create)} StoreProduct entries")
-#     print(f"\n✅ StoreProduct table reset complete")
 
 
 # ============================================================================
@@ -596,10 +643,11 @@ def store_management_menu():
         print("4.  Update store slots")
         print("5.  Update store username")
         print("6.  Update store name")
+        print("7.  Delete store")
         print("0.  Back to main menu")
         
         choice = get_choice("\nSelect option: ", 
-                          ['0', '1', '2', '3', '4', '5', '6'])
+                          ['0', '1', '2', '3', '4', '5', '6', '7'])
         
         if choice == '0':
             break
@@ -620,6 +668,9 @@ def store_management_menu():
             pause()
         elif choice == '6':
             update_store_name()
+            pause()
+        elif choice == '7':
+            delete_store()
             pause()
 
 
