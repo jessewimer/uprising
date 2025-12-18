@@ -379,7 +379,8 @@ def find_lots_with_pending_germs():
     # Find all lots that have pending germinations for this year
     lots_with_pending = Lot.objects.filter(
         germinations__for_year=year,
-        germinations__status='pending'
+        germinations__status='pending',
+        germinations__test_date__isnull=False 
     ).distinct().select_related('variety', 'grower').prefetch_related('germinations')
     
     if not lots_with_pending.exists():
@@ -391,7 +392,7 @@ def find_lots_with_pending_germs():
     print(f"{'='*80}")
     
     for lot in lots_with_pending:
-        pending_germs = lot.germinations.filter(for_year=year, status='pending')
+        pending_germs = lot.germinations.filter(for_year=year, status='pending', test_date__isnull=False)
         
         print(f"\nLot: {lot.build_lot_code()}")
         print(f"Variety: {lot.variety.name if hasattr(lot.variety, 'name') else lot.variety}")
