@@ -788,6 +788,152 @@ def add_single_germination():
     else:
         print("❌ Cancelled")
 
+def edit_germination():
+    """Edit an existing germination record."""
+    sku_prefix = input("\nEnter SKU prefix: ").strip().upper()
+    
+    # Get all lots (including retired) for this variety
+    lots = Lot.objects.filter(
+        variety__sku_prefix=sku_prefix
+    ).select_related('variety', 'grower').order_by('-year', 'harvest')
+    
+    if not lots.exists():
+        print(f"❌ No lots found for {sku_prefix}")
+        return
+    
+    # Display lots
+    print(f"\n📦 Lots for {sku_prefix}:")
+    print("-" * 60)
+    for idx, lot in enumerate(lots, 1):
+        germ_count = lot.germinations.count()
+        print(f"{idx}. {lot.build_lot_code()} - {germ_count} germination record(s)")
+    
+    # Select lot
+    try:
+        choice = int(input("\nSelect lot number (0 to cancel): ").strip())
+        if choice == 0:
+            return
+        if choice < 1 or choice > len(lots):
+            print("❌ Invalid selection")
+            return
+        selected_lot = lots[choice - 1]
+    except ValueError:
+        print("❌ Invalid input")
+        return
+    
+    # Get germination records for this lot
+    germinations = selected_lot.germinations.all().order_by('-test_date', '-for_year')
+    
+    if not germinations.exists():
+        print(f"❌ No germination records found for {selected_lot.build_lot_code()}")
+        return
+    
+    # Display germination records
+    print(f"\n🧪 Germination records for {selected_lot.build_lot_code()}:")
+    print("-" * 60)
+    for idx, germ in enumerate(germinations, 1):
+        test_date_str = germ.test_date.strftime('%m/%d/%y') if germ.test_date else "No date"
+        batch_str = f"Batch {germ.batch.batch_number}" if germ.batch else "In-house"
+        print(f"{idx}. {germ.germination_rate}% - For 20{germ.for_year} - {test_date_str} - {germ.status} - {batch_str}")
+    
+    # Select germination record
+    try:
+        germ_choice = int(input("\nSelect germination record (0 to cancel): ").strip())
+        if germ_choice == 0:
+            return
+        if germ_choice < 1 or germ_choice > len(germinations):
+            print("❌ Invalid selection")
+            return
+        selected_germ = germinations[germ_choice - 1]
+    except ValueError:
+        print("❌ Invalid input")
+        return
+    
+    print(f"\n📝 Editing germination record")
+    print("Press Enter to keep current value, or enter new value\n")
+    
+    # Edit germination_rate
+    current_rate = selected_germ.germination_rate
+    rate_input = input(f"Germination rate (0-100) [{current_rate}]: ").strip()
+    if rate_input:
+        try:
+            new_rate = int(rate_input)
+            if 0 <= new_rate <= 100:
+                selected_germ.germination_rate = new_rate
+            else:
+                print("⚠️  Invalid rate, keeping current value")
+        except ValueError:
+            print("⚠️  Invalid number, keeping current value")
+    
+    # Edit test_date
+    current_date_str = selected_germ.test_date.strftime('%m/%d/%y') if selected_germ.test_date else "None"
+    print(f"Current test date: {current_date_str}")
+    change_date = input("Change test date? (y/n): ").strip().lower()
+    if change_date in ['y', 'yes']:
+        while True:
+            try:
+                month = input("Test date - Month (MM): ").strip().zfill(2)
+                day = input("Test date - Day (DD): ").strip().zfill(2)
+                year = input("Test date - Year (YY): ").strip().zfill(2)
+                
+                full_year = f"20{year}"
+                test_date_str = f"{full_year}-{month}-{day}"
+                new_test_date = date.fromisoformat(test_date_str)
+                selected_germ.test_date = new_test_date
+                break
+            except ValueError:
+                print("❌ Invalid date format. Try again.")
+    
+    # Edit for_year
+    current_for_year = selected_germ.for_year
+    for_year_input = input(f"For year (YY) [{current_for_year}]: ").strip()
+    if for_year_input:
+        try:
+            new_for_year = int(for_year_input)
+            if 0 <= new_for_year <= 99:
+                selected_germ.for_year = new_for_year
+            else:
+                print("⚠️  Invalid year, keeping current value")
+        except ValueError:
+            print("⚠️  Invalid number, keeping current value")
+    
+    # Edit status
+    current_status = selected_germ.status
+    print(f"Current status: {current_status}")
+    status_input = input("Status (pending/active) or Enter to skip: ").strip().lower()
+    if status_input in ['pending', 'active']:
+        selected_germ.status = status_input
+    elif status_input and status_input not in ['', 'skip']:
+        print("⚠️  Invalid status, keeping current value")
+    
+    # Edit notes
+    current_notes = selected_germ.notes or "(none)"
+    notes_input = input(f"Notes [{current_notes}]: ").strip()
+    if notes_input:
+        selected_germ.notes = notes_input
+    
+    # Confirm save
+    print("\n" + "=" * 60)
+    print(f"Lot: {selected_lot.build_lot_code()}")
+    print(f"Germination rate: {selected_germ.germination_rate}%")
+    print(f"Test date: {selected_germ.test_date}")
+    print(f"For year: 20{selected_germ.for_year}")
+    print(f"Status: {selected_germ.status}")
+    print(f"Batch: {selected_germ.batch.batch_number if selected_germ.batch else 'None (in-house)'}")
+    print(f"Notes: {selected_germ.notes or '(none)'}")
+    print("=" * 60)
+    
+    confirm = input("\nSave changes? (y/n): ").strip().lower()
+    
+    if confirm in ['y', 'yes']:
+        try:
+            selected_germ.save()
+            print(f"✅ Successfully updated germination record")
+        except Exception as e:
+            print(f"❌ Error saving: {e}")
+    else:
+        print("❌ Changes discarded")
+
 def germination_menu():
     """Germination management submenu"""
     while True:
@@ -800,9 +946,10 @@ def germination_menu():
         print("3. Add germination batch")
         print("4. Clear batches & 2026 test germinations")
         print("5. Add single germination record")
+        print("6. Edit germination record")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6'])
         
         if choice == '0':
             break
@@ -820,6 +967,9 @@ def germination_menu():
             pause()
         elif choice == '5':
             add_single_germination()
+            pause()
+        elif choice == '6':
+            edit_germination()
             pause()
 
 
