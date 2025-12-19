@@ -30,7 +30,7 @@ class CustomLoginView(LoginView):
         store_name = self.request.user.username
         return reverse('dashboard', kwargs={'store_name': store_name})
 
-@login_required
+@login_required(login_url='/accounts/login')
 def dashboard(request, store_name):
     user = request.user
     

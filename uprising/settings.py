@@ -185,8 +185,11 @@ FOR_YEAR = 26
 # Change this to the next year once we shut the website down in mid-November
 CURRENT_ORDER_YEAR = 26
 PACKET_PRICE = 2.40
-SITE_MAINTENANCE_MODE = True
-TRANSITION = False  # whether we are in the transition period between years (July - Dec)
+
+# Site maintenance mode flag... when True, wholesale login attempts will be blocked by middleware
+SITE_MAINTENANCE_MODE = False
+
+TRANSITION = False  # whether we are in the transition period between years (July - November)
 
 PKG_SIZES = ["Net wt. 1/8 oz", "Net wt. 1/4 oz", "Net wt. 1/2 oz", "Net wt. 1 oz", "Net wt. 2 oz", "Net wt. 1/4 lb", "Net wt. 1/2 lb", 
              "Net wt. 1 lb", "Net wt. 2½ lb", "Net wt. 5 lb", "Approx. 10 seeds", "Approx. 15 seeds", "Approx. 20 seeds", "Approx. 20-25 seeds", "Approx. 25 seeds", 
