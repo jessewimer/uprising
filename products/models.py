@@ -38,6 +38,7 @@ class Variety(models.Model):
     back6 = models.TextField(blank=True, null=True)
     back7 = models.TextField(blank=True, null=True)
 
+    var_notes = models.TextField(blank=True, null=True)
     ws_notes = models.TextField(blank=True, null=True)
     ws_description = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=255, blank=True, null=True)

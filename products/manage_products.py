@@ -240,13 +240,82 @@ def add_variety():
     print("  - Upload photo")
 
 def edit_variety():
-    """Edit variety details - PLACEHOLDER"""
-    print("\n⚠️  EDIT VARIETY - Function placeholder")
-    print("This would allow you to:")
-    print("  - Select variety by SKU prefix")
-    print("  - Update any field")
-    print("  - Change active status")
-    print("  - Update photo path")
+    """Edit an existing variety."""
+    sku_prefix = input("\nEnter SKU prefix to edit: ").strip().upper()
+    
+    try:
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+    except Variety.DoesNotExist:
+        print(f"❌ No variety found with SKU prefix: {sku_prefix}")
+        return
+    
+    print(f"\n📝 Editing variety: {variety}")
+    print("Press Enter to keep current value, or enter new value\n")
+    
+    # Define fields to edit with their current values
+    fields = [
+        ('var_name', variety.var_name),
+        ('crop', variety.crop),
+        ('common_spelling', variety.common_spelling),
+        ('common_name', variety.common_name),
+        ('group', variety.group),
+        ('veg_type', variety.veg_type),
+        ('species', variety.species),
+        ('subtype', variety.subtype),
+        ('days', variety.days),
+        ('stock_qty', variety.stock_qty),
+        ('photo_path', variety.photo_path),
+        ('wholesale_rack_designation', variety.wholesale_rack_designation),
+        ('growout_needed', variety.growout_needed),
+        ('desc_line1', variety.desc_line1),
+        ('desc_line2', variety.desc_line2),
+        ('desc_line3', variety.desc_line3),
+        ('back1', variety.back1),
+        ('back2', variety.back2),
+        ('back3', variety.back3),
+        ('back4', variety.back4),
+        ('back5', variety.back5),
+        ('back6', variety.back6),
+        ('back7', variety.back7),
+        ('var_notes', variety.var_notes),
+        ('ws_notes', variety.ws_notes),
+        ('ws_description', variety.ws_description),
+        ('category', variety.category),
+    ]
+    
+    # Boolean fields
+    bool_fields = [
+        ('active', variety.active),
+        ('wholesale', variety.wholesale),
+        ('website_bulk', variety.website_bulk),
+        ('is_mix', variety.is_mix),
+    ]
+    
+    # Edit text/char fields
+    for field_name, current_value in fields:
+        display_value = current_value if current_value else "(empty)"
+        new_value = input(f"{field_name} [{display_value}]: ").strip()
+        if new_value:
+            setattr(variety, field_name, new_value)
+    
+    # Edit boolean fields
+    for field_name, current_value in bool_fields:
+        response = input(f"{field_name} [Current: {current_value}] (y/n or Enter to skip): ").strip().lower()
+        if response in ['y', 'yes']:
+            setattr(variety, field_name, True)
+        elif response in ['n', 'no']:
+            setattr(variety, field_name, False)
+    
+    # Confirm save
+    print("\n" + "="*50)
+    print(f"Ready to save changes to {variety.sku_prefix}")
+    confirm = input("Save changes? (y/n): ").strip().lower()
+    
+    if confirm in ['y', 'yes']:
+        variety.save()
+        print(f"✅ Successfully updated variety: {variety.sku_prefix}")
+    else:
+        print("❌ Changes discarded")
 
 def variety_menu():
     """Variety management submenu"""
