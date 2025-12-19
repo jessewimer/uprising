@@ -4,7 +4,7 @@ import django
 import csv
 import sys
 from django.db import transaction
-from datetime import datetime
+from datetime import datetime, date
 from django.utils import timezone
 
 # Get the current directory path
@@ -681,6 +681,113 @@ def clear_germination_batch_and_test_germinations():
     Germination.objects.filter(for_year=26).delete()
     print("✅ All test germinations cleared for 2026.")
 
+def add_single_germination():
+    """Add a germination record for a single lot."""
+    sku_prefix = input("\nEnter SKU prefix: ").strip().upper()
+    
+    # Get all active (non-retired) lots for this variety
+    lots = Lot.objects.filter(
+        variety__sku_prefix=sku_prefix
+    ).exclude(
+        retired_info__isnull=False  # Exclude retired lots
+    ).select_related('variety', 'grower').order_by('-year', 'harvest')
+    
+    if not lots.exists():
+        print(f"❌ No active lots found for {sku_prefix}")
+        return
+    
+    # Display lots
+    print(f"\n📦 Active lots for {sku_prefix}:")
+    print("-" * 60)
+    for idx, lot in enumerate(lots, 1):
+        recent_germ = lot.get_most_recent_germ_percent_with_year()
+        print(f"{idx}. {lot.build_lot_code()} - Recent germ: {recent_germ or 'None'}")
+    
+    # Select lot
+    try:
+        choice = int(input("\nSelect lot number (0 to cancel): ").strip())
+        if choice == 0:
+            return
+        if choice < 1 or choice > len(lots):
+            print("❌ Invalid selection")
+            return
+        selected_lot = lots[choice - 1]
+    except ValueError:
+        print("❌ Invalid input")
+        return
+    
+    print(f"\n🧪 Adding germination record for {selected_lot.build_lot_code()}")
+    print("-" * 60)
+    
+    # Get germination_rate
+    while True:
+        try:
+            germ_rate = int(input("Germination rate (0-100): ").strip())
+            if 0 <= germ_rate <= 100:
+                break
+            print("❌ Must be between 0 and 100")
+        except ValueError:
+            print("❌ Invalid number")
+    
+    # Get test_date (MM DD YY format)
+    while True:
+        try:
+            month = input("Test date - Month (MM): ").strip().zfill(2)
+            day = input("Test date - Day (DD): ").strip().zfill(2)
+            year = input("Test date - Year (YY): ").strip().zfill(2)
+            
+            # Convert to full year
+            full_year = f"20{year}"
+            test_date_str = f"{full_year}-{month}-{day}"
+            test_date = date.fromisoformat(test_date_str)
+            break
+        except ValueError:
+            print("❌ Invalid date format. Try again.")
+    
+    # Get for_year
+    while True:
+        try:
+            for_year = int(input("For year (YY, e.g., 26 for 2026): ").strip())
+            if 0 <= for_year <= 99:
+                break
+            print("❌ Must be 2-digit year")
+        except ValueError:
+            print("❌ Invalid number")
+    
+    # Get notes (optional)
+    notes = input("Notes (optional, press Enter to skip): ").strip()
+    
+    # Confirm
+    print("\n" + "=" * 60)
+    print(f"Lot: {selected_lot.build_lot_code()}")
+    print(f"Germination rate: {germ_rate}%")
+    print(f"Test date: {test_date}")
+    print(f"For year: 20{for_year}")
+    print(f"Status: pending")
+    print(f"Batch: None (in-house test)")
+    if notes:
+        print(f"Notes: {notes}")
+    print("=" * 60)
+    
+    confirm = input("\nSave this germination record? (y/n): ").strip().lower()
+    
+    if confirm in ['y', 'yes']:
+        try:
+            Germination.objects.create(
+                lot=selected_lot,
+                batch=None,
+                status='pending',
+                germination_rate=germ_rate,
+                test_date=test_date,
+                for_year=for_year,
+                notes=notes if notes else None
+            )
+            print(f"✅ Successfully added germination record for {selected_lot.build_lot_code()}")
+        except Exception as e:
+            print(f"❌ Error saving germination: {e}")
+    else:
+        print("❌ Cancelled")
+
 def germination_menu():
     """Germination management submenu"""
     while True:
@@ -692,9 +799,10 @@ def germination_menu():
         print("2. View all germination records")
         print("3. Add germination batch")
         print("4. Clear batches & 2026 test germinations")
+        print("5. Add single germination record")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5'])
         
         if choice == '0':
             break
@@ -709,6 +817,9 @@ def germination_menu():
             pause()
         elif choice == '4':
             clear_germination_batch_and_test_germinations()
+            pause()
+        elif choice == '5':
+            add_single_germination()
             pause()
 
 
