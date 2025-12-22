@@ -855,9 +855,14 @@
                                 Created: <span id="detailCreated" style="font-weight: 600;">--</span>
                             </div>
                         </div>
-                        <button id="retireMixLotButton" class="add-button" style="background: #dc3545; margin: 0;" onclick="showRetireMixLotModal()">
-                            Retire
-                        </button>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="printLabelButton" class="add-button" style="background: linear-gradient(135deg, #667eea, #764ba2); margin: 0;" onclick="printMixLabel()">
+                                Print Label
+                            </button>
+                            <button id="retireMixLotButton" class="add-button" style="background: #dc3545; margin: 0;" onclick="showRetireMixLotModal()">
+                                Retire
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Components Section -->
@@ -1691,6 +1696,59 @@
                 console.error('Error:', error);
                 showMessage('Error retiring mix lot', 'error');
             });
+        }
+
+        function printMixLabel() {
+            if (!currentMixLotId) {
+                showMessage('Please select a mix lot first', 'error');
+                return;
+            }
+            
+            // Get the current lot details
+            fetch(`/office/mixes/lot-details/${currentMixLotId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // Determine if this is a base/component mix
+                    const mixName = currentMixName;
+                    const isComponentMix = ['Lettuce Mix', 'Spicy Mix', 'Mild Mix'].includes(mixName);
+                    
+                    // Prepare the label data
+                    const labelData = {
+                        mix_name: mixName,
+                        is_component: isComponentMix,
+                        lot_code: data.lot_code,
+                        components: data.components.map(comp => ({
+                            parts: comp.parts,
+                            variety: comp.variety_name,
+                            lot: comp.lot_code
+                        }))
+                    };
+                    
+                    // Send to Flask app
+                    fetch('http://localhost:5000/print-mix-label', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(labelData)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showMessage('Label printed successfully!', 'success');
+                        } else {
+                            showMessage('Error printing label: ' + result.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error printing label:', error);
+                        showMessage('Error connecting to printer service', 'error');
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching lot details:', error);
+                    showMessage('Error fetching lot details', 'error');
+                });
         }
 
         // Reset dropdown on page load
