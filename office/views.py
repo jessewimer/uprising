@@ -51,17 +51,18 @@ mix_prefixes = ['CAR-RA', 'BEE-3B', 'LET-MX', 'MIX-SP', 'MIX-MI', 'MIX-BR', 'FLO
 FINAL_MIX_CONFIGS = {
     'CAR-RA': {
         'name': 'Rainbow Carrot Mix',
-        'varieties': ['CAR-SN', 'CAR-YE', 'CAR-DR']
+        'varieties': ['CAR-SN', 'CAR-YE', 'CAR-DR'],
     },
     'BEE-3B': {
         'name': '3 Beet Mix',
         'type': 'regular',
-        'varieties': ['BEE-TG', 'BEE-SH', 'BEE-CH']
+        'varieties': ['BEE-TG', 'BEE-SH', 'BEE-CH'],
     },
     'LET-MX': {
         'name': 'Uprising Lettuce Mix',
         'type': 'regular',
-        'varieties_prefix': 'LET',
+        # 'varieties_prefix': 'LET',
+        'varieties': ['LET-AB', 'LET-AD', 'LET-AY', 'LET-BG', 'LET-BI', 'LET-CI', 'LET-CR', 'LET-DV', 'LET-EM', 'LET-ER', 'LET-FB', 'LET-FT', 'LET-GA', 'LET-GR', 'LET-HR', 'LET-IT', 'LET-JE', 'LET-LB', 'LET-LG', 'LET-MA', 'LET-ME', 'LET-MQ', 'LET-OD', 'LET-OS', 'LET-PI', 'LET-QH', 'LET-RG', 'LET-RR', 'LET-RV', 'LET-SB', 'LET-SU', 'LET-TB', 'LET-WD'],
         'varieties_exclude': ['LET-MX']
     },
     'MIX-SP': {
@@ -77,12 +78,12 @@ FINAL_MIX_CONFIGS = {
     'MIX-BR': {
         'name': 'Uprising Braising Mix',
         'type': 'regular',
-        'varieties': []  # Fill in your varieties
+        'varieties': ['GRE-TA', 'GRE-RS', 'GRE-PC', 'SPI-BE', 'SPI-WG', 'SPI-WB', 'KAL-RR', 'KAL-RF', 'KAL-DB', 'CHA-RA', 'GRE-MZ', 'GRE-GF']  
     },
     'FLO-ED': {
         'name': 'Edible Flower Mix',
         'type': 'regular',
-        'varieties': ['GRE-TA', 'GRE-RS', 'GRE-PC', 'SPI-BE', 'SPI-WG', 'SPI-WB', 'KAL-RR', 'KAL-RF', 'KAL-DB', 'CHA-RA', 'GRE-MZ', 'GRE-GF'] 
+        'varieties': ['FLO-BO', 'CAL-MX', 'NAS-TM', 'BAB-FB', 'BAB-BB'] 
     }
 }
 
@@ -3533,10 +3534,17 @@ def update_product_scoop_size(request):
 def mixes(request):
     """Render the mixes page"""
     context = {
-        'current_year': settings.CURRENT_ORDER_YEAR
+        'current_order_year': settings.CURRENT_ORDER_YEAR,
+        'final_mixes': FINAL_MIX_CONFIGS,
+        'base_mixes': BASE_COMPONENT_MIXES
     }
     return render(request, 'office/mixes.html', context)
-
+# def mixes(request):
+#     """Render the mixes page"""
+#     context = {
+#         'current_year': settings.CURRENT_ORDER_YEAR
+#     }
+#     return render(request, 'office/mixes.html', context)
 
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
@@ -3572,61 +3580,53 @@ def get_available_lots_for_mix(request):
         for mix_lot in mix_lots:
             germ_rate = mix_lot.calculate_germ_rate(for_year=year)
             
-            if germ_rate:  # Only include if germ rate can be calculated
-                # Calculate inventory from batches
-                total_weight = mix_lot.batches.aggregate(
-                    total=Sum('final_weight')
-                )['total'] or 0
-                
-                available_lots.append({
-                    'id': mix_lot.id,
-                    'variety_name': mix_lot.variety.var_name,
-                    'variety_sku': mix_lot.variety.sku_prefix,
-                    'lot_code': mix_lot.lot_code,
-                    'full_lot_code': str(mix_lot),
-                    'germ_rate': germ_rate,
-                    'status': 'active',
-                    'inventory': f"{total_weight} lbs",
-                    'is_mix': True  # Flag to identify this is a MixLot
-                })
+            # Include all mix lots, even without germ rate
+            total_weight = mix_lot.batches.aggregate(
+                total=Sum('final_weight')
+            )['total'] or 0
+            
+            available_lots.append({
+                'id': mix_lot.id,
+                'variety_name': mix_lot.variety.var_name,
+                'variety_sku': mix_lot.variety.sku_prefix,
+                'lot_code': mix_lot.lot_code,
+                'full_lot_code': mix_lot.lot_code,  # Changed from str(mix_lot)
+                'germ_rate': germ_rate,
+                'status': 'active' if germ_rate else 'no_germ',
+                'inventory': f"{total_weight} lbs",
+                'is_mix': True  # Flag to identify this is a MixLot
+            })
         
         return JsonResponse(available_lots, safe=False)
     
     # Handle regular mixes (composed of regular lots)
-    # Build the query based on config
-    if config.get('varieties_prefix'):
-        # Get all varieties starting with prefix
-        prefix = config['varieties_prefix']
-        lots = Lot.objects.filter(variety__sku_prefix__startswith=prefix)
-        
-        # Exclude specific varieties if specified
-        if config.get('varieties_exclude'):
-            lots = lots.exclude(variety__sku_prefix__in=config['varieties_exclude'])
-    else:
-        # Get specific varieties
-        sku_prefixes = config.get('varieties', [])
-        lots = Lot.objects.filter(variety__sku_prefix__in=sku_prefixes)
+    # Get specific varieties from config
+    sku_prefixes = config.get('varieties', [])
+    lots = Lot.objects.filter(variety__sku_prefix__in=sku_prefixes)
     
+    # Exclude retired lots
+    lots = lots.exclude(retired_info__isnull=False)
+    
+    # Prefetch related data
     lots = lots.select_related('variety', 'grower').prefetch_related('germinations', 'inventory')
     
     available_lots = []
     for lot in lots:
         germ = lot.germinations.filter(status='active', for_year=year).first()
+        inventory = lot.get_most_recent_inventory()
         
-        if germ:
-            inventory = lot.get_most_recent_inventory()
-            
-            available_lots.append({
-                'id': lot.id,
-                'variety_name': lot.variety.var_name,
-                'variety_sku': lot.variety.sku_prefix,
-                'lot_code': lot.get_four_char_lot_code(),
-                'full_lot_code': str(lot),
-                'germ_rate': germ.germination_rate,
-                'status': germ.status,
-                'inventory': inventory,
-                'is_mix': False  # Flag to identify this is a regular Lot
-            })
+        # Include all non-retired lots, regardless of germ status
+        available_lots.append({
+            'id': lot.id,
+            'variety_name': lot.variety.var_name,
+            'variety_sku': lot.variety.sku_prefix,
+            'lot_code': lot.get_four_char_lot_code(),
+            'full_lot_code': lot.get_four_char_lot_code(),  # Changed from str(lot)
+            'germ_rate': germ.germination_rate if germ else None,
+            'status': germ.status if germ else 'no_germ',
+            'inventory': inventory,
+            'is_mix': False  # Flag to identify this is a regular Lot
+        })
     
     return JsonResponse(available_lots, safe=False)
 
@@ -3647,20 +3647,23 @@ def get_existing_mix_lots(request):
     
     mix_lots = MixLot.objects.filter(variety=variety).prefetch_related('batches', 'components')
     
-    result = []
-    for mix_lot in mix_lots:
-        result.append({
-            'id': mix_lot.id,
-            'lot_code': mix_lot.lot_code,
-            'is_retired': hasattr(mix_lot, 'retired_mix_info'),
-            'created_date': mix_lot.created_date.strftime('%m/%d/%Y'),
-            'germ_rate': mix_lot.get_current_germ_rate(),
-            'batch_count': mix_lot.batches.count(),
-            'component_count': mix_lot.components.count()
+    lots_data = []
+    for lot in mix_lots:
+        is_retired = hasattr(lot, 'retired_mix_info') and lot.retired_mix_info is not None
+        
+        germ_rate = lot.calculate_germ_rate(for_year=settings.CURRENT_ORDER_YEAR)
+        total_weight = lot.batches.aggregate(total=Sum('final_weight'))['total'] or 0
+        
+        lots_data.append({
+            'id': lot.id,
+            'lot_code': lot.lot_code,
+            'germ_rate': germ_rate,
+            'batch_count': lot.batches.count(),
+            'total_weight': total_weight,
+            'is_retired': is_retired
         })
     
-    return JsonResponse(result, safe=False)
-
+    return JsonResponse(lots_data, safe=False)
 
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
@@ -3729,7 +3732,8 @@ def get_mix_lot_details(request, mix_lot_id):
                 'variety_name': lot.variety.var_name,
                 'variety_sku': lot.variety.sku_prefix,
                 'lot_code': lot.get_four_char_lot_code(),
-                # 'is_retired': hasattr(mix_lot, 'retired_mix_info'), 
+                'is_retired': hasattr(mix_lot, 'retired_mix_info') and mix_lot.retired_mix_info is not None,
+                'created_date': mix_lot.created_date.strftime('%Y-%m-%d'),
                 'full_lot_code': str(lot),
                 'germ_rate': germ.germination_rate if germ else None,
                 'parts': comp.parts
@@ -3762,6 +3766,54 @@ def get_mix_lot_details(request, mix_lot_id):
         return JsonResponse({'error': 'Mix lot not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["GET"])
+def generate_lot_code(request):
+    """Generate the next available lot code for a mix"""
+    mix_sku = request.GET.get('mix')
+    
+    if not mix_sku:
+        return JsonResponse({'error': 'Mix SKU required'}, status=400)
+    
+    try:
+        from products.models import Variety
+        variety = Variety.objects.get(sku_prefix=mix_sku)
+    except Variety.DoesNotExist:
+        return JsonResponse({'error': 'Variety not found'}, status=404)
+    
+    # Get existing mix lots for this variety
+    existing_lots = MixLot.objects.filter(variety=variety).values_list('lot_code', flat=True)
+    
+    # Get the current year (last 2 digits)
+    current_year = str(settings.CURRENT_ORDER_YEAR)[-2:]
+    prefix = f"UO{current_year}"
+    
+    # Filter lots for current year only
+    current_year_lots = [lot for lot in existing_lots if lot.startswith(prefix)]
+    
+    if len(current_year_lots) == 0:
+        # No lots for current year, start with A
+        next_code = f"{prefix}A"
+    else:
+        # Extract the letter suffixes and find the highest
+        letters = [lot[len(prefix):] for lot in current_year_lots]
+        letters.sort()
+        last_letter = letters[-1]
+        
+        # Get next letter (assuming single letter A-Z)
+        next_char_code = ord(last_letter[0]) + 1
+        next_letter = chr(next_char_code)
+        
+        next_code = f"{prefix}{next_letter}"
+    
+    return JsonResponse({
+        'success': True,
+        'lot_code': next_code
+    })
+
 
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)

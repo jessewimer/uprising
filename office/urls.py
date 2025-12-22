@@ -58,6 +58,7 @@ urlpatterns = [
     path('mixes/lot-details/<int:mix_lot_id>/', get_mix_lot_details, name='get_mix_lot_details'),
     path('mixes/create-batch/', create_batch, name='create_batch'),
     path('assign-mix-lot/', assign_mix_lot, name='assign_mix_lot'),
+    path('mixes/generate-lot-code/', generate_lot_code, name='generate_lot_code'),
     
     # ============================================================================
     # LOT MANAGEMENT
