@@ -984,6 +984,11 @@
                     <span class="stat-label">Selected Items</span>
                     <span class="stat-value"><span id="selected-items-count">0</span></span>
                 </div>
+
+                <div class="stat-item" id="slots-stat" style="display: none;">
+                    <span class="stat-label">Store Slots</span>
+                    <span class="stat-value"><span id="store-slots-count">0</span></span>
+                </div>
                 
             </div>
         </div>
@@ -1218,33 +1223,29 @@
             filterTable(); // Add this line to update filtering when checkboxes change
         }
 
-        // Function to load store availability
         async function loadStoreAvailability(storeId) {
-            if (!storeId) return;
-            
             try {
                 const formData = new FormData();
                 formData.append('store_id', storeId);
                 formData.append('csrfmiddlewaretoken', getCSRFToken());
-                // console.log("Loading availability for store:", storeId);
-                
+
                 const response = await fetch('', {
                     method: 'POST',
                     body: formData
                 });
 
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
                 const data = await response.json();
-                // console.log('Store availability data:', data);
-
+                
                 if (data.success) {
-                    // Clear current selections
-                    selectedItems = {};
+                    // Update slots display
+                    const slotsStatElement = document.getElementById('slots-stat');
+                    const slotsCountElement = document.getElementById('store-slots-count');
+                    if (slotsStatElement && slotsCountElement) {
+                        slotsCountElement.textContent = data.slots || 0;
+                        slotsStatElement.style.display = 'flex';
+                    }
                     
-                    // Update checkboxes based on store's available products
+                    // Update checkboxes based on availability
                     const checkboxes = document.querySelectorAll('.product-checkbox');
                     checkboxes.forEach(checkbox => {
                         const skuPrefix = checkbox.getAttribute('data-sku-prefix');
@@ -1258,7 +1259,6 @@
                     });
                     
                     updateSelectedItemCount();
-                    // console.log(`Loaded ${Object.keys(selectedItems).length} available items for store ${storeId}`);
                 } else {
                     showErrorMessage(data.error || 'Failed to load store availability');
                 }
@@ -1267,6 +1267,55 @@
                 showErrorMessage('Failed to load store availability');
             }
         }
+        // // Function to load store availability
+        // async function loadStoreAvailability(storeId) {
+        //     if (!storeId) return;
+            
+        //     try {
+        //         const formData = new FormData();
+        //         formData.append('store_id', storeId);
+        //         formData.append('csrfmiddlewaretoken', getCSRFToken());
+        //         // console.log("Loading availability for store:", storeId);
+                
+        //         const response = await fetch('', {
+        //             method: 'POST',
+        //             body: formData
+        //         });
+
+        //         if (!response.ok) {
+        //             throw new Error('Network response was not ok');
+        //         }
+
+        //         const data = await response.json();
+        //         // console.log('Store availability data:', data);
+
+        //         if (data.success) {
+        //             // Clear current selections
+        //             selectedItems = {};
+                    
+        //             // Update checkboxes based on store's available products
+        //             const checkboxes = document.querySelectorAll('.product-checkbox');
+        //             checkboxes.forEach(checkbox => {
+        //                 const skuPrefix = checkbox.getAttribute('data-sku-prefix');
+        //                 const isAvailable = data.available_sku_prefixes.includes(skuPrefix);
+                        
+        //                 checkbox.checked = isAvailable;
+                        
+        //                 if (isAvailable) {
+        //                     selectedItems[skuPrefix] = true;
+        //                 }
+        //             });
+                    
+        //             updateSelectedItemCount();
+        //             // console.log(`Loaded ${Object.keys(selectedItems).length} available items for store ${storeId}`);
+        //         } else {
+        //             showErrorMessage(data.error || 'Failed to load store availability');
+        //         }
+        //     } catch (error) {
+        //         console.error('Error loading store availability:', error);
+        //         showErrorMessage('Failed to load store availability');
+        //     }
+        // }
 
         // Function to handle store filter changes
         function handleStoreFilterChange(event) {

@@ -37,8 +37,16 @@ def edit_products(request):
                     ).values_list('product__variety__sku_prefix', flat=True)
                 )
 
+                # available_sku_prefixes = [str(item) for item in available_sku_prefixes]
+                # return JsonResponse({'success': True, 'available_sku_prefixes': available_sku_prefixes})
                 available_sku_prefixes = [str(item) for item in available_sku_prefixes]
-                return JsonResponse({'success': True, 'available_sku_prefixes': available_sku_prefixes})
+                # UPDATED: Include slots in the response
+                return JsonResponse({
+                    'success': True, 
+                    'available_sku_prefixes': available_sku_prefixes,
+                    'slots': store.slots,
+                    'store_name': store.store_name
+                })
             except Store.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Store not found'})
         
