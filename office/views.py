@@ -4077,7 +4077,15 @@ def check_shopify_inventory(request, sku_prefix):
         shopify.ShopifyResource.activate_session(session)
         
         # Get all products and filter by variant SKU prefix
-        all_products = shopify.Product.find(limit=250)
+        all_products = []
+        page = 1
+        max_pages = 10  # This would get up to 2500 products
+        while page <= max_pages:
+            products = shopify.Product.find(limit=250, page=page)
+            if not products:
+                break
+            all_products.extend(products)
+            page += 1
         
         matching_variants = []
         
