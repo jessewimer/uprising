@@ -18,6 +18,10 @@ DATABASE_NAME = config('DATABASE_NAME')
 DATABASE_PASSWORD = config('DATABASE_PASSWORD')
 DATABASE_USER = config('DATABASE_USER')
 
+SHOPIFY_SHOP_URL = config('SHOPIFY_SHOP_URL', default='your-shop-name.myshopify.com')
+SHOPIFY_API_VERSION = config('SHOPIFY_API_VERSION', default='2023-01')
+SHOPIFY_ACCESS_TOKEN = config('SHOPIFY_TOKEN')
+
 ENVIRONMENT = config('ENVIRONMENT', default='development')
 
 if ENVIRONMENT == 'production':

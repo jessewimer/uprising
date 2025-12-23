@@ -34,6 +34,7 @@ urlpatterns = [
     path('api/variety-sales/<str:sku_prefix>/', variety_sales_data, name='variety_sales_data'),
     path('variety-usage/<str:sku_prefix>/', variety_usage, name='variety_usage'),
     path('variety/<str:sku_prefix>/update_notes/', update_variety_notes, name='update_variety_notes'),
+    path('api/check-shopify-inventory/<str:sku_prefix>/', check_shopify_inventory, name='check_shopify_inventory'),
     
     # ============================================================================
     # PRODUCT MANAGEMENT

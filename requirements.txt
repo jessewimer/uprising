@@ -21,3 +21,4 @@ wcwidth==0.2.13
 django-axes==8.0.0
 pandas==2.3.2
 django-csp==4.0
+ShopifyAPI==12.7.0

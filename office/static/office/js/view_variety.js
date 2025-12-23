@@ -624,22 +624,340 @@ function toggleNotesEdit() {
     textarea.focus();
 }
 
-// function cancelNotesEdit() {
-//     const display = document.getElementById('notes-display');
-//     const textarea = document.getElementById('notes-textarea');
-//     const editBtn = document.getElementById('notes-edit-btn');
-//     const saveBtn = document.getElementById('notes-save-btn');
-//     const cancelBtn = document.getElementById('notes-cancel-btn');
+
+
+
+
+
+
+
+function checkShopifyInventory() {
+    const skuPrefix = VARIETY_SKU_PREFIX;
     
-//     textarea.value = originalNotes;
+    if (!skuPrefix) {
+        alert('No variety SKU prefix available');
+        return;
+    }
     
-//     // Show display and edit button, hide textarea and action buttons
-//     display.style.display = 'block';
-//     textarea.style.display = 'none';
-//     editBtn.style.display = 'inline-block';
-//     saveBtn.style.display = 'none';
-//     cancelBtn.style.display = 'none';
+    // Hide variety actions popup
+    hideVarietyActionsPopup();
+    
+    // Show Shopify popup
+    const shopifyPopup = document.getElementById('shopifyInventoryPopup');
+    if (!shopifyPopup) {
+        alert('Shopify popup element not found');
+        return;
+    }
+    
+    shopifyPopup.style.display = 'flex';
+    document.getElementById('shopify-inventory-content').innerHTML = '<p>Loading Shopify inventory...</p>';
+    
+    // Fetch data
+    fetch(`/office/api/check-shopify-inventory/${encodeURIComponent(skuPrefix)}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayShopifyResults(data);
+            } else {
+                document.getElementById('shopify-inventory-content').innerHTML = 
+                    `<p style="color: red;">Error: ${data.error}</p>`;
+            }
+        })
+        .catch(error => {
+            document.getElementById('shopify-inventory-content').innerHTML = 
+                `<p style="color: red;">Failed: ${error.message}</p>`;
+        });
+}
+
+
+function displayShopifyResults(data) {
+    const statusIcon = data.website_bulk 
+        ? '<span style="color: #28a745; font-size: 20px;">✓</span>' 
+        : '<span style="color: #dc3545; font-size: 20px;">✗</span>';
+    
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Found ${data.total_found} variants with SKU prefix "${data.sku_prefix}"</h3>
+            <div style="font-size: 16px; font-weight: 600;">
+                Status: ${statusIcon}
+            </div>
+        </div>
+    `;
+    
+    html += '<table class="usage-table">';
+    html += '<thead><tr><th>Product</th><th>Variant</th><th>SKU</th><th>Inventory</th><th>Price</th></tr></thead>';
+    html += '<tbody>';
+    
+    data.variants.forEach(variant => {
+        html += '<tr>';
+        html += `<td>${variant.product_title}</td>`;
+        html += `<td>${variant.variant_title}</td>`;
+        html += `<td>${variant.sku}</td>`;
+        html += `<td>${variant.inventory_quantity}</td>`;
+        html += `<td>$${variant.price}</td>`;
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    
+    document.getElementById('shopify-inventory-content').innerHTML = html;
+}
+// function displayShopifyResults(data) {
+//     let html = `<h3 style="margin-bottom: 15px;">Found ${data.total_found} variants with SKU prefix "${data.sku_prefix}"</h3>`;
+//     html += '<table class="usage-table">';
+//     html += '<thead><tr><th>Product</th><th>Variant</th><th>SKU</th><th>Inventory</th><th>Price</th></tr></thead>';
+//     html += '<tbody>';
+    
+//     data.variants.forEach(variant => {
+//         html += '<tr>';
+//         html += `<td>${variant.product_title}</td>`;
+//         html += `<td>${variant.variant_title}</td>`;
+//         html += `<td>${variant.sku}</td>`;
+//         html += `<td>${variant.inventory_quantity}</td>`;
+//         html += `<td>$${variant.price}</td>`;
+//         html += '</tr>';
+//     });
+    
+//     html += '</tbody></table>';
+    
+//     document.getElementById('shopify-inventory-content').innerHTML = html;
 // }
+
+function closeShopifyInventoryPopup() {
+    const popup = document.getElementById('shopifyInventoryPopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+}
+
+// Close Shopify popup when clicking outside
+document.addEventListener('click', function(e) {
+    const popup = document.getElementById('shopifyInventoryPopup');
+    if (popup && e.target === popup) {
+        closeShopifyInventoryPopup();
+    }
+});
+
+// function checkShopifyInventory() {
+//     console.log('=== START checkShopifyInventory ===');
+    
+//     const skuPrefix = VARIETY_SKU_PREFIX;
+//     console.log('skuPrefix:', skuPrefix);
+    
+//     if (!skuPrefix) {
+//         alert('No variety SKU prefix available');
+//         return;
+//     }
+    
+//     // Close variety actions popup - CORRECT ID!
+//     const varietyPopup = document.getElementById('varietyActionsPopup');
+//     console.log('varietyPopup found:', varietyPopup);
+    
+//     if (varietyPopup) {
+//         varietyPopup.style.display = 'none';
+//         console.log('Closed variety actions popup');
+//     }
+    
+//     // Show Shopify popup
+//     const shopifyPopup = document.getElementById('shopify-inventory-popup');
+//     console.log('shopifyPopup found:', shopifyPopup);
+    
+//     if (!shopifyPopup) {
+//         console.error('SHOPIFY POPUP NOT FOUND!');
+//         alert('Shopify popup element not found');
+//         return;
+//     }
+    
+//     shopifyPopup.style.display = 'block';
+//     console.log('Set shopifyPopup display to block');
+    
+//     document.getElementById('shopify-inventory-content').innerHTML = '<p>Loading Shopify inventory...</p>';
+    
+//     // Fetch data
+//     const url = `/office/api/check-shopify-inventory/${encodeURIComponent(skuPrefix)}/`;
+//     console.log('Fetching:', url);
+    
+//     fetch(url)
+//         .then(response => response.json())
+//         .then(data => {
+//             console.log('Data received:', data);
+//             if (data.success) {
+//                 displayShopifyResults(data);
+//             } else {
+//                 document.getElementById('shopify-inventory-content').innerHTML = 
+//                     `<p style="color: red;">Error: ${data.error}</p>`;
+//             }
+//         })
+//         .catch(error => {
+//             console.error('Fetch error:', error);
+//             document.getElementById('shopify-inventory-content').innerHTML = 
+//                 `<p style="color: red;">Failed: ${error.message}</p>`;
+//         });
+// }
+
+
+// function displayShopifyResults(data) {
+//     let html = `<h3>Found ${data.total_found} variants with SKU prefix "${data.sku_prefix}"</h3>`;
+//     html += '<table class="usage-table">';
+//     html += '<thead><tr><th>Product</th><th>Variant</th><th>SKU</th><th>Inventory</th><th>Price</th></tr></thead>';
+//     html += '<tbody>';
+    
+//     data.variants.forEach(variant => {
+//         html += '<tr>';
+//         html += `<td>${variant.product_title}</td>`;
+//         html += `<td>${variant.variant_title}</td>`;
+//         html += `<td>${variant.sku}</td>`;
+//         html += `<td>${variant.inventory_quantity}</td>`;
+//         html += `<td>$${variant.price}</td>`;
+//         html += '</tr>';
+//     });
+    
+//     html += '</tbody></table>';
+    
+//     document.getElementById('shopify-inventory-content').innerHTML = html;
+// }
+
+// function closeShopifyInventoryPopup() {
+//     document.getElementById('shopify-inventory-popup').style.display = 'none';
+// }
+
+
+// function checkShopifyInventory() {
+//     try {
+//         console.log('=== checkShopifyInventory CALLED ===');
+//         console.log('VARIETY_SKU_PREFIX value:', VARIETY_SKU_PREFIX);
+//         console.log('typeof VARIETY_SKU_PREFIX:', typeof VARIETY_SKU_PREFIX);
+        
+//         const skuPrefix = VARIETY_SKU_PREFIX;
+        
+//         if (!skuPrefix) {
+//             console.error('STOPPING: No skuPrefix found!');
+//             alert('No variety SKU prefix available');
+//             return;
+//         }
+        
+//         console.log('PASSED skuPrefix check, continuing...');
+//         console.log('About to close lot-actions-popup');
+        
+//         // Close the variety actions popup
+//         const lotActionsPopup = document.getElementById('lot-actions-popup');
+//         console.log('lotActionsPopup element:', lotActionsPopup);
+//         if (lotActionsPopup) {
+//             lotActionsPopup.style.display = 'none';
+//             console.log('Closed lot-actions-popup');
+//         }
+        
+//         // Close the overlay if it exists
+//         const overlay = document.getElementById('popup-overlay');
+//         if (overlay) {
+//             overlay.style.display = 'none';
+//         }
+        
+//         console.log('About to open shopify-inventory-popup');
+        
+//         // Open the Shopify inventory popup
+//         const shopifyPopup = document.getElementById('shopify-inventory-popup');
+//         console.log('shopifyPopup element:', shopifyPopup);
+        
+//         if (!shopifyPopup) {
+//             console.error('shopify-inventory-popup element not found!');
+//             alert('Shopify popup element not found. Check HTML.');
+//             return;
+//         }
+        
+//         // Make sure popup is visible with proper styling
+//         shopifyPopup.style.display = 'flex';
+//         shopifyPopup.style.position = 'fixed';
+//         shopifyPopup.style.zIndex = '10000';
+//         shopifyPopup.style.left = '0';
+//         shopifyPopup.style.top = '0';
+//         shopifyPopup.style.width = '100%';
+//         shopifyPopup.style.height = '100%';
+//         shopifyPopup.style.backgroundColor = 'rgba(0,0,0,0.4)';
+//         shopifyPopup.style.alignItems = 'center';
+//         shopifyPopup.style.justifyContent = 'center';
+        
+//         console.log('Set popup display and styles');
+        
+//         const contentDiv = document.getElementById('shopify-inventory-content');
+//         console.log('contentDiv:', contentDiv);
+//         contentDiv.innerHTML = '<p>Loading Shopify inventory...</p>';
+//         console.log('Set loading message');
+        
+//         const url = `/office/api/check-shopify-inventory/${encodeURIComponent(skuPrefix)}/`;
+//         console.log('Fetching URL:', url);
+
+//         fetch(url)
+//             .then(response => {
+//                 console.log('Response received. Status:', response.status);
+//                 console.log('Response ok:', response.ok);
+//                 if (!response.ok) {
+//                     throw new Error(`HTTP error! status: ${response.status}`);
+//                 }
+//                 return response.json();
+//             })
+//             .then(data => {
+//                 console.log('Data parsed:', data);
+//                 if (data.success) {
+//                     displayShopifyResults(data);
+//                 } else {
+//                     console.error('API returned error:', data.error);
+//                     document.getElementById('shopify-inventory-content').innerHTML = 
+//                         `<p style="color: red;">Error: ${data.error}</p>`;
+//                 }
+//             })
+//             .catch(error => {
+//                 console.error('Fetch error:', error);
+//                 console.error('Error stack:', error.stack);
+//                 document.getElementById('shopify-inventory-content').innerHTML = 
+//                     `<p style="color: red;">Failed to check Shopify inventory: ${error.message}</p>`;
+//             });
+//     } catch (error) {
+//         console.error('=== CAUGHT ERROR IN checkShopifyInventory ===');
+//         console.error('Error:', error);
+//         console.error('Error message:', error.message);
+//         console.error('Error stack:', error.stack);
+//         alert('Error: ' + error.message);
+//     }
+// }
+
+
+// function displayShopifyResults(data) {
+//     console.log('=== displayShopifyResults CALLED ===');
+//     console.log('Displaying results for', data.total_found, 'variants');
+    
+//     let html = `<h3>Found ${data.total_found} variants with SKU prefix "${data.sku_prefix}"</h3>`;
+//     html += '<table class="usage-table">';
+//     html += '<thead><tr><th>Product</th><th>Variant</th><th>SKU</th><th>Inventory</th><th>Price</th></tr></thead>';
+//     html += '<tbody>';
+    
+//     data.variants.forEach(variant => {
+//         html += '<tr>';
+//         html += `<td>${variant.product_title}</td>`;
+//         html += `<td>${variant.variant_title}</td>`;
+//         html += `<td>${variant.sku}</td>`;
+//         html += `<td>${variant.inventory_quantity}</td>`;
+//         html += `<td>$${variant.price}</td>`;
+//         html += '</tr>';
+//     });
+    
+//     html += '</tbody></table>';
+    
+//     document.getElementById('shopify-inventory-content').innerHTML = html;
+// }
+
+// function closeShopifyInventoryPopup() {
+//     console.log('=== closeShopifyInventoryPopup CALLED ===');
+//     document.getElementById('shopify-inventory-popup').style.display = 'none';
+// }
+
+
+
+
+
+
+
+
 function cancelNotesEdit() {
     const display = document.getElementById('notes-display');
     const textarea = document.getElementById('notes-textarea');

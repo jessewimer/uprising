@@ -862,6 +862,8 @@
             <div class="lot-actions">
                 <button class="lot-action-btn" onclick="editVarietyWithPassword()">Edit Variety</button>
                 <button class="lot-action-btn" onclick="viewVarietyUsage()">View Usage</button>
+                <!-- check shopify inventory -->
+                <button class="lot-action-btn" onclick="checkShopifyInventory()">Check Shopify Inventory</button>
             </div>
         </div>
     </div>
@@ -958,6 +960,21 @@
             </div>
         </div>
     </div>
+
+
+    <!-- Shopify Inventory Popup -->
+    <div class="print-popup-overlay" id="shopifyInventoryPopup" style="display: none;">
+        <div class="print-popup" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+            <div class="print-popup-header">
+                <h3 class="print-popup-title">Shopify Inventory</h3>
+                <button class="print-popup-close" onclick="closeShopifyInventoryPopup()">×</button>
+            </div>
+            <div id="shopify-inventory-content" style="padding: 20px;">
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Lot Selection Popup -->
     <div class="print-popup-overlay" id="lotSelectionPopup">
