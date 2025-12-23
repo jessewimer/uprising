@@ -4084,11 +4084,16 @@ def check_shopify_inventory(request, sku_prefix):
         for product in all_products:
             for variant in product.variants:
                 if variant.sku and variant.sku.startswith(sku_prefix):
+                    # Check if inventory is tracked
+                    is_tracked = variant.inventory_management == 'shopify'
+                    inventory_display = variant.inventory_quantity if is_tracked else 'No limit'
+                    
                     matching_variants.append({
                         'product_title': product.title,
                         'variant_title': variant.title,
                         'sku': variant.sku,
-                        'inventory_quantity': variant.inventory_quantity,
+                        'inventory_quantity': inventory_display,
+                        'is_tracked': is_tracked,
                         'price': str(variant.price)
                     })
         
@@ -4105,7 +4110,7 @@ def check_shopify_inventory(request, sku_prefix):
             'sku_prefix': sku_prefix,
             'variants': matching_variants,
             'total_found': len(matching_variants),
-            'website_bulk': variety.website_bulk  # Add this line
+            'website_bulk': variety.website_bulk
         })
         
     except Variety.DoesNotExist:
@@ -4121,6 +4126,70 @@ def check_shopify_inventory(request, sku_prefix):
     finally:
         if shopify.ShopifyResource.site:
             shopify.ShopifyResource.clear_session()
+# def check_shopify_inventory(request, sku_prefix):
+#     try:
+#         # Get your variety by sku_prefix (the primary key)
+#         variety = Variety.objects.get(pk=sku_prefix)
+        
+#         if not variety.sku_prefix:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': 'Variety has no SKU prefix'
+#             })
+        
+#         # Configure Shopify session
+#         session = shopify.Session(
+#             settings.SHOPIFY_SHOP_URL,
+#             settings.SHOPIFY_API_VERSION,
+#             settings.SHOPIFY_ACCESS_TOKEN
+#         )
+#         shopify.ShopifyResource.activate_session(session)
+        
+#         # Get all products and filter by variant SKU prefix
+#         all_products = shopify.Product.find(limit=250)
+        
+#         matching_variants = []
+        
+#         for product in all_products:
+#             for variant in product.variants:
+#                 if variant.sku and variant.sku.startswith(sku_prefix):
+#                     matching_variants.append({
+#                         'product_title': product.title,
+#                         'variant_title': variant.title,
+#                         'sku': variant.sku,
+#                         'inventory_quantity': variant.inventory_quantity,
+#                         'price': str(variant.price)
+#                     })
+        
+#         shopify.ShopifyResource.clear_session()
+        
+#         if not matching_variants:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': f'No products found with SKU prefix "{sku_prefix}"'
+#             })
+        
+#         return JsonResponse({
+#             'success': True,
+#             'sku_prefix': sku_prefix,
+#             'variants': matching_variants,
+#             'total_found': len(matching_variants),
+#             'website_bulk': variety.website_bulk  # Add this line
+#         })
+        
+#     except Variety.DoesNotExist:
+#         return JsonResponse({
+#             'success': False,
+#             'error': 'Variety not found'
+#         }, status=404)
+#     except Exception as e:
+#         return JsonResponse({
+#             'success': False,
+#             'error': str(e)
+#         }, status=500)
+#     finally:
+#         if shopify.ShopifyResource.site:
+#             shopify.ShopifyResource.clear_session()
 # def check_shopify_inventory(request, sku_prefix):
 #     try:
 #         # Get your variety by sku_prefix (the primary key)
