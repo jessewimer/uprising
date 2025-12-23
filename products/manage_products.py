@@ -890,24 +890,24 @@ def find_bulk_products_low_prints():
     shopify.ShopifyResource.activate_session(session)
     
     # Fetch all products from Shopify
-    all_products = []
+    all_shopify_products = []
     since_id = 0
     
     while True:
-        products = shopify.Product.find(limit=250, since_id=since_id)
-        if not products:
+        shopify_products = shopify.Product.find(limit=250, since_id=since_id)
+        if not shopify_products:
             break
-        all_products.extend(products)
-        since_id = products[-1].id
-        if len(all_products) >= 2500:
+        all_shopify_products.extend(shopify_products)
+        since_id = shopify_products[-1].id
+        if len(all_shopify_products) >= 2500:
             break
     
-    print(f"Fetched {len(all_products)} products from Shopify")
+    print(f"Fetched {len(all_shopify_products)} products from Shopify")
     
     # Build inventory lookup by SKU
     shopify_inventory = {}
-    for product in all_products:
-        for variant in product.variants:
+    for shopify_product in all_shopify_products:
+        for variant in shopify_product.variants:
             if variant.sku:
                 is_tracked = variant.inventory_management == 'shopify'
                 shopify_inventory[variant.sku] = {
@@ -928,30 +928,34 @@ def find_bulk_products_low_prints():
     last_year = year - 1
     
     for variety in bulk_varieties:
-        products = variety.products.all()
+        django_products = variety.products.all()
         
-        for product in products:
+        for django_product in django_products:
+            # Skip packet products
+            if django_product.sku_suffix == 'pkt':
+                continue
+                
             # Build full SKU
-            full_sku = f"{variety.sku_prefix}-{product.sku_suffix}" if product.sku_suffix else variety.sku_prefix
+            full_sku = f"{variety.sku_prefix}-{django_product.sku_suffix}" if django_product.sku_suffix else variety.sku_prefix
             
             # Get Shopify inventory
             shopify_inv = shopify_inventory.get(full_sku, {})
             website_qty = shopify_inv.get('quantity', '--')
             
             # Get last year sales
-            last_year_sales = product.sales.filter(year=last_year).aggregate(
+            last_year_sales = django_product.sales.filter(year=last_year).aggregate(
                 total=Sum('quantity')
             )['total'] or 0
             
             # Get total printed for this year
-            total_printed = product.label_prints.filter(for_year=year).aggregate(
+            total_printed = django_product.label_prints.filter(for_year=year).aggregate(
                 total=Sum('qty')
             )['total'] or 0
             
             results.append({
                 'variety': variety.var_name or variety.sku_prefix,
                 'sku': full_sku,
-                'size': product.pkg_size or '--',
+                'size': django_product.pkg_size or '--',
                 'website_inv': website_qty,
                 'last_year_sales': last_year_sales,
                 'printed_this_year': total_printed
@@ -996,6 +1000,144 @@ def find_bulk_products_low_prints():
     print("\n" + str(table))
     print(f"\nTotal products analyzed: {len(results)}")
     print(f"Sorted by {year} printed (lowest first)\n")
+
+# def find_bulk_products_low_prints():
+#     """Find bulk products with potentially low print numbers"""
+#     print("\n" + "="*80)
+#     print("FIND BULK PRODUCTS WITH LOW PRINT NUMBERS")
+#     print("="*80)
+    
+#     # Get year
+#     year_input = input("\nEnter year (e.g., 26 for 2026): ").strip()
+#     if not year_input:
+#         print("Year is required")
+#         return
+    
+#     try:
+#         year = int(f"20{year_input}")
+#     except ValueError:
+#         print("Invalid year format")
+#         return
+    
+#     print(f"\nFetching Shopify inventory data...")
+    
+#     # Configure Shopify session
+#     session = shopify.Session(
+#         settings.SHOPIFY_SHOP_URL,
+#         settings.SHOPIFY_API_VERSION,
+#         settings.SHOPIFY_ACCESS_TOKEN
+#     )
+#     shopify.ShopifyResource.activate_session(session)
+    
+#     # Fetch all products from Shopify
+#     all_products = []
+#     since_id = 0
+    
+#     while True:
+#         products = shopify.Product.find(limit=250, since_id=since_id)
+#         if not products:
+#             break
+#         all_products.extend(products)
+#         since_id = products[-1].id
+#         if len(all_products) >= 2500:
+#             break
+    
+#     print(f"Fetched {len(all_products)} products from Shopify")
+    
+#     # Build inventory lookup by SKU
+#     shopify_inventory = {}
+#     for product in all_products:
+#         if product.sku_suffix == 'pkt':
+#             continue
+#         for variant in product.variants:
+#             if variant.sku:
+#                 is_tracked = variant.inventory_management == 'shopify'
+#                 shopify_inventory[variant.sku] = {
+#                     'quantity': variant.inventory_quantity if is_tracked else 'No limit',
+#                     'tracked': is_tracked
+#                 }
+    
+#     shopify.ShopifyResource.clear_session()
+    
+#     # Get bulk varieties (website_bulk = True)
+#     bulk_varieties = Variety.objects.filter(website_bulk=True)
+    
+#     print(f"\nFound {bulk_varieties.count()} varieties with website_bulk=True")
+#     print("\nAnalyzing products...")
+    
+#     # Collect data for each product
+#     results = []
+#     last_year = year - 1
+    
+#     for variety in bulk_varieties:
+#         products = variety.products.all()
+        
+#         for product in products:
+#             # Build full SKU
+#             full_sku = f"{variety.sku_prefix}-{product.sku_suffix}" if product.sku_suffix else variety.sku_prefix
+            
+#             # Get Shopify inventory
+#             shopify_inv = shopify_inventory.get(full_sku, {})
+#             website_qty = shopify_inv.get('quantity', '--')
+            
+#             # Get last year sales
+#             last_year_sales = product.sales.filter(year=last_year).aggregate(
+#                 total=Sum('quantity')
+#             )['total'] or 0
+            
+#             # Get total printed for this year
+#             total_printed = product.label_prints.filter(for_year=year).aggregate(
+#                 total=Sum('qty')
+#             )['total'] or 0
+            
+#             results.append({
+#                 'variety': variety.var_name or variety.sku_prefix,
+#                 'sku': full_sku,
+#                 'size': product.pkg_size or '--',
+#                 'website_inv': website_qty,
+#                 'last_year_sales': last_year_sales,
+#                 'printed_this_year': total_printed
+#             })
+    
+#     if not results:
+#         print("\nNo products found.")
+#         return
+    
+#     # Sort by printed this year (ascending - lowest first)
+#     results.sort(key=lambda x: x['printed_this_year'])
+    
+#     # Display results using PrettyTable
+#     table = PrettyTable()
+#     table.field_names = [
+#         'Variety',
+#         'SKU',
+#         'Size',
+#         'Website Inv',
+#         f'{last_year} Sales',
+#         f'{year} Printed'
+#     ]
+    
+#     for row in results:
+#         table.add_row([
+#             row['variety'],
+#             row['sku'],
+#             row['size'],
+#             row['website_inv'],
+#             row['last_year_sales'],
+#             row['printed_this_year']
+#         ])
+    
+#     # Align columns
+#     table.align['Variety'] = 'l'
+#     table.align['SKU'] = 'l'
+#     table.align['Size'] = 'l'
+#     table.align['Website Inv'] = 'r'
+#     table.align[f'{last_year} Sales'] = 'r'
+#     table.align[f'{year} Printed'] = 'r'
+    
+#     print("\n" + str(table))
+#     print(f"\nTotal products analyzed: {len(results)}")
+#     print(f"Sorted by {year} printed (lowest first)\n")
 
 # def find_bulk_products_low_prints():
 #     """Find bulk products with potentially low print numbers"""
