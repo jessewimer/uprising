@@ -528,20 +528,30 @@ body {
 
 
 /* Notes Section */
+/* .notes-content-area {
+    padding: 0.75rem;
+} */
+
 .notes-content-area {
-    padding: 1.5rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .notes-display {
-    padding: 1rem;
+    padding: 1rem 1rem 0 1rem;  /* Remove bottom padding */
     background: #fafafa;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
-    min-height: 100px;
+    height: 100px;
     white-space: pre-wrap;
     word-wrap: break-word;
     line-height: 1.6;
     color: #333;
+    overflow-y: auto;
+    display: flex;
+    align-items: flex-start;  /* Force top alignment */
 }
 
 #notes-textarea {
@@ -551,11 +561,13 @@ body {
     border-radius: 4px;
     font-family: inherit;
     font-size: 0.95rem;
-    resize: vertical;
-    min-height: 150px;
+    resize: none;
+    height: 100px;
     line-height: 1.6;
     background: white;
     box-sizing: border-box;
+    overflow: hidden;
+    vertical-align: top;
 }
 
 #notes-textarea:focus {
@@ -627,79 +639,6 @@ body {
     font-size: 1.25rem;
     color: #333;
 }
-/* Notes Section */
-/* .notes-content {
-    padding: 1rem;
-}
-
-.notes-display {
-    min-height: 60px;
-    padding: 0.5rem;
-    background: #f8f9fa;
-    border-radius: 4px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.notes-edit {
-    width: 100%;
-}
-
-#notes-textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    resize: vertical;
-    min-height: 120px;
-}
-
-#notes-textarea:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
-}
-
-.edit-actions {
-    margin-top: 0.75rem;
-    display: flex;
-    gap: 0.5rem;
-}
-
-.save-btn, .cancel-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-
-.save-btn {
-    background: #4CAF50;
-    color: white;
-}
-
-.save-btn:hover {
-    background: #45a049;
-}
-
-.cancel-btn {
-    background: #f44336;
-    color: white;
-}
-
-.cancel-btn:hover {
-    background: #da190b;
-} */
-
-
-
-
-
-
 
 .data-table thead {
     background: linear-gradient(135deg, #667eea, #764ba2);
