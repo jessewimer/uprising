@@ -540,7 +540,7 @@ body {
 }
 
 .notes-display {
-    padding: 1rem 1rem 0 1rem;  /* Remove bottom padding */
+    padding: 1rem 1rem 0 1rem; 
     background: #fafafa;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
@@ -551,7 +551,7 @@ body {
     color: #333;
     overflow-y: auto;
     display: flex;
-    align-items: flex-start;  /* Force top alignment */
+    align-items: flex-start;  
 }
 
 #notes-textarea {

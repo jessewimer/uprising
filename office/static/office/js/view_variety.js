@@ -624,6 +624,22 @@ function toggleNotesEdit() {
     textarea.focus();
 }
 
+// function cancelNotesEdit() {
+//     const display = document.getElementById('notes-display');
+//     const textarea = document.getElementById('notes-textarea');
+//     const editBtn = document.getElementById('notes-edit-btn');
+//     const saveBtn = document.getElementById('notes-save-btn');
+//     const cancelBtn = document.getElementById('notes-cancel-btn');
+    
+//     textarea.value = originalNotes;
+    
+//     // Show display and edit button, hide textarea and action buttons
+//     display.style.display = 'block';
+//     textarea.style.display = 'none';
+//     editBtn.style.display = 'inline-block';
+//     saveBtn.style.display = 'none';
+//     cancelBtn.style.display = 'none';
+// }
 function cancelNotesEdit() {
     const display = document.getElementById('notes-display');
     const textarea = document.getElementById('notes-textarea');
@@ -631,14 +647,11 @@ function cancelNotesEdit() {
     const saveBtn = document.getElementById('notes-save-btn');
     const cancelBtn = document.getElementById('notes-cancel-btn');
     
+    // Restore original value
     textarea.value = originalNotes;
     
-    // Show display and edit button, hide textarea and action buttons
-    display.style.display = 'block';
-    textarea.style.display = 'none';
-    editBtn.style.display = 'inline-block';
-    saveBtn.style.display = 'none';
-    cancelBtn.style.display = 'none';
+    // Force reload to reset display to original state
+    location.reload();
 }
 
 
