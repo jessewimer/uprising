@@ -19,6 +19,7 @@ let selectedPrintOption = 'front_single';
 let passwordCallback = null;
 let passwordParams = null;
 let bulkPrePackDecision = null;
+let originalNotes = '';
 
 
 function showPasswordPopup(callback, params) {
@@ -596,6 +597,94 @@ function proceedWithEditProduct(productId) {
     document.body.classList.add('modal-open');
 }
 
+
+
+
+
+
+
+
+
+function toggleNotesEdit() {
+    const display = document.getElementById('notes-display');
+    const textarea = document.getElementById('notes-textarea');
+    const editBtn = document.getElementById('notes-edit-btn');
+    const saveBtn = document.getElementById('notes-save-btn');
+    const cancelBtn = document.getElementById('notes-cancel-btn');
+    
+    originalNotes = textarea.value;
+    
+    // Hide display and edit button, show textarea and action buttons
+    display.style.display = 'none';
+    textarea.style.display = 'block';
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-block';
+    cancelBtn.style.display = 'inline-block';
+    
+    textarea.focus();
+}
+
+function cancelNotesEdit() {
+    const display = document.getElementById('notes-display');
+    const textarea = document.getElementById('notes-textarea');
+    const editBtn = document.getElementById('notes-edit-btn');
+    const saveBtn = document.getElementById('notes-save-btn');
+    const cancelBtn = document.getElementById('notes-cancel-btn');
+    
+    textarea.value = originalNotes;
+    
+    // Show display and edit button, hide textarea and action buttons
+    display.style.display = 'block';
+    textarea.style.display = 'none';
+    editBtn.style.display = 'inline-block';
+    saveBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+}
+
+
+
+
+async function saveNotes() {
+    const textarea = document.getElementById('notes-textarea');
+    const newNotes = textarea.value;
+    
+    try {
+        const response = await fetch(`/office/variety/${VARIETY_SKU_PREFIX}/update_notes/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ var_notes: newNotes })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const display = document.getElementById('notes-display');
+            const editBtn = document.getElementById('notes-edit-btn');
+            const saveBtn = document.getElementById('notes-save-btn');
+            const cancelBtn = document.getElementById('notes-cancel-btn');
+            
+            // Update display text
+            display.innerHTML = newNotes ? newNotes.replace(/\n/g, '<br>') : 'No notes available';
+            
+            // Show display and edit button, hide textarea and action buttons
+            display.style.display = 'block';
+            textarea.style.display = 'none';
+            editBtn.style.display = 'inline-block';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            
+            showMessage('Notes updated successfully', 'success');
+        } else {
+            showMessage('Error updating notes: ' + (data.message || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error updating notes:', error);
+        showMessage('Network error occurred while saving notes', 'error');
+    }
+}
 
 // Edit Variety Functions
 function openEditVarietyPopup() {

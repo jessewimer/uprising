@@ -33,6 +33,7 @@ urlpatterns = [
     path('variety/<str:sku_prefix>/update-growout/', update_variety_growout, name='update_variety_growout'),
     path('api/variety-sales/<str:sku_prefix>/', variety_sales_data, name='variety_sales_data'),
     path('variety-usage/<str:sku_prefix>/', variety_usage, name='variety_usage'),
+    path('variety/<str:sku_prefix>/update_notes/', update_variety_notes, name='update_variety_notes'),
     
     # ============================================================================
     # PRODUCT MANAGEMENT

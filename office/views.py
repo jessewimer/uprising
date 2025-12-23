@@ -4034,3 +4034,20 @@ def check_active_germination(variant_sku, current_order_year):
     ).exists()
     
     return has_active_germ
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_variety_notes(request, sku_prefix):
+    try:
+        data = json.loads(request.body)
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+        variety.var_notes = data.get('var_notes', '')
+        variety.save()
+        return JsonResponse({'status': 'success', 'message': 'Notes updated successfully'})
+    except Variety.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Variety not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
