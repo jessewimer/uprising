@@ -6,6 +6,7 @@ import sys
 from django.db import transaction
 from datetime import datetime, date
 from django.utils import timezone
+from decimal import Decimal
 
 # Get the current directory path
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -586,9 +587,118 @@ def add_inventory():
     print("  - Enter smarties count")
     print("  - Add notes")
 
-def edit_inventory():
-    """Edit inventory record - PLACEHOLDER"""
-    print("\n⚠️  EDIT INVENTORY - Function placeholder")
+
+def edit_inventory_record():
+    """Edit an existing inventory record for a lot"""
+    
+    # Step 1: Get SKU prefix
+    sku_prefix = input("\nEnter SKU prefix (e.g., CAR-DR): ").strip().upper()
+    if not sku_prefix:
+        print("No SKU prefix entered. Returning to menu.")
+        return
+    
+    # Step 2: Find all lots with this SKU prefix
+    try:
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+    except Variety.DoesNotExist:
+        print(f"No variety found with SKU prefix '{sku_prefix}'")
+        return
+    
+    lots = Lot.objects.filter(variety=variety).order_by('-year', 'grower__code', 'harvest')
+    
+    if not lots.exists():
+        print(f"No lots found for {sku_prefix}")
+        return
+    
+    # Step 3: Display lots and let user select
+    print(f"\nDisplaying lots for {variety.var_name}")
+    print(f"{'#':<4} {'Lot Code':<20}")
+    print("-" * 30)
+    for idx, lot in enumerate(lots, 1):
+        print(f"{idx:<4} {lot.build_lot_code():<20}")
+    
+    lot_choice = input("\nSelect lot number (or 'q' to quit): ").strip()
+    if lot_choice.lower() == 'q':
+        return
+    
+    try:
+        lot_idx = int(lot_choice) - 1
+        selected_lot = lots[lot_idx]
+    except (ValueError, IndexError):
+        print("Invalid selection")
+        return
+    
+    # Step 4: Display inventory records for this lot
+    inventory_records = Inventory.objects.filter(lot=selected_lot).order_by('-inv_date')
+    
+    if not inventory_records.exists():
+        print(f"\nNo inventory records found for {selected_lot.build_lot_code()}")
+        return
+    
+    print(f"\nInventory records for {selected_lot.build_lot_code()}:")
+    print(f"{'#':<4} {'Date':<12} {'Weight (lbs)':<15} {'Notes'}")
+    print("-" * 60)
+    for idx, inv in enumerate(inventory_records, 1):
+        notes_display = (inv.notes[:30] + '...') if inv.notes and len(inv.notes) > 30 else (inv.notes or '--')
+        print(f"{idx:<4} {inv.inv_date.strftime('%m/%d/%Y'):<12} {inv.weight:<15} {notes_display}")
+    
+    inv_choice = input("\nSelect inventory record number to edit (or 'q' to quit): ").strip()
+    if inv_choice.lower() == 'q':
+        return
+    
+    try:
+        inv_idx = int(inv_choice) - 1
+        selected_inv = inventory_records[inv_idx]
+    except (ValueError, IndexError):
+        print("Invalid selection")
+        return
+    
+    # Step 5: Walk through edit process
+    print(f"\nEditing inventory record from {selected_inv.inv_date.strftime('%m/%d/%Y')}")
+    print("Press Enter to keep current value, or type new value:\n")
+    
+    # Weight
+    current_weight = selected_inv.weight
+    weight_input = input(f"Weight in lbs (current: {current_weight}): ").strip()
+    new_weight = Decimal(weight_input) if weight_input else current_weight
+    
+    # Inventory date
+    current_date = selected_inv.inv_date.strftime('%m/%d/%Y')
+    date_input = input(f"Inventory date MM/DD/YYYY (current: {current_date}): ").strip()
+    if date_input:
+        try:
+            new_date = datetime.strptime(date_input, "%m/%d/%Y").date()
+        except ValueError:
+            print("Invalid date format. Keeping current date.")
+            new_date = selected_inv.inv_date
+    else:
+        new_date = selected_inv.inv_date
+    
+    # Notes
+    current_notes = selected_inv.notes or 'None'
+    print(f"Current notes: {current_notes}")
+    notes_input = input("New notes (or Enter to keep current): ").strip()
+    new_notes = notes_input if notes_input else selected_inv.notes
+    
+    # Step 6: Confirm changes
+    print("\n" + "="*60)
+    print("CONFIRM CHANGES:")
+    print("="*60)
+    print(f"Lot: {selected_lot.build_lot_code()}")
+    print(f"Weight: {current_weight} lbs → {new_weight} lbs")
+    print(f"Date: {current_date} → {new_date.strftime('%m/%d/%Y')}")
+    print(f"Notes: {current_notes} → {new_notes or 'None'}")
+    print("="*60)
+    
+    confirm = input("\nSave these changes? (y/n): ").strip().lower()
+    if confirm == 'y':
+        selected_inv.weight = new_weight
+        selected_inv.inv_date = new_date
+        selected_inv.notes = new_notes
+        selected_inv.save()
+        print(f"✓ Inventory record updated successfully!")
+    else:
+        print("Changes discarded.")
 
 def inventory_menu():
     """Inventory management submenu"""
@@ -613,7 +723,7 @@ def inventory_menu():
             add_inventory()
             pause()
         elif choice == '3':
-            edit_inventory()
+            edit_inventory_record()
             pause()
 
 
