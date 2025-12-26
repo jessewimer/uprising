@@ -820,6 +820,8 @@ body {
     border-radius: 20px;
     padding: 30px;
     width: 90%;
+    max-height: 85vh;
+    overflow-y: auto; 
     max-width: 500px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: popupSlideIn 0.3s ease-out;
