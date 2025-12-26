@@ -119,7 +119,10 @@ def print_var_sku_prefixes_and_categories():
 
 def print_varieties_with_no_photo_path():
     """List varieties missing photos"""
-    varieties = Variety.objects.filter(photo_path="")
+    from django.db.models import Q
+    
+    # Check for both empty string AND null values
+    varieties = Variety.objects.filter(Q(photo_path="") | Q(photo_path__isnull=True))
     
     if not varieties:
         print("\n✅ All varieties have photos!")
@@ -129,7 +132,8 @@ def print_varieties_with_no_photo_path():
     print(f"VARIETIES WITHOUT PHOTOS ({varieties.count()})")
     print("="*60)
     for var in varieties:
-        print(f"{var.sku_prefix:<15} {var.var_name or '--'}")
+        photo_status = "NULL" if var.photo_path is None else "empty string"
+        print(f"{var.sku_prefix:<15} {var.var_name or '--':<30} [{photo_status}]")
 
 def update_all_variety_photos():
     """Sets all variety 'photo' attributes to the correct file (webp or jpg)"""
