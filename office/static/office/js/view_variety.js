@@ -200,7 +200,7 @@ function setupSearch() {
             searchDropdown.innerHTML = matches.map(([skuPrefix, data]) => `
                 <div class="dropdown-item" onclick="selectVariety('${skuPrefix}')">
                     <div class="dropdown-variety-name">${data.var_name || data.common_spelling}</div>
-                    <div class="dropdown-variety-type">${data.veg_type || ''}</div>
+                    <div class="dropdown-variety-type">${data.crop || ''}</div>
                 </div>
             `).join('');
             searchDropdown.classList.add('show');
