@@ -288,11 +288,11 @@ function renderOrderTable(readOnly = false) {
             </thead>
             <tbody>
                 ${sortedItems.map(([key, item]) => `
-                    <tr ${readOnly ? 'style="cursor: default; opacity: 0.8;"' : `onclick="openEditItemModal('${key}', '${item.var_name}')" style="cursor: pointer;"`}>
+                    <tr class="${item.quantity === 0 ? 'backordered-item' : ''}" ${readOnly ? 'style="cursor: default; opacity: 0.8;"' : `onclick="openEditItemModal('${key}', '${item.var_name}')" style="cursor: pointer;"`}>
                         <td>
                             ${readOnly ? 
                                 `<span style="padding: 5px; display: inline-block; width: 60px; text-align: center; background: #f8f9fa; border-radius: 4px;">${item.quantity}</span>` :
-                                `<input type="number" value="${item.quantity}" min="1" 
+                                `<input type="number" value="${item.quantity}" min="0" 
                                     style="width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;"
                                     onchange="updateQuantity('${key}', this.value)" onclick="event.stopPropagation();">`
                             }
@@ -309,15 +309,26 @@ function renderOrderTable(readOnly = false) {
 }
 
 // Function to update quantity
+// function updateQuantity(key, newQuantity) {
+//     const qty = parseInt(newQuantity);
+//     if (qty > 0) {
+//         orderItems[key].quantity = qty;
+//         markUnsavedChanges();
+//     } else {
+//         delete orderItems[key];
+//         markUnsavedChanges();
+//     }
+//     renderOrderTable();
+//     updateOrderStats();
+//     updateSaveButton();
+// }
 function updateQuantity(key, newQuantity) {
     const qty = parseInt(newQuantity);
-    if (qty > 0) {
+    if (qty >= 0) {  // ← Allow 0 or greater
         orderItems[key].quantity = qty;
         markUnsavedChanges();
-    } else {
-        delete orderItems[key];
-        markUnsavedChanges();
     }
+    // Removed the delete logic completely
     renderOrderTable();
     updateOrderStats();
     updateSaveButton();
@@ -495,10 +506,10 @@ async function saveVarietyToOrder() {
     const quantity = parseInt(document.getElementById('variety-qty').value);
     const hasPhoto = document.getElementById('variety-photo').checked;
 
-    if (quantity < 1) {
-        alert('Quantity must be at least 1');
-        return;
-    }
+    // if (quantity < 0) {
+    //     alert('Quantity must be at least 0');
+    //     return;
+    // }
 
     const key = selectedVariety.sku_prefix;
     const data = selectedVariety.data;

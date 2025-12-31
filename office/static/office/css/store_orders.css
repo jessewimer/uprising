@@ -516,6 +516,18 @@ body {
     opacity: 0.3;
 }
 
+.backordered-item {
+    background-color: #fff3cd !important;
+}
+
+.backordered-item td {
+    color: #856404 !important;
+}
+
+.backordered-item:hover {
+    background-color: #ffe8a1 !important;
+}
+
 @keyframes modalSlideIn {
     from {
         opacity: 0;

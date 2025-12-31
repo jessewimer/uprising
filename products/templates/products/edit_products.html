@@ -1237,6 +1237,9 @@
                 const data = await response.json();
                 
                 if (data.success) {
+
+                    selectedItems = {};
+                    
                     // Update slots display
                     const slotsStatElement = document.getElementById('slots-stat');
                     const slotsCountElement = document.getElementById('store-slots-count');
@@ -1342,6 +1345,19 @@
             }
 
             // Load store availability if a specific store is selected
+            // if (storeId) {
+            //     loadStoreAvailability(storeId);
+            // } else {
+            //     // Clear all checkboxes when "All Stores" is selected
+            //     const checkboxes = document.querySelectorAll('.product-checkbox');
+            //     checkboxes.forEach(checkbox => {
+            //         checkbox.checked = false;
+            //     });
+            //     selectedItems = {};
+            //     updateSelectedItemCount();
+            // }
+            
+            // Load store availability if a specific store is selected
             if (storeId) {
                 loadStoreAvailability(storeId);
             } else {
@@ -1352,8 +1368,13 @@
                 });
                 selectedItems = {};
                 updateSelectedItemCount();
+                
+                // HIDE THE SLOTS DISPLAY when "All Stores" is selected
+                const slotsStatElement = document.getElementById('slots-stat');
+                if (slotsStatElement) {
+                    slotsStatElement.style.display = 'none';
+                }
             }
-            
             // Apply filters after any changes
             filterTable();
         }
