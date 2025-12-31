@@ -178,14 +178,13 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
     # Exclude base component mixes (MIX-LB, MIX-SB, MIX-MB)
     varieties = Variety.objects.exclude(
         sku_prefix__in=['MIX-LB', 'MIX-SB', 'MIX-MB']
-    ).order_by('veg_type', 'sku_prefix')
+    ).order_by('crop', 'sku_prefix')
     
     # --- Build all_vars dict for front-end dropdown (JS-friendly) ---
     all_vars = {
         v.sku_prefix: {
             'common_spelling': v.common_spelling,
             'var_name': v.var_name,
-            'veg_type': v.veg_type,
             'crop': v.crop,
         }
         for v in varieties
@@ -323,7 +322,6 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'categories': settings.CATEGORIES,
         'crops': settings.CROPS,
         'subtypes': settings.SUBTYPES,
-        'veg_types': settings.VEG_TYPES,
         'packed_for_year': packed_for_year,
         'transition': settings.TRANSITION,
         'has_pending_germ': has_pending_germ,
@@ -1000,11 +998,11 @@ def store_sales_details(request):
         
         print(f"DEBUG: Sales by store entries: {len(sales_by_store)}")
         
-        # 3. Sales by product - Use var_name with veg_type in parentheses
+        # 3. Sales by product - Use var_name with crop in parentheses
         sales_by_product = []
         product_sales = base_orders.values(
             'items__product__variety__var_name',
-            'items__product__variety__veg_type'
+            'items__product__variety__crop'
         ).annotate(
             total_sales=Sum(F('items__price') * F('items__quantity')),
             total_packets=Sum('items__quantity')
@@ -1013,11 +1011,11 @@ def store_sales_details(request):
         for product in product_sales:
             if product['total_sales']:
                 var_name = product['items__product__variety__var_name'] or 'Unknown Variety'
-                veg_type = product['items__product__variety__veg_type']
+                crop = product['items__product__variety__crop']
                 
-                # Format: "Variety Name (Veg Type)" or just "Variety Name" if no veg_type
-                if veg_type:
-                    product_name = f"{var_name} ({veg_type})"
+                # Format: "Variety Name (Crop)" or just "Variety Name" if no crop
+                if crop:
+                    product_name = f"{var_name} ({crop})"
                 else:
                     product_name = var_name
                 
@@ -1062,15 +1060,15 @@ def varieties_json(request):
 @user_passes_test(is_employee)
 def crops_json(request):
     """
-    Get crops/veg_types as JSON with optional search
+    Get crops as JSON with optional search
     """
     q = request.GET.get('q', '')
-    crops = Product.objects.exclude(veg_type__isnull=True).exclude(veg_type='')
+    crops = Product.objects.exclude(crop__isnull=True).exclude(crop='')
     
     if q:
-        crops = crops.filter(veg_type__icontains=q)
+        crops = crops.filter(crop__icontains=q)
     
-    crop_names = crops.values_list('veg_type', flat=True).distinct()
+    crop_names = crops.values_list('crop', flat=True).distinct()
     data = [{"name": name} for name in crop_names]
     return JsonResponse(data, safe=False)
 
@@ -1079,14 +1077,14 @@ def crops_json(request):
 @user_passes_test(is_employee)
 def products_by_crop_json(request, crop):
     """
-    Get products by specific crop/veg_type as JSON
+    Get products by specific crop as JSON
     """
-    products = Product.objects.filter(veg_type=crop)
+    products = Product.objects.filter(crop=crop)
     data = []
     
     for p in products:
         data.append({
-            "veg_type": p.veg_type,
+            # "veg_type": p.veg_type,
             "variety": p.variety,
             "current_inventory": "-",
             "previous_inventory": "-",
@@ -1438,7 +1436,7 @@ def admin_dashboard(request):
         'env_types': settings.ENV_TYPES,
         'crops': settings.CROPS,
         'groups': settings.GROUPS,
-        'veg_types': settings.VEG_TYPES,
+        # 'veg_types': settings.VEG_TYPES,
         'subtypes': settings.SUBTYPES,
         'categories': settings.CATEGORIES,
         'user_name': request.user.get_full_name() or request.user.username,
@@ -1493,7 +1491,7 @@ def germination_inventory_data(request):
         inventory_data = []
         categories = set()
         groups = set()
-        veg_types = set()
+        crops = set()
         
         # Build lot data grouped by variety SKU
         lot_data_by_variety = {}
@@ -1509,8 +1507,8 @@ def germination_inventory_data(request):
                 categories.add(variety.category)
             if variety.group:
                 groups.add(variety.group)
-            if variety.veg_type:
-                veg_types.add(variety.veg_type)
+            if variety.crop:
+                crops.add(variety.crop)
             
             # Get inventory data for this lot
             inventories = lot.inventory.order_by('-inv_date')
@@ -1605,7 +1603,7 @@ def germination_inventory_data(request):
                 'sku_prefix': variety.sku_prefix,
                 'category': variety.category,
                 'group': variety.group,
-                'veg_type': variety.veg_type,
+                'crop': variety.crop,
                 'species': variety.species,
                 'lot_code': lot_code,
                 'website_bulk': variety.website_bulk,
@@ -1639,8 +1637,8 @@ def germination_inventory_data(request):
                 categories.add(variety.category)
             if variety.group:
                 groups.add(variety.group)
-            if variety.veg_type:
-                veg_types.add(variety.veg_type)
+            if variety.crop:
+                crops.add(variety.crop)
             
             if variety.sku_prefix in lot_data_by_variety:
                 # Has lots - add all lot rows
@@ -1653,7 +1651,7 @@ def germination_inventory_data(request):
                     'sku_prefix': variety.sku_prefix,
                     'category': variety.category,
                     'group': variety.group,
-                    'veg_type': variety.veg_type,
+                    'crop': variety.crop,
                     'species': variety.species,
                     'lot_code': '-',
                     'website_bulk': variety.website_bulk,
@@ -1670,7 +1668,8 @@ def germination_inventory_data(request):
         # Convert sets to sorted lists
         categories = sorted(list(categories))
         groups = sorted(list(groups))
-        veg_types = sorted(list(veg_types))
+        crops = sorted(list(crops))
+        
         
         # print(f"Returning {len(inventory_data)} records")
         germ_year = settings.FOR_YEAR
@@ -1680,7 +1679,7 @@ def germination_inventory_data(request):
             'current_year': current_year,
             'categories': categories,
             'groups': groups,
-            'veg_types': veg_types,
+            'crops': crops,
             'germ_year': germ_year
         })
         
@@ -2124,7 +2123,7 @@ def process_store_orders(request):
         variety_data[variety.sku_prefix] = {
             'common_spelling': variety.common_spelling,
             'var_name': variety.var_name,
-            'veg_type': variety.veg_type,  # or variety.veg_type if that's the field name
+            'crop': variety.crop,  # or variety.crop if that's the field name
             'category': variety.category 
         }
    
@@ -2254,7 +2253,7 @@ def get_order_details(request, order_id):
                 formatted_items.append({
                     'sku_prefix': variety.sku_prefix,
                     'var_name': variety.var_name,
-                    'veg_type': variety.veg_type,
+                    'crop': variety.crop,
                     'quantity': item.quantity,
                     'category': variety.category,
                     'has_photo': item.photo  # Use the stored preference
@@ -2470,7 +2469,7 @@ def finalize_order(request):
                 {
                     'sku_prefix': include.product.variety.sku_prefix,
                     'variety_name': include.product.variety.var_name,
-                    'veg_type': include.product.variety.veg_type,
+                    'crop': include.product.variety.crop,
                     'quantity': include.quantity,
                     'has_photo': include.photo,
                     'price': float(include.price)
@@ -2499,7 +2498,7 @@ def add_variety(request):
             'common_spelling': request.POST.get('common_spelling', '').strip() or None,
             'common_name': request.POST.get('common_name', '').strip() or None,
             'group': request.POST.get('group', '').strip() or None,
-            'veg_type': request.POST.get('veg_type', '').strip() or None,
+            # 'veg_type': request.POST.get('veg_type', '').strip() or None,
             'species': request.POST.get('species', '').strip() or None,
             'subtype': request.POST.get('subtype', '').strip() or None,
             'days': request.POST.get('days', '').strip() or None,
@@ -2970,7 +2969,7 @@ def get_stock_seed_data(request):
             return JsonResponse({
                 'success': True,
                 'variety_name': lot.variety.var_name,
-                'veg_type': lot.variety.veg_type or '',
+                'crop': lot.variety.crop or '',
                 'lot_number': lot_number,
                 'quantity': stock_seed.qty
             })
@@ -3426,7 +3425,7 @@ def edit_variety(request):
         variety.common_spelling = data.get('common_spelling', variety.common_spelling)
         variety.common_name = data.get('common_name', variety.common_name)
         variety.group = data.get('group', variety.group)
-        variety.veg_type = data.get('veg_type').upper() if data.get('veg_type') else None
+        # variety.veg_type = data.get('veg_type').upper() if data.get('veg_type') else None
         variety.species = data.get('species', variety.species)
         variety.subtype = data.get('subtype', variety.subtype)
         variety.days = data.get('days', variety.days)

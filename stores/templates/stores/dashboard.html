@@ -724,7 +724,7 @@
                                 <th style="width: 100px;">Quantity</th>
                                 <th style="width: 120px;">Previously Ordered</th>
                                 <th style="width: 120px;">Category</th>
-                                <th>Type</th>
+                                <th>Crop</th>
                                 <th>Sub Type</th>
                                 <th>Variety</th>
                                 <th style="width: 300px;">Description</th>
@@ -744,7 +744,7 @@
                                             value="0"
                                             data-sku-prefix="{{ product.variety.sku_prefix }}"
                                             data-variety="{{ product.variety.var_name }}"
-                                            data-veg-type="{{ product.variety.veg_type }}"
+                                            data-crop="{{ product.variety.crop }}"
                                             tabindex="{{ forloop.counter }}">
                                     </td>
                                     <td>
@@ -756,7 +756,7 @@
                                     <td>
                                         <span class="category-badge category-{{ product.variety.category|lower }}">{{ product.variety.category }}</span>
                                     </td>
-                                    <td>{{ product.variety.veg_type }}</td>
+                                    <td>{{ product.variety.crop }}</td>
                                     <td>{{ product.variety.subtype }}</td>
                                     <td style="font-weight: 600;">{{ product.variety.var_name }}</td>
                                     <td>{{ product.variety.ws_description }}</td>
@@ -1115,11 +1115,11 @@
                 const skuPrefix = input.getAttribute('data-sku-prefix');
                 const variety = input.getAttribute('data-variety');
                 const quantity = parseInt(input.value) || 0;
-                const vegType = input.getAttribute('data-veg-type');
+                const crop = input.getAttribute('data-crop');
 
                 if (quantity > 0) {
                     orderData[skuPrefix] = quantity;
-                    orderVars.push({ variety, quantity, vegType });
+                    orderVars.push({ variety, quantity, crop });
                 }
             }
 
@@ -1139,7 +1139,7 @@
             orderVars.forEach(orderVar => {
                 const productDiv = document.createElement('div');
                 productDiv.style.cssText = 'padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between;';
-                productDiv.innerHTML = `<span><strong>${orderVar.quantity}</strong> × ${orderVar.variety} (${orderVar.vegType})</span>
+                productDiv.innerHTML = `<span><strong>${orderVar.quantity}</strong> × ${orderVar.variety} (${orderVar.crop})</span>
                                         <span style="color: #667eea; font-weight: 600;">${(orderVar.quantity * pktPrice).toFixed(2)}</span>`;
                 orderedProductsContainer.appendChild(productDiv);
             });
@@ -1263,16 +1263,16 @@
             rows.sort(function(row1, row2) {
                 const category1 = row1.getAttribute('data-category').toLowerCase();
                 const category2 = row2.getAttribute('data-category').toLowerCase();
-                const vegType1 = row1.cells[3].textContent;
-                const vegType2 = row2.cells[3].textContent;
+                const crop1 = row1.cells[3].textContent;
+                const crop2 = row2.cells[3].textContent;
                 const subType1 = row1.cells[4].textContent;
                 const subType2 = row2.cells[4].textContent;
 
                 if (categoryOrder[category1] !== categoryOrder[category2]) {
                     return categoryOrder[category1] - categoryOrder[category2];
                 }
-                if (vegType1 !== vegType2) {
-                    return vegType1.localeCompare(vegType2);
+                if (crop1 !== crop2) {
+                    return crop1.localeCompare(crop2);
                 }
                 return subType1.localeCompare(subType2);
             });

@@ -574,7 +574,7 @@
             min-width: 60px;
         }
 
-        .veg-type-cell {
+        .crop-cell {
             font-size: 0.85rem;
             color: #666;
             background: rgba(102, 126, 234, 0.05);
@@ -1244,7 +1244,7 @@
                         ${pullItems.map(item => `
                             <tr>
                                 <td class="variety-cell">${escapeHtml(item.var_name || '')}</td>
-                                <td><span class="veg-type-cell">${escapeHtml(item.veg_type || '')}</span></td>
+                                <td><span class="crop-cell">${escapeHtml(item.crop || '')}</span></td>
                                 <td class="sku-cell">${escapeHtml(item.sku_suffix || '')}</td>
                                 <td><span class="quantity-cell">${item.quantity}</span></td>
                             </tr>
@@ -1289,7 +1289,7 @@
 
     const itemsData = pullItems.map(item => ({
         variety_name: item.var_name || '',
-        type: item.veg_type || '',
+        crop: item.crop || '',
         sku_suffix: item.sku_suffix || '',
         quantity: item.quantity || 0
     }));

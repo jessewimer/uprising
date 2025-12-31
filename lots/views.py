@@ -41,7 +41,7 @@ def send_germ_samples(request):
                     'sku_prefix': g.lot.variety.sku_prefix,
                     'lot_code': f"{g.lot.grower.code if g.lot.grower else 'UNK'}{g.lot.year}",
                     'variety_name': g.lot.variety.var_name,
-                    'crop_name': g.lot.variety.veg_type if g.lot.variety.veg_type else 'Unknown',
+                    'crop_name': g.lot.variety.crop if g.lot.variety.crop else 'Unknown',
                     'germination_rate': g.germination_rate,  # ADD THIS LINE
                     'scan_time': 'Previously scanned'  # Since we don't track individual scan times
                 } for g in germinations
@@ -60,7 +60,7 @@ def send_germ_samples(request):
             'sku_prefix': lot.variety.sku_prefix,
             'lot_code': f"{lot.grower.code if lot.grower else 'UNK'}{lot.year}",
             'variety_name': lot.variety.var_name,
-            'crop_name': lot.variety.veg_type if lot.variety.veg_type else 'Unknown',
+            'crop_name': lot.variety.crop if lot.variety.crop else 'Unknown',
             'lot_id': lot.id,
         }
     

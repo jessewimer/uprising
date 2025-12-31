@@ -140,7 +140,7 @@ def calculate_bulk_pull_and_print(bulk_items):
             if quantity_to_pull > 0:
                 bulk_to_pull[sku] = {
                     "var_name": product.variety.var_name,
-                    "veg_type": product.variety.veg_type,
+                    "crop": product.variety.crop,
                     "sku_suffix": product.sku_suffix,
                     "quantity": quantity_to_pull,
                 }
@@ -247,7 +247,7 @@ def enrich_bulk_to_pull_and_print(bulk_items):
 
             bulk_to_pull[sku] = {
                 "var_name": product.variety.var_name,
-                "veg_type": product.variety.veg_type,
+                "crop": product.variety.crop,
                 "sku_suffix": product.sku_suffix,
                 "quantity": pull_qty,
             }
@@ -1030,7 +1030,7 @@ def generate_order_pdf(request, order_id):
         # Items table
         elements.append(Paragraph("Order Items", styles["Heading2"]))
 
-        table_data = [["Qty", "Variety", "Type", "Unit Price", "Subtotal"]]
+        table_data = [["Qty", "Variety", "Crop", "Unit Price", "Subtotal"]]
         pkt_price = settings.PACKET_PRICE
         total_cost = 0
         for item in order_includes:
@@ -1038,7 +1038,7 @@ def generate_order_pdf(request, order_id):
             variety = (
                 item.product.variety.var_name if item.product else "N/A"
             )
-            veg_type = item.product.variety.veg_type if item.product else "N/A"
+            crop = item.product.variety.crop if item.product else "N/A"
             line_total = quantity * pkt_price
 
             # Truncate long variety names
@@ -1049,7 +1049,7 @@ def generate_order_pdf(request, order_id):
                 [
                     str(quantity),
                     variety,
-                    veg_type,
+                    crop,
                     f"${pkt_price:.2f}",
                     f"${line_total:.2f}",
                 ]
@@ -1059,7 +1059,7 @@ def generate_order_pdf(request, order_id):
 
         items_table = Table(
             table_data,
-            colWidths=[0.6 * inch, 3.2 * inch, 1.2 * inch, 0.8 * inch, 0.8 * inch],
+            colWidths=[0.5 * inch, 2.8 * inch, 1.9 * inch, 0.8 * inch, 0.8 * inch],
         )
         items_table.setStyle(
             TableStyle(
@@ -1125,18 +1125,17 @@ def generate_order_pdf(request, order_id):
         )
 
         elements.append(
-            Paragraph("Thank you for your wholesale order!", footer_style)
+            Paragraph("Thank you for your order!", footer_style)
         )
         elements.append(
             Paragraph(
-                "For questions, please contact us through our wholesale portal.",
+                "For questions, please contact us at wholesale@uprisingorganics.com.",
                 footer_style,
             )
         )
 
          # Metadata callback
         def add_pdf_metadata(canvas, doc):
-            # clean_title = f"Uprising Order {order.order_number}"
             clean_title = f""
             canvas.setTitle(clean_title)
             canvas.setAuthor("Uprising Seeds")

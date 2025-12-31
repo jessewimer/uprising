@@ -133,17 +133,17 @@ def edit_products(request):
      
     else:
         # GET request → render form with seed availabilities for first store (optional)
-        varieties = Variety.objects.filter(wholesale=True).order_by('category', 'veg_type', 'var_name')
+        varieties = Variety.objects.filter(wholesale=True).order_by('category', 'crop', 'var_name')
      
         # exclude stores whose name starts with "Ballard"
         stores = Store.objects.all()
         # stores = Store.objects.exclude(name__startswith="Ballard").all()
-        veg_types = varieties.order_by('veg_type').values_list('veg_type', flat=True).distinct()
-        veg_types = list(veg_types)
+        crops = varieties.order_by('crop').values_list('crop', flat=True).distinct()
+        crops = list(crops)
         context = {
             'varieties': varieties,
             'stores': stores,
-            'veg_types': veg_types,
+            'crops': crops,
         }
         return render(request, 'products/edit_products.html', context)
 
@@ -258,7 +258,7 @@ def shopify_inventory(request):
                         # lookup variety
                         variety = Variety.objects.filter(sku_prefix=prefix).first()
                         if variety:
-                            split_dict[variety.var_name] = variety.veg_type
+                            split_dict[variety.var_name] = variety.crop
                         else:
                             split_dict[f"Unknown ({prefix})"] = "Unknown"
                         break
@@ -285,10 +285,10 @@ def shopify_inventory(request):
 def wholesale_availability(request):
     varieties = Variety.objects.exclude(
         sku_prefix__in=['MIX-LB', 'MIX-SB', 'MIX-MB']
-    ).order_by('category', 'veg_type', 'var_name').values(
+    ).order_by('category', 'crop', 'var_name').values(
         'sku_prefix',
         'var_name',
-        'veg_type',
+        'crop',
         'category',
         'wholesale',
         'wholesale_rack_designation'
@@ -298,7 +298,7 @@ def wholesale_availability(request):
     context = {
         'varieties': list(varieties),
         'categories': settings.CATEGORIES,
-        'veg_types': settings.VEG_TYPES,
+        'crops': settings.CROPS,
         'rack_designations': rack_designations,
 
     }

@@ -950,7 +950,7 @@
                 </div>
 
                 <!-- Veg Type Filter -->
-                <div class="filter-group">
+                <!-- <div class="filter-group">
                     <label class="filter-label" for="vegtype-filter">Crop</label>
                     <select id="vegtype-filter" class="styled-select">
                         <option value="">All Crops</option>
@@ -958,7 +958,7 @@
                             <option value="{{ veg_type }}">{{ veg_type|capfirst }}</option>
                         {% endfor %}
                     </select>
-                </div>
+                </div> -->
                 <!-- View checked filter -->
                 <div class="filter-group">
                     <label class="filter-label" for="view-checked-filter">View Checked</label>
@@ -1008,7 +1008,7 @@
                             <th class="center" style="width: 80px;">Select</th>
                             <th class="center" style="width: 60px;">Rack</th> 
                             <th style="width: 120px;">Category</th>
-                            <th>Type</th>
+                            <th>Crop</th>
                             <th>Sub Type</th>
                             <th>Variety</th>
                             <th style="width: 300px;">Description</th>
@@ -1021,7 +1021,7 @@
                         <tr id="product-row-{{ variety.sku_prefix }}"
                             class="table-row"
                             data-category="{{ variety.category|lower }}"
-                            data-veg-type="{{ variety.veg_type|lower }}"
+                            data-crop="{{ variety.crop|lower }}"
                             data-sku-prefix="{{ variety.sku_prefix }}">
 
                             <!-- Checkbox -->
@@ -1047,7 +1047,7 @@
                             </td>
 
                             <!-- Type, Sub Type, Variety -->
-                            <td>{{ variety.veg_type }}</td>
+                            <td>{{ variety.crop }}</td>
                             <td>{{ variety.subtype }}</td>
                             <td style="font-weight: 600;">{{ variety.var_name }}</td>
 
@@ -1329,11 +1329,11 @@
 
             // Reset all other filters to default whenever ANY store is selected (including "All Stores")
             const categoryFilter = document.getElementById('category-filter');
-            const vegtypeFilter = document.getElementById('vegtype-filter');
+            const cropFilter = document.getElementById('crop-filter');
             const viewCheckedFilter = document.getElementById('view-checked-filter');
             
             if (categoryFilter) categoryFilter.value = '';
-            if (vegtypeFilter) vegtypeFilter.value = '';
+            if (cropFilter) cropFilter.value = '';
             if (viewCheckedFilter) viewCheckedFilter.value = '';
 
             // Show/hide bulk action buttons only for "All Stores"
@@ -1381,17 +1381,17 @@
 
         // Function to filter table based on all active filters
         function filterTable() {
-            const storeFilter = document.getElementById('store-filter').value;
+            // const storeFilter = document.getElementById('store-filter').value;
             // const storeFilter = document.getElementById('storeFilter').value;
             const categoryFilter = document.getElementById('category-filter').value.toLowerCase();
-            const vegtypeFilter = document.getElementById('vegtype-filter').value.toLowerCase();
+            // const cropFilter = document.getElementById('crop-filter').value.toLowerCase();
             const viewCheckedFilter = document.getElementById('view-checked-filter').value;
 
             const rows = document.querySelectorAll('.table-row');
 
             rows.forEach(row => {
                 const categoryData = row.getAttribute('data-category').toLowerCase();
-                const vegtypeData = row.getAttribute('data-veg-type').toLowerCase();
+                const cropData = row.getAttribute('data-crop').toLowerCase();
                 const checkbox = row.querySelector('.product-checkbox');
                 const isChecked = checkbox ? checkbox.checked : false;
                 
@@ -1402,10 +1402,10 @@
                     showRow = false;
                 }
 
-                // Veg type filter
-                if (vegtypeFilter && vegtypeData !== vegtypeFilter) {
-                    showRow = false;
-                }
+                // Crop filter
+                // if (cropFilter && cropData !== cropFilter) {
+                //     showRow = false;
+                // }
 
                 // View checked filter
                 if (viewCheckedFilter === 'checked' && !isChecked) {
@@ -1608,16 +1608,16 @@
             rows.sort(function(row1, row2) {
                 const category1 = row1.getAttribute('data-category').toLowerCase();
                 const category2 = row2.getAttribute('data-category').toLowerCase();
-                const vegType1 = row1.cells[2].textContent;
-                const vegType2 = row2.cells[2].textContent;
+                const crop1 = row1.cells[2].textContent;
+                const crop2 = row2.cells[2].textContent;
                 const subType1 = row1.cells[3].textContent;
                 const subType2 = row2.cells[3].textContent;
 
                 if (categoryOrder[category1] !== categoryOrder[category2]) {
                     return categoryOrder[category1] - categoryOrder[category2];
                 }
-                if (vegType1 !== vegType2) {
-                    return vegType1.localeCompare(vegType2);
+                if (crop1 !== crop2) {
+                    return crop1.localeCompare(crop2);
                 }
                 return subType1.localeCompare(subType2);
             });
@@ -1799,9 +1799,9 @@
                 categoryFilter.addEventListener('change', filterTable);
             }
 
-            const vegtypeFilter = document.getElementById('vegtype-filter');
-            if (vegtypeFilter) {
-                vegtypeFilter.addEventListener('change', filterTable);
+            const cropFilter = document.getElementById('crop-filter');
+            if (cropFilter) {
+                cropFilter.addEventListener('change', filterTable);
             }
 
             const viewCheckedFilter = document.getElementById('view-checked-filter');

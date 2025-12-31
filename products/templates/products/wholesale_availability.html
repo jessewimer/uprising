@@ -458,11 +458,11 @@
                 </div>
 
                 <div class="filter-group">
-                    <label for="filterVegType">Crop</label>
-                    <select id="filterVegType" onchange="applyFilters()">
+                    <label for="filterCrop">Crop</label>
+                    <select id="filterCrop" onchange="applyFilters()">
                         <option value="">All Types</option>
-                        {% for veg_type in veg_types %}
-                            <option value="{{ veg_type }}">{{ veg_type }}</option>
+                        {% for crop in crops %}
+                            <option value="{{ crop }}">{{ crop }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -510,7 +510,7 @@
                     {% for variety in varieties %}
                     <tr data-sku="{{ variety.sku_prefix }}"
                         data-category="{{ variety.category|default:'' }}"
-                        data-veg-type="{{ variety.veg_type|default:'' }}"
+                        data-crop="{{ variety.crop|default:'' }}"
                         data-wholesale="{{ variety.wholesale|lower }}"
                         data-rack="{{ variety.wholesale_rack_designation|default:'' }}"
                         data-original-wholesale="{{ variety.wholesale|lower }}"
@@ -540,7 +540,7 @@
                         </td>
                         
                         <td>{{ variety.var_name|default:"-" }}</td>
-                        <td>{{ variety.veg_type|default:"-" }}</td>
+                        <td>{{ variety.crop|default:"-" }}</td>
                         <td>{{ variety.category|default:"-" }}</td>
                     </tr>
                     {% endfor %}
@@ -671,7 +671,7 @@
         // Apply filters
         function applyFilters() {
             const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
-            const vegTypeFilter = document.getElementById('filterVegType').value.toLowerCase();
+            const cropFilter = document.getElementById('filterCrop').value.toLowerCase();
             const availabilityFilter = document.getElementById('filterAvailability').value;
             const rackFilter = document.getElementById('filterRack').value;
             
@@ -680,7 +680,7 @@
             
             rows.forEach(row => {
                 const category = (row.dataset.category || '').toLowerCase();
-                const vegType = (row.dataset.vegType || '').toLowerCase();
+                const crop = (row.dataset.crop || '').toLowerCase();
                 const wholesale = row.dataset.wholesale === 'true';
                 const rack = row.dataset.rack || '';
                 
@@ -691,8 +691,8 @@
                     showRow = false;
                 }
                                 
-                // Veg Type filter
-                if (vegTypeFilter && vegType !== vegTypeFilter) {
+                // Crop filter
+                if (cropFilter && crop !== cropFilter) {
                     showRow = false;
                 }
                 
@@ -733,7 +733,7 @@
         // Clear all filters
         function clearFilters() {
             document.getElementById('filterCategory').value = '';
-            document.getElementById('filterVegType').value = '';
+            document.getElementById('filterCrop').value = '';
             document.getElementById('filterAvailability').value = '';
             document.getElementById('filterRack').value = '';
             applyFilters();

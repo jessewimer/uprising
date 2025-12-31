@@ -92,7 +92,7 @@ def view_variety_details():
     print(f"Common Spelling: {variety.common_spelling or '--'}")
     print(f"Category: {variety.category or '--'}")
     print(f"Group: {variety.group or '--'}")
-    print(f"Veg Type: {variety.veg_type or '--'}")
+    # print(f"Veg Type: {variety.veg_type or '--'}")
     print(f"Species: {variety.species or '--'}")
     print(f"Days to Maturity: {variety.days or '--'}")
     print(f"Active: {'Yes' if variety.active else 'No'}")

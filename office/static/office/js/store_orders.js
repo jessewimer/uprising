@@ -298,7 +298,7 @@ function renderOrderTable(readOnly = false) {
                             }
                         </td>
                         <td style="font-weight: 600;">${item.var_name}</td>
-                        <td><span class="variety-crop">${item.veg_type}</span></td>
+                        <td><span class="variety-crop">${item.crop}</span></td>
                         <td><span style="font-size: 1.2rem; color: ${item.hasPhoto ? '#26de81' : '#ff6b6b'};">${item.hasPhoto ? '✓' : '✗'}</span></td>
                     </tr>
                 `).join('')}
@@ -393,7 +393,7 @@ function searchItems(searchTerm) {
     } else {
         // FIXED: Get ALL varieties that match the crop type, not just one per type
         matches = Object.entries(varietyData).filter(([skuPrefix, data]) => {
-            return data.veg_type.toLowerCase().includes(searchLower);
+            return data.crop.toLowerCase().includes(searchLower);
         });
     }
 
@@ -413,7 +413,7 @@ function searchItems(searchTerm) {
             <div class="variety-item" onclick="openVarietyModal('${skuPrefix}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">
                 <div class="variety-name">${data.var_name}</div>
                 <div class="variety-details">
-                    <span class="variety-crop">${data.veg_type}</span>
+                    <span class="variety-crop">${data.crop}</span>
                 </div>
             </div>
         `).join('');
@@ -421,20 +421,20 @@ function searchItems(searchTerm) {
         // FIXED: Group by crop type but show ALL varieties
         const cropGroups = {};
         matches.forEach(([skuPrefix, data]) => {
-            if (!cropGroups[data.veg_type]) {
-                cropGroups[data.veg_type] = [];
+            if (!cropGroups[data.crop]) {
+                cropGroups[data.crop] = [];
             }
-            cropGroups[data.veg_type].push([skuPrefix, data]);
+            cropGroups[data.crop].push([skuPrefix, data]);
         });
 
-        resultsHTML = Object.entries(cropGroups).map(([vegType, varieties]) => `
-            <div class="variety-item" onclick="toggleCropVarieties('${vegType.replace(/[^a-zA-Z0-9]/g, '_')}')">
-                <div class="variety-name">${vegType}</div>
+        resultsHTML = Object.entries(cropGroups).map(([crop, varieties]) => `
+            <div class="variety-item" onclick="toggleCropVarieties('${crop.replace(/[^a-zA-Z0-9]/g, '_')}')">
+                <div class="variety-name">${crop}</div>
                 <div class="variety-details">
                     <span class="variety-group">${varieties.length} varieties</span>
                 </div>
             </div>
-            <div id="crop-${vegType.replace(/[^a-zA-Z0-9]/g, '_')}-varieties" style="display: none; margin-left: 20px; border-left: 2px solid #e1e5e9;">
+            <div id="crop-${crop.replace(/[^a-zA-Z0-9]/g, '_')}-varieties" style="display: none; margin-left: 20px; border-left: 2px solid #e1e5e9;">
                 ${varieties.map(([skuPrefix, data]) => `
                     <div class="variety-item" onclick="openVarietyModal('${skuPrefix}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">
                         <div class="variety-name" style="font-size: 0.9rem;">${data.var_name}</div>
@@ -448,8 +448,8 @@ function searchItems(searchTerm) {
 }
 
 // Function to toggle crop varieties display - FIXED ID GENERATION
-function toggleCropVarieties(vegType) {
-    const varietiesDiv = document.getElementById(`crop-${vegType}-varieties`);
+function toggleCropVarieties(crop) {
+    const varietiesDiv = document.getElementById(`crop-${crop.replace(/[^a-zA-Z0-9]/g, '_')}-varieties`);
     if (varietiesDiv) {
         varietiesDiv.style.display = varietiesDiv.style.display === 'none' ? 'block' : 'none';
     }
@@ -521,7 +521,7 @@ async function saveVarietyToOrder() {
         orderItems[key] = {
             sku_prefix: key,
             var_name: data.var_name,
-            veg_type: data.veg_type,
+            crop: data.crop,
             quantity: quantity,
             hasPhoto: hasPhoto,
             category: data.category
@@ -584,7 +584,7 @@ async function loadOrderDetails(orderId) {
                 orderItems[item.sku_prefix] = {
                     sku_prefix: item.sku_prefix,
                     var_name: item.var_name,
-                    veg_type: item.veg_type,
+                    crop: item.crop,
                     quantity: item.quantity,
                     hasPhoto: item.has_photo || false,
                     category: item.category
@@ -1126,7 +1126,7 @@ async function generatePickList() {
         // Prepare pick list data
         const pickListItems = Object.values(orderItems).map(item => ({
             variety_name: item.var_name,
-            veg_type: item.veg_type,
+            crop: item.crop,
             quantity: item.quantity,
             has_photo: item.hasPhoto
         }));
@@ -1224,7 +1224,7 @@ async function printStoreOrderInvoice(orderData) {
             },
             items: orderData.items.map(item => ({
                 variety_name: item.variety_name,
-                veg_type: item.veg_type,
+                crop: item.crop,
                 quantity: item.quantity,
                 has_photo: item.has_photo,
                 price: item.price

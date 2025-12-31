@@ -176,10 +176,10 @@ function setupSearch() {
 
         for (const [skuPrefix, data] of Object.entries(allVarieties)) {
             const matchesCommonSpelling = data.common_spelling && data.common_spelling.toLowerCase().includes(query);
+            // const matchesCrop = data.crop && data.crop.toLowerCase().includes(query);
             const matchesCrop = data.crop && data.crop.toLowerCase().includes(query);
-            const matchesVegType = data.veg_type && data.veg_type.toLowerCase().includes(query);
             
-            if (matchesCommonSpelling || matchesCrop || matchesVegType) {
+            if (matchesCommonSpelling || matchesCrop || matchesCrop) {
                 matches.push([skuPrefix, data]);
             }
         }
@@ -1037,7 +1037,6 @@ function saveVarietyChanges() {
         common_spelling: document.getElementById('editCommonSpelling').value,
         common_name: document.getElementById('editCommonName').value,
         group: document.getElementById('editGroup').value,
-        veg_type: document.getElementById('editVegType').value,
         species: document.getElementById('editSpecies').value,
         subtype: document.getElementById('editSubtype').value,
         days: document.getElementById('editDays').value,
@@ -3068,7 +3067,7 @@ function reprintStockSeedLabel() {
                     // Send to Flask for printing
                     const printData = {
                         variety: data.variety_name,
-                        veg_type: data.veg_type,
+                        crop: data.crop,
                         lot_number: data.lot_number,
                         quantity: data.quantity
                     };
@@ -3205,7 +3204,7 @@ function collectStockSeedPrintData(quantity) {
     try {
         // Get variety information
         const varietyName = document.getElementById('varietyName').textContent.trim();
-        const vegType = document.getElementById('varietyType').textContent.trim();
+        const crop = document.getElementById('varietyType').textContent.trim();
         
         // Find the lot data using currentLotId
         const lotData = allLotsData.find(lot => lot.id == currentLotId);
@@ -3220,7 +3219,7 @@ function collectStockSeedPrintData(quantity) {
         
         return {
             variety: varietyName,
-            veg_type: vegType,
+            crop: crop,
             lot_number: lotNumber,
             quantity: quantity
         };

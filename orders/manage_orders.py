@@ -52,7 +52,7 @@ def view_single_store_orders(store_num):
             print(order.order_date, order_number_str)
             print("products:")
             for include in order.orderincludes_set.all():
-                print(f"- {include.product.variety} ({include.product.veg_type}) x {include.quantity}")
+                print(f"- {include.product.variety} ({include.product.crop}) x {include.quantity}")
 
 
 def delete_store_orders(store_num):
