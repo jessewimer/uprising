@@ -237,7 +237,8 @@ def dashboard(request, store_name):
     try:
         # Try the relationship name you're using in your template/view
         products = store.available_products.filter(
-            sku_suffix='pkt'  # Only get packet products for the dashboard
+            sku_suffix='pkt',
+            storeproduct__is_available=True
         ).select_related('variety').order_by('variety__category', 'variety__veg_type', 'variety__var_name')
     except AttributeError:
         # Fallback if the relationship name is different
