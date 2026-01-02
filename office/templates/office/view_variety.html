@@ -65,7 +65,7 @@
                             <span class="variety-detail-value" id="varietySku">{% if variety %}{{ variety.sku_prefix }}{% else %}--{% endif %}</span>
                         </div>
                         <div class="variety-detail">
-                            <span class="variety-detail-label">Type:</span>
+                            <span class="variety-detail-label">Crop:</span>
                             <span class="variety-detail-value" id="varietyType">{% if variety %}{{ variety.crop|default:"--" }}{% else %}--{% endif %}</span>
                         </div>
                         {% if variety and variety.days %}
