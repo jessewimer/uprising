@@ -92,7 +92,6 @@ def view_variety_details():
     print(f"Common Spelling: {variety.common_spelling or '--'}")
     print(f"Category: {variety.category or '--'}")
     print(f"Group: {variety.group or '--'}")
-    # print(f"Veg Type: {variety.veg_type or '--'}")
     print(f"Species: {variety.species or '--'}")
     print(f"Days to Maturity: {variety.days or '--'}")
     print(f"Active: {'Yes' if variety.active else 'No'}")
@@ -264,7 +263,6 @@ def edit_variety():
         ('common_spelling', variety.common_spelling),
         ('common_name', variety.common_name),
         ('group', variety.group),
-        ('veg_type', variety.veg_type),
         ('species', variety.species),
         ('subtype', variety.subtype),
         ('days', variety.days),
@@ -626,28 +624,128 @@ def find_pkt_products_with_wrong_print_back_setting():
     
     print(f"\nTotal: {products.count()} products found")
 
-def view_products_with_bulk_pre_pack():
-    """Display all products with bulk_pre_pack > 0"""
-    products = Product.objects.filter(
-        bulk_pre_pack__gt=0
-    ).select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+
+def view_edit_products_with_bulk_pre_pack():
+    """Display and edit products with bulk_pre_pack > 0"""
+    while True:
+        products = Product.objects.filter(
+            bulk_pre_pack__gt=0
+        ).select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
+        
+        if not products:
+            print("\n✅ No products have bulk_pre_pack set!")
+            pause()
+            return
+        
+        # Create pretty table
+        table = PrettyTable()
+        table.field_names = ["#", "SKU Prefix", "Variety Name", "Suffix", "Bulk Pre-Pack"]
+        table.align["#"] = "r"
+        table.align["SKU Prefix"] = "l"
+        table.align["Variety Name"] = "l"
+        table.align["Suffix"] = "l"
+        table.align["Bulk Pre-Pack"] = "r"
+        
+        # Store products in a list for selection
+        product_list = list(products)
+        
+        print("\n" + "="*100)
+        print(f"PRODUCTS WITH BULK PRE-PACK ({len(product_list)})")
+        print("="*100)
+        
+        for idx, prod in enumerate(product_list, 1):
+            variety_name = prod.variety.var_name or '--'
+            # Truncate long variety names
+            if len(variety_name) > 35:
+                variety_name = variety_name[:32] + "..."
+            suffix = prod.sku_suffix or '--'
+            table.add_row([
+                idx,
+                prod.variety.sku_prefix,
+                variety_name,
+                suffix,
+                prod.bulk_pre_pack
+            ])
+        
+        print(table)
+        print("\nEnter product number to edit, or 0 to return")
+        
+        # Get user choice
+        try:
+            choice = input("\nSelect: ").strip()
+            if choice == '0':
+                break
+            
+            choice_num = int(choice)
+            if choice_num < 1 or choice_num > len(product_list):
+                print(f"\n❌ Invalid selection. Please choose 1-{len(product_list)} or 0")
+                pause()
+                continue
+            
+            # Get selected product
+            selected_product = product_list[choice_num - 1]
+            full_sku = f"{selected_product.variety.sku_prefix}-{selected_product.sku_suffix}"
+            
+            # Show current value and prompt for new value
+            print(f"\n{'='*60}")
+            print(f"EDIT BULK PRE-PACK: {full_sku}")
+            print(f"Variety: {selected_product.variety.var_name}")
+            print(f"{'='*60}")
+            print(f"Current bulk_pre_pack: {selected_product.bulk_pre_pack}")
+            
+            new_value = input("\nEnter new value (or press Enter to cancel): ").strip()
+            
+            if not new_value:
+                print("Edit cancelled")
+                pause()
+                continue
+            
+            try:
+                new_value_int = int(new_value)
+                if new_value_int < 0:
+                    print("\n❌ Value must be 0 or greater")
+                    pause()
+                    continue
+                
+                # Update the product
+                old_value = selected_product.bulk_pre_pack
+                selected_product.bulk_pre_pack = new_value_int
+                selected_product.save()
+                
+                print(f"\n✅ Updated {full_sku}: {old_value} → {new_value_int}")
+                pause()
+                
+            except ValueError:
+                print("\n❌ Invalid number. Please enter a valid integer")
+                pause()
+                continue
+                
+        except ValueError:
+            print("\n❌ Invalid input. Please enter a number")
+            pause()
+            continue
+# def view_products_with_bulk_pre_pack():
+#     """Display all products with bulk_pre_pack > 0"""
+#     products = Product.objects.filter(
+#         bulk_pre_pack__gt=0
+#     ).select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
     
-    if not products:
-        print("\n✅ No products have bulk_pre_pack set!")
-        return
+#     if not products:
+#         print("\n✅ No products have bulk_pre_pack set!")
+#         return
     
-    print("\n" + "="*100)
-    print(f"PRODUCTS WITH BULK PRE-PACK ({products.count()})")
-    print("="*100)
-    print(f"{'SKU Prefix':<15} {'Variety Name':<40} {'Suffix':<10} {'Bulk Pre-Pack':<15}")
-    print("-"*100)
+#     print("\n" + "="*100)
+#     print(f"PRODUCTS WITH BULK PRE-PACK ({products.count()})")
+#     print("="*100)
+#     print(f"{'SKU Prefix':<15} {'Variety Name':<40} {'Suffix':<10} {'Bulk Pre-Pack':<15}")
+#     print("-"*100)
     
-    for prod in products:
-        variety_name = prod.variety.var_name or '--'
-        suffix = prod.sku_suffix or '--'
-        print(f"{prod.variety.sku_prefix:<15} {variety_name:<40} {suffix:<10} {prod.bulk_pre_pack:<15}")
+#     for prod in products:
+#         variety_name = prod.variety.var_name or '--'
+#         suffix = prod.sku_suffix or '--'
+#         print(f"{prod.variety.sku_prefix:<15} {variety_name:<40} {suffix:<10} {prod.bulk_pre_pack:<15}")
     
-    print(f"\nTotal: {products.count()} products with bulk pre-pack")
+#     print(f"\nTotal: {products.count()} products with bulk pre-pack")
 
 def check_pkt_products_low_label_prints():
     """Check pkt products with low label prints that have active germination lots"""
@@ -1523,7 +1621,7 @@ def product_menu():
         print("5.  Reset bulk pre-pack to zero")
         print("6.  Reset all website_bulk to False") 
         print("7.  Reset all wholesale to False") 
-        print("8.  View products with bulk pre-pack")
+        print("8.  View/edit products with bulk pre-pack")
         print("9.  Find pkt products with wrong print_back setting") 
         print("10. Add new product")
         print("11. Edit product")
@@ -1560,7 +1658,8 @@ def product_menu():
             reset_all_wholesale()
             pause()
         elif choice == '8':
-            view_products_with_bulk_pre_pack() 
+            # view_products_with_bulk_pre_pack() 
+            view_edit_products_with_bulk_pre_pack()
             pause()
         elif choice == '9':
             find_pkt_products_with_wrong_print_back_setting()

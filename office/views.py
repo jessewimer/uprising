@@ -1199,38 +1199,6 @@ def retire_lot(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid method'}, status=405)
-# @login_required
-# @user_passes_test(is_employee)
-# def retire_lot(request):
-#     if request.method == 'POST':
-#         try:
-#             data = json.loads(request.body)
-#             print("Backend data:", data)
-#             lot_id = data.get('lot_id')
-#             lbs_remaining = data.get('lbs_remaining')
-#             notes = data.get('notes', '')
-#             retire_date = data.get('retire_date')
-            
-#             lot = Lot.objects.get(pk=lot_id)
-            
-#             if hasattr(lot, 'retired_info'):
-#                 return JsonResponse({'error': 'This lot is already retired'}, status=400)
-            
-#             # Create the RetiredLot entry
-#             RetiredLot.objects.create(
-#                 lot=lot,
-#                 lbs_remaining=lbs_remaining,
-#                 retired_date=retire_date, 
-#                 notes=notes
-#             )
-            
-#             return JsonResponse({'success': True})
-#         except Lot.DoesNotExist:
-#             return JsonResponse({'error': 'Lot not found'}, status=404)
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)
-    
-#     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
 @login_required(login_url='/office/login/')
