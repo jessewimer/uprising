@@ -1084,7 +1084,6 @@ def products_by_crop_json(request, crop):
     
     for p in products:
         data.append({
-            # "veg_type": p.veg_type,
             "variety": p.variety,
             "current_inventory": "-",
             "previous_inventory": "-",
@@ -1404,7 +1403,6 @@ def admin_dashboard(request):
         'env_types': settings.ENV_TYPES,
         'crops': settings.CROPS,
         'groups': settings.GROUPS,
-        # 'veg_types': settings.VEG_TYPES,
         'subtypes': settings.SUBTYPES,
         'categories': settings.CATEGORIES,
         'user_name': request.user.get_full_name() or request.user.username,
@@ -2466,7 +2464,6 @@ def add_variety(request):
             'common_spelling': request.POST.get('common_spelling', '').strip() or None,
             'common_name': request.POST.get('common_name', '').strip() or None,
             'group': request.POST.get('group', '').strip() or None,
-            # 'veg_type': request.POST.get('veg_type', '').strip() or None,
             'species': request.POST.get('species', '').strip() or None,
             'subtype': request.POST.get('subtype', '').strip() or None,
             'days': request.POST.get('days', '').strip() or None,
@@ -3393,7 +3390,6 @@ def edit_variety(request):
         variety.common_spelling = data.get('common_spelling', variety.common_spelling)
         variety.common_name = data.get('common_name', variety.common_name)
         variety.group = data.get('group', variety.group)
-        # variety.veg_type = data.get('veg_type').upper() if data.get('veg_type') else None
         variety.species = data.get('species', variety.species)
         variety.subtype = data.get('subtype', variety.subtype)
         variety.days = data.get('days', variety.days)

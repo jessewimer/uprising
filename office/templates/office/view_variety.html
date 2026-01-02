@@ -1454,18 +1454,6 @@
                         </select>
                     </div>
 
-                    <!-- <div class="form-group">
-                        <label>Vegetable Type</label>
-                        <select id="editVegType">
-                            <option value="">Select Type</option>
-                            {% for veg_type in veg_types %}
-                            {% if veg_type != "Veg Type" %}
-                            <option value="{{ veg_type }}" {% if variety.veg_type|upper == veg_type|upper %}selected{% endif %}>{{ veg_type|upper }}</option>
-                            {% endif %}
-                            {% endfor %}
-                        </select>
-                    </div> -->
-
                     <div class="form-group">
                         <label>Species</label>
                         <input type="text" id="editSpecies" value="{{ variety.species|default:'' }}">

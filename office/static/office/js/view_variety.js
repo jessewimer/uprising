@@ -171,7 +171,7 @@ function setupSearch() {
             return;
         }
 
-        // Search through common_spelling, crop, and veg_type
+        // Search through common_spelling and crop
         const matches = [];
 
         for (const [skuPrefix, data] of Object.entries(allVarieties)) {
@@ -183,17 +183,6 @@ function setupSearch() {
                 matches.push([skuPrefix, data]);
             }
         }
-        // // Only search through the common_spelling keys
-        // const matches = [];
-        
-        // for (const [skuPrefix, data] of Object.entries(allVarieties)) {
-        //     const matchesCommonSpelling = data.common_spelling && data.common_spelling.toLowerCase().includes(query);
-            
-        //     if (matchesCommonSpelling) {
-        //         matches.push([skuPrefix, data]);
-        //     }
-        // }
-        // console.log('Found matches:', matches.length);
 
         if (matches.length > 0) {
 
