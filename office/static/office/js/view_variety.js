@@ -548,10 +548,19 @@ function changeProductLot(productId) {
     editProductLot(productId); // Your existing function
 }
 
+
 function editProduct(productId) {
     hideProductActionsPopup();
-    showPasswordPopup(proceedWithEditProduct, productId);
+    if (requirePassword) {
+        showPasswordPopup(proceedWithEditProduct, productId);
+    } else {
+        proceedWithEditProduct(productId);
+    }
 }
+// function editProduct(productId) {
+//     hideProductActionsPopup();
+//     showPasswordPopup(proceedWithEditProduct, productId);
+// }
 
 function proceedWithEditProduct(productId) {
     console.log('proceedWithEditProduct called with:', productId); // DEBUG
@@ -3383,13 +3392,68 @@ function hideGerminationPopup() {
     document.getElementById('germinationForm').reset();
 }
 
+
+
+
+// function submitGermination(event) {
+//     event.preventDefault();
+    
+//     const germinationRate = document.getElementById('germinationRateInput').value;
+//     const testDate = document.getElementById('germinationDateInput').value;
+//     const notes = document.getElementById('germinationNotesInput').value;
+    
+//     fetch('/office/record-germination/', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': getCSRFToken()
+//         },
+//         body: JSON.stringify({
+//             lot_id: currentLotId,
+//             germination_rate: germinationRate,
+//             test_date: testDate,
+//             notes: notes
+//         })
+//     })
+//     .then(response => {
+//         if (!response.ok) {
+//             return response.json().then(err => Promise.reject(err));
+//         }
+//         return response.json();
+//     })
+//     .then(data => {
+//         if (data.success) {
+//             showMessage('Germination recorded successfully', 'success');
+//             localStorage.removeItem('germination_inventory_data'); // Clear the cached data directly
+//             setTimeout(() => {
+//                 window.location.href = window.location.pathname;
+//             }, 2000);
+//         } else {
+//             showMessage('Error recording germination: ' + (data.error || 'Unknown error'), 'error');
+//         }
+//     })
+//     .catch(error => {
+//         if (error.error) {
+//             showMessage('Error recording germination: ' + error.error, 'error');
+//         } else {
+//             console.error('Error:', error);
+//             showMessage('Network error occurred', 'error');
+//         }
+//     });
+    
+//     hideGerminationPopup();
+// }
+
+
+
 function submitGermination(event) {
     event.preventDefault();
     
     const germinationRate = document.getElementById('germinationRateInput').value;
     const testDate = document.getElementById('germinationDateInput').value;
     const notes = document.getElementById('germinationNotesInput').value;
-    
+    const isHomeTest = document.getElementById('homeTestCheckbox').checked;
+
     fetch('/office/record-germination/', {
         method: 'POST',
         headers: {
@@ -3400,7 +3464,9 @@ function submitGermination(event) {
             lot_id: currentLotId,
             germination_rate: germinationRate,
             test_date: testDate,
-            notes: notes
+            notes: notes,
+            is_home_test: isHomeTest,
+            for_year: packedForYear  // This variable is already available from Django template
         })
     })
     .then(response => {
@@ -3560,10 +3626,19 @@ function hideVarietyActionsPopup() {
     document.getElementById('varietyActionsPopup').classList.remove('show');
 }
 
+
 function editVarietyWithPassword() {
     hideVarietyActionsPopup();
-    showPasswordPopup(openEditVarietyPopup, null);
+    if (requirePassword) {
+        showPasswordPopup(openEditVarietyPopup, null);
+    } else {
+        openEditVarietyPopup();
+    }
 }
+// function editVarietyWithPassword() {
+//     hideVarietyActionsPopup();
+//     showPasswordPopup(openEditVarietyPopup, null);
+// }
 
 
 // Close modal event listeners
@@ -3934,9 +4009,18 @@ function findLotById(lotId) {
     return allLotsData.find(lot => lot.id == lotId);
 }
 
+// function showAddProductPopup() {
+//     showPasswordPopup(proceedWithAddProduct, null);
+// }
+
 function showAddProductPopup() {
-    showPasswordPopup(proceedWithAddProduct, null);
+    if (requirePassword) {
+        showPasswordPopup(proceedWithAddProduct, null);
+    } else {
+        proceedWithAddProduct();
+    }
 }
+
 
 function proceedWithAddProduct() {
     document.body.classList.add('modal-open');

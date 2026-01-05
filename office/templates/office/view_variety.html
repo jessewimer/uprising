@@ -1103,6 +1103,12 @@
                     <input type="number" id="germinationRateInput" min="0" max="100" required>
                 </div>
                 <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="homeTestCheckbox" style="width: auto; margin: 0;">
+                        <span>Home Test (Create New Record)</span>
+                    </label>
+                </div>
+                <div class="form-group">
                     <label>Test Date:</label>
                     <input type="date" id="germinationDateInput">
                 </div>
@@ -1768,6 +1774,7 @@
         const lotsExtraData = JSON.parse('{{ lots_extra_data|escapejs }}');
         const lotsDataString = '{{ lots_json|escapejs }}';
         const isMix = JSON.parse('{{ is_mix|yesno:"true,false"|lower }}');
+        const requirePassword = JSON.parse('{{ require_password|yesno:"true,false"|lower }}');
     </script>
 
     <script src="{% static 'office/js/view_variety.js' %}"></script>

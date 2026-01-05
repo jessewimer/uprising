@@ -193,6 +193,9 @@ PACKET_PRICE = 2.40
 # Site maintenance mode flag... when True, wholesale login attempts will be blocked by middleware
 SITE_MAINTENANCE_MODE = False
 
+# Setting this to true will require users to enter "uprising" when editing products/varieties on view_variety.html
+REQUIRE_EDIT_PASSWORD = False
+
 TRANSITION = False  # whether we are in the transition period between years (July - November)
 
 PKG_SIZES = ["Net wt. 1/8 oz", "Net wt. 1/4 oz", "Net wt. 1/2 oz", "Net wt. 1 oz", "Net wt. 2 oz", "Net wt. 1/4 lb", "Net wt. 1/2 lb", 

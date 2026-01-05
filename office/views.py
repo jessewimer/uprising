@@ -326,6 +326,7 @@ def view_variety(request, sku_prefix=None):  # Add optional parameter
         'transition': settings.TRANSITION,
         'has_pending_germ': has_pending_germ,
         'wholesale_status': wholesale_status,
+        'require_password': settings.REQUIRE_EDIT_PASSWORD,
     }
     return render(request, 'office/view_variety.html', context)
 
@@ -1239,26 +1240,64 @@ def record_germination(request):
             germination_rate = data.get('germination_rate')
             test_date = data.get('test_date')
             notes = data.get('notes', '')
+            is_home_test = data.get('is_home_test', False)
+            for_year = data.get('for_year')  # Get the packed_for_year from frontend
             
             lot = Lot.objects.get(pk=lot_id)
             
-            # Find the most recent germination record
-            # most_recent_germ = lot.germinations.order_by('-test_date').first()
-            germ_record = lot.get_germ_record_with_no_test_date()
-            
-            # print(f"{most_recent_germ.lot.variety.sku_prefix}-{most_recent_germ.lot.grower}{most_recent_germ.lot.year} for 20{most_recent_germ.for_year} if most_recent_germ else 'No germination record'")
-            if not germ_record:
-                print("DEBUG: No empty germination record found to update")
-                germ_record = lot.get_most_recent_germination()
-            
-            # Update the germination record
-            germ_record.germination_rate = germination_rate
-            germ_record.test_date = test_date if test_date else date_class.today()
-            if notes:
-                germ_record.notes = notes
-            germ_record.save()
+            if is_home_test:
+                # Create a new germination record
+                Germination.objects.create(
+                    lot=lot,
+                    status='active',
+                    germination_rate=germination_rate,
+                    test_date=test_date if test_date else date_class.today(),
+                    notes=notes if notes else '',
+                    for_year=int(for_year)
+                )
+            else:
+                # Existing logic: update an existing record
+                germ_record = lot.get_germ_record_with_no_test_date()
+                
+                if not germ_record:
+                    print("DEBUG: No empty germination record found to update")
+                    germ_record = lot.get_most_recent_germination()
+                
+                # Update the germination record
+                germ_record.germination_rate = germination_rate
+                germ_record.test_date = test_date if test_date else date_class.today()
+                if notes:
+                    germ_record.notes = notes
+                germ_record.save()
             
             return JsonResponse({'success': True})
+        # try:
+        #     from datetime import date as date_class
+        #     data = json.loads(request.body)
+        #     lot_id = data.get('lot_id')
+        #     germination_rate = data.get('germination_rate')
+        #     test_date = data.get('test_date')
+        #     notes = data.get('notes', '')
+            
+        #     lot = Lot.objects.get(pk=lot_id)
+            
+        #     # Find the most recent germination record
+        #     # most_recent_germ = lot.germinations.order_by('-test_date').first()
+        #     germ_record = lot.get_germ_record_with_no_test_date()
+            
+        #     # print(f"{most_recent_germ.lot.variety.sku_prefix}-{most_recent_germ.lot.grower}{most_recent_germ.lot.year} for 20{most_recent_germ.for_year} if most_recent_germ else 'No germination record'")
+        #     if not germ_record:
+        #         print("DEBUG: No empty germination record found to update")
+        #         germ_record = lot.get_most_recent_germination()
+            
+        #     # Update the germination record
+        #     germ_record.germination_rate = germination_rate
+        #     germ_record.test_date = test_date if test_date else date_class.today()
+        #     if notes:
+        #         germ_record.notes = notes
+        #     germ_record.save()
+            
+        #     return JsonResponse({'success': True})
         except Lot.DoesNotExist:
             return JsonResponse({'error': 'Lot not found'}, status=404)
         except Exception as e:
