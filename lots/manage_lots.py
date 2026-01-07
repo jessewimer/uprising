@@ -1,7 +1,7 @@
 import os
 from random import choice
 import django
-import csv
+# import csv
 import sys
 from django.db import transaction
 from datetime import datetime, date
