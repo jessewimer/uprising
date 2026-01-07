@@ -47,6 +47,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+
+    // Handle add returns button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.add-returns-btn')) {
+            const btn = e.target.closest('.add-returns-btn');
+            const storeNum = parseInt(btn.dataset.storeNum);
+            const storeName = btn.dataset.storeName;
+            openAddReturnsModal(storeNum, storeName);
+        }
+    });
+    
     // Close modals when clicking outside
     document.getElementById('editModal').addEventListener('click', function(e) {
         if (e.target === this) {
@@ -213,14 +224,31 @@ function renderReturnsTable(stores) {
             <td>${store.packets_returned > 0 ? store.packets_returned : '--'}</td>
             <td class="credit-value">${store.credit > 0 ? '$' + store.credit.toFixed(2) : '$0.00'}</td>
             <td>
-                <button class="add-btn" 
-                        onclick="openAddReturnsModal(${store.store_num}, '${store.store_name}')"
+                <button class="add-btn add-returns-btn" 
+                        data-store-num="${store.store_num}"
+                        data-store-name="${store.store_name}"
                         title="Add/Edit returns for ${store.store_name}">
                     +
                 </button>
             </td>
         </tr>
     `).join('');
+    // tbody.innerHTML = stores.map(store => `
+    //     <tr>
+    //         <td><strong>#${store.store_num}</strong></td>
+    //         <td>${store.store_name}</td>
+    //         <td>${store.packets_allowed}</td>
+    //         <td>${store.packets_returned > 0 ? store.packets_returned : '--'}</td>
+    //         <td class="credit-value">${store.credit > 0 ? '$' + store.credit.toFixed(2) : '$0.00'}</td>
+    //         <td>
+    //             <button class="add-btn" 
+    //                     onclick="openAddReturnsModal(${store.store_num}, '${store.store_name}')"
+    //                     title="Add/Edit returns for ${store.store_name}">
+    //                 +
+    //             </button>
+    //         </td>
+    //     </tr>
+    // `).join('');
 }
 
 // Add/Edit Returns Modal Functions
