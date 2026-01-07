@@ -1327,7 +1327,7 @@ def product_menu():
         print("17. View products with missing rack locations")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17'])
 
         if choice == '0':
             break
