@@ -3,6 +3,8 @@ import django
 import sys
 import csv
 from prettytable import PrettyTable
+from decimal import Decimal, InvalidOperation
+
 
 # Get the current directory path
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +24,7 @@ from products.models import Product
 from django.contrib.auth.models import User
 from django.db.models import Count
 from django.db import connection
-
+from django.db import transaction
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -303,6 +305,101 @@ def delete_store():
     else:
         print(f"\n✓ Store '{store_name}' and all related records have been deleted.")
         
+
+
+
+def set_all_packet_prices():
+    """
+    Prompt for a packet price and set ALL SOIncludes.price values to it.
+    """
+
+    raw = input("Enter new packet price (e.g. 2.50): ").strip()
+
+    try:
+        new_price = Decimal(raw)
+        if new_price < 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        print("❌ Invalid price. Aborting.")
+        return
+
+    count = SOIncludes.objects.count()
+
+    if count == 0:
+        print("No SOIncludes records found.")
+        return
+
+    confirm = input(
+        f"This will update {count} line items to price {new_price}. Continue? (yes/no): "
+    ).strip().lower()
+
+    if confirm != "yes":
+        print("Aborted.")
+        return
+
+    with transaction.atomic():
+        SOIncludes.objects.update(price=new_price)
+
+    print(f"✅ Updated {count} SOIncludes records to price {new_price}")
+
+
+
+
+
+
+
+
+
+
+def list_orders():
+    orders = StoreOrder.objects.select_related("store").order_by("-date")
+
+    for idx, order in enumerate(orders, start=1):
+        status = "FULFILLED" if order.fulfilled_date else "PENDING"
+        print(
+            f"{idx}. {order.order_number} | "
+            f"{order.store.store_name} | "
+            f"{status}"
+        )
+
+    return list(orders)
+
+def set_to_pending():
+    orders = list_orders()
+
+    if not orders:
+        print("No orders found.")
+        return
+
+    choice = input("\nSelect an order number to set back to PENDING: ").strip()
+
+    try:
+        index = int(choice) - 1
+        order = orders[index]
+    except (ValueError, IndexError):
+        print("❌ Invalid selection.")
+        return
+
+    confirm = input(
+        f"\nSet order {order.order_number} back to PENDING? (yes/no): "
+    ).strip().lower()
+
+    if confirm != "yes":
+        print("Aborted.")
+        return
+
+    order.fulfilled_date = None
+    order.shipping = Decimal("0.00")
+    order.save(update_fields=["fulfilled_date", "shipping"])
+
+    print(f"✅ Order {order.order_number} is now PENDING")
+
+
+
+
+
+
+
 
 # ============================================================================
 # STORE PRODUCT MANAGEMENT
@@ -644,10 +741,12 @@ def store_management_menu():
         print("5.  Update store username")
         print("6.  Update store name")
         print("7.  Delete store")
+        print("8.  Set pkt prices on so_includes table")
+        print("9.  Set order to pending")
         print("0.  Back to main menu")
         
         choice = get_choice("\nSelect option: ", 
-                          ['0', '1', '2', '3', '4', '5', '6', '7'])
+                          ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
         
         if choice == '0':
             break
@@ -671,6 +770,12 @@ def store_management_menu():
             pause()
         elif choice == '7':
             delete_store()
+            pause()
+        elif choice == '8':
+            set_all_packet_prices()
+            pause()
+        elif choice == '9':
+            set_to_pending()
             pause()
 
 
