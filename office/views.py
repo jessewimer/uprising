@@ -1434,7 +1434,8 @@ def edit_back_labels(request):
 
 
 @login_required(login_url='/office/login/')
-@staff_member_required
+# @staff_member_required
+@user_passes_test(is_employee)
 def admin_dashboard(request):
     context = {
         'pkg_sizes': settings.PKG_SIZES,

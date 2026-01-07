@@ -73,9 +73,12 @@
             <button class="address-labels-button" onclick="handleAddressLabels()">
                 Address Labels
             </button>
-            <button class="admin-button" onclick="checkAdminAccess()">
+            {% comment %} <button class="admin-button" onclick="checkAdminAccess()">
                 Admin
-            </button>
+            </button> {% endcomment %}
+            <a href="/office/admin-dashboard/" class="admin-button">
+                Admin
+            </a>
             <button class="logout-button" onclick="showLogoutVerification()">
                 Logout
             </button>
