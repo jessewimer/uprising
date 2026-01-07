@@ -32,7 +32,7 @@ BASE_COMPONENT_MIXES = {
     'MIX-LB': {
         'name': 'Lettuce Mix',
         'type': 'base',
-        'varieties': ['LET-HR', 'LET-FB', 'LET-GR', 'LET-CI', 'LET-FT', 'LET-AY', 'LET-MA', 'LET-RV', 'LET-EM'],
+        'varieties': ['LET-HR', 'LET-FB', 'LET-GR', 'LET-CI', 'LET-FT', 'LET-AY', 'LET-MA', 'LET-RV', 'LET-EM', 'LET-ME'],
     },
     'MIX-SB': {
         'name': 'Spicy Mix',

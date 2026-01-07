@@ -1245,7 +1245,8 @@
                         .then(response => response.json())
                         .then(data => {
                             // Set lot code in the header
-                            document.getElementById('newLotCode').textContent = data.lot_code;
+                            //document.getElementById('newLotCode').textContent = data.lot_code;
+                            document.getElementById('newLotCode').textContent = `${data.lot_code} - ${currentMixName}`;
                             
                             // Set recipe section
                             const recipeHTML = getRecipeHTML(currentMixSku);
