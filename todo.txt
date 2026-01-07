@@ -19,7 +19,9 @@ in settings.py:
 factor in store credit for pkts returned when finalizing an order
 =============================
 
+Need to take pkt price out of settings.py and make sure anything that references that 
+gets pulled form wholesalepktprice table in stores models
 
-take mixes out of germination_inventory / growouts page
-add base mixes to variety table but exclude from search variety 
+
+
 

@@ -188,7 +188,7 @@ FOR_YEAR = 26
 
 # Change this to the next year once we shut the website down in mid-November
 CURRENT_ORDER_YEAR = 26
-PACKET_PRICE = 2.40
+PACKET_PRICE = 2.55
 
 # Site maintenance mode flag... when True, wholesale login attempts will be blocked by middleware
 SITE_MAINTENANCE_MODE = False
