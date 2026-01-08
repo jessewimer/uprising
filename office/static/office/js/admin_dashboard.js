@@ -411,7 +411,7 @@ function generateReportHTML(report) {
     if (products_without_germ.length > 0) {
         html += `
             <div class="report-section">
-                <h4>⚠️ Tracked Products WITHOUT Active Germination for 20${current_order_year} (${products_without_germ.length})</h4>
+                <h4>⚠️ Products WITHOUT Active Germination for 20${current_order_year} (${products_without_germ.length})</h4>
                 <div class="report-table-wrapper">
                     <table class="report-table">
                         <thead>
