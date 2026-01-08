@@ -746,7 +746,7 @@ def store_management_menu():
         print("0.  Back to main menu")
         
         choice = get_choice("\nSelect option: ", 
-                          ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+                          ['0', '1', '2', '3', '4', '5', '6', '7'])
         
         if choice == '0':
             break
@@ -771,13 +771,7 @@ def store_management_menu():
         elif choice == '7':
             delete_store()
             pause()
-        elif choice == '8':
-            set_all_packet_prices()
-            pause()
-        elif choice == '9':
-            set_to_pending()
-            pause()
-
+ 
 
 def store_product_menu():
     """Store product management submenu"""
@@ -822,9 +816,11 @@ def store_order_menu():
         print("="*50)
         print("1.  View all store orders")
         print("2.  Reset store order tables")
+        print("3.  Set order to pending")
+        print("4:  Change ALL SOIncludes packet prices")
         print("0.  Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
         
         if choice == '0':
             break
@@ -834,7 +830,12 @@ def store_order_menu():
         elif choice == '2':
             reset_store_order_table()
             pause()
-
+        elif choice == '3':
+            set_to_pending()
+            pause() 
+        elif choice == '4':
+            set_all_packet_prices()
+            pause()
 
 # ============================================================================
 # MAIN MENU

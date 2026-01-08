@@ -436,34 +436,52 @@ def view_product_details():
 
 
 
-def view_products_missing_rack_location():
-    table = PrettyTable()
-    table.field_names = [
-        "Variety",
-        "SKU Suffix",
-        "Rack Location",
+def missing(field_name):
+    return Q(**{f"{field_name}__isnull": True}) | Q(**{field_name: ""})
+
+def view_missing_product_attributes():
+    sections = [
+        ("rack_location", "Missing Rack Locations", True),
+        ("lineitem_name", "Missing Line Item Names", True),
+        ("pkg_size", "Missing Package Sizes", True),
+        ("sku_suffix", "Missing SKU Suffixes", False),
+        ("env_type", "Missing Envelope Types", True),
     ]
 
-    qs = (
+    base_qs = (
         Product.objects
         .select_related("variety")
-        .filter(
-            Q(rack_location__isnull=True) |
-            Q(rack_location="") |
-            Q(rack_location__exact=None)
-        )
         .order_by("variety__var_name", "sku_suffix")
     )
 
-    for product in qs:
-        table.add_row([
-            product.variety.var_name if product.variety else "(no variety)",
-            product.sku_suffix,
-            product.rack_location or "(missing)",
-        ])
+    for field, title, show_sku in sections:
+        print("\n" + "=" * len(title))
+        print(title)
+        print("=" * len(title))
 
-    print(f"\nProducts missing rack_location: {qs.count()}\n")
-    print(table)
+        qs = base_qs.filter(
+            Q(**{f"{field}__isnull": True}) |
+            Q(**{f"{field}": ""})
+        )
+
+        if not qs.exists():
+            print("✓ None missing")
+            continue
+
+        for product in qs:
+            variety_name = (
+                product.variety.var_name
+                if product.variety
+                else "(no variety)"
+            )
+
+            if show_sku:
+                sku = product.sku_suffix or "(no SKU)"
+                print(f"- {variety_name} — {sku}")
+            else:
+                print(f"- {variety_name}")
+
+        print(f"\nTotal: {qs.count()}")
 
 
 def view_bad_lineitems(output_file="bad_lineitems.csv"):
@@ -488,107 +506,6 @@ def view_bad_lineitems(output_file="bad_lineitems.csv"):
     print(f"Found {len(bad_items)} bad lineitems")
     print("CSV written to:", output_path)
 
-
-
-def view_lineitems(output_file="lineitems.csv"):
-
-
-    """
-    Query all Products and write their lineitem_name values to a CSV.
-    """
-
-    # Query only the field we need (more efficient)
-    lineitems = Product.objects.values_list("lineitem_name", flat=True)
-
-    with open(output_file, mode="w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-
-        # Header
-        writer.writerow(["lineitem_name"])
-
-        # Rows
-        for name in lineitems:
-            writer.writerow([name])
-
-    print(f"CSV written to {output_file}")
-
-
-    """create csv of all products with their lineitem names"""
-    # csv_file = 'products_lineitems.csv'
-    
-
-    # import pandas as pd
-
-    # products = Product.objects.all().order_by(
-    #     'variety__sku_prefix', 'sku_suffix'
-    # ).values('variety__sku_prefix', 'sku_suffix', 'lineitem_name')
-
-    # df = pd.DataFrame(list(products))
-    # print("\n")
-    # print(df)
-
-def view_products_without_lineitem():
-    """Display all products that do not have a lineitem name"""
-    products = Product.objects.filter(
-        is_sub_product=False
-    ).filter(
-        lineitem_name__isnull=True
-    ) | Product.objects.filter(
-        is_sub_product=False
-    ).filter(
-        lineitem_name=""
-    )
-    products = products.select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
-    
-    if not products:
-        print("\n✅ All products have lineitem names assigned!")
-        return
-    
-    print("\n" + "="*100)
-    print(f"PRODUCTS WITHOUT LINEITEM NAMES ({products.count()})")
-    print("="*100)
-    print(f"{'SKU Prefix':<15} {'Suffix':<10} {'Pkg Size':<15} {'Variety Name':<40}")
-    print("-"*100)
-    
-    for prod in products:
-        variety_name = prod.variety.var_name or '--'
-        print(f"{prod.variety.sku_prefix:<15} {(prod.sku_suffix or '--'):<10} "
-              f"{(prod.pkg_size or '--'):<15} {variety_name:<40}")
-    
-    print(f"\nTotal: {products.count()} products without lineitem names")
-
-
-def view_products_without_pkg_size():
-    """Display all products that do not have a pkg_size"""
-    products = Product.objects.filter(
-        pkg_size__isnull=True
-    ) | Product.objects.filter(
-        pkg_size=""
-    )
-    products = products.select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
-    
-    if not products:
-        print("\n✅ All products have pkg_size assigned!")
-        return
-    
-    table = PrettyTable()
-    table.field_names = ["SKU Prefix", "Suffix", "Lineitem Name", "Variety Name"]
-    table.align["SKU Prefix"] = "l"
-    table.align["Suffix"] = "l"
-    table.align["Lineitem Name"] = "l"
-    table.align["Variety Name"] = "l"
-    
-    for prod in products:
-        variety_name = prod.variety.var_name or '--'
-        lineitem = prod.lineitem_name or '--'
-        suffix = prod.sku_suffix or '--'
-        table.add_row([prod.variety.sku_prefix, suffix, lineitem, variety_name])
-    
-    print("\n" + "="*100)
-    print(f"PRODUCTS WITHOUT PKG_SIZE ({products.count()})")
-    print("="*100)
-    print(table)
-    print(f"\nTotal: {products.count()} products without pkg_size")
 
 
 def reset_all_website_bulk():
@@ -807,28 +724,7 @@ def view_edit_products_with_bulk_pre_pack():
             print("\n❌ Invalid input. Please enter a number")
             pause()
             continue
-# def view_products_with_bulk_pre_pack():
-#     """Display all products with bulk_pre_pack > 0"""
-#     products = Product.objects.filter(
-#         bulk_pre_pack__gt=0
-#     ).select_related('variety').order_by('variety__sku_prefix', 'sku_suffix')
-    
-#     if not products:
-#         print("\n✅ No products have bulk_pre_pack set!")
-#         return
-    
-#     print("\n" + "="*100)
-#     print(f"PRODUCTS WITH BULK PRE-PACK ({products.count()})")
-#     print("="*100)
-#     print(f"{'SKU Prefix':<15} {'Variety Name':<40} {'Suffix':<10} {'Bulk Pre-Pack':<15}")
-#     print("-"*100)
-    
-#     for prod in products:
-#         variety_name = prod.variety.var_name or '--'
-#         suffix = prod.sku_suffix or '--'
-#         print(f"{prod.variety.sku_prefix:<15} {variety_name:<40} {suffix:<10} {prod.bulk_pre_pack:<15}")
-    
-#     print(f"\nTotal: {products.count()} products with bulk pre-pack")
+
 
 def check_pkt_products_low_label_prints():
     """Check pkt products with low label prints that have active germination lots"""
@@ -1310,24 +1206,22 @@ def product_menu():
         print("="*50)
         print("1.  View all products")
         print("2.  View product details")
-        print("3.  View lineitem names")
-        print("4.  View products without lineitem names")  
-        print("5.  Reset bulk pre-pack to zero")
-        print("6.  Reset all website_bulk to False") 
-        print("7.  Reset all wholesale to False") 
-        print("8.  View/edit products with bulk pre-pack")
-        print("9.  Find pkt products with wrong print_back setting") 
-        print("10. Add new product")
-        print("11. Edit product")
-        print("12. Delete product")
-        print("13. View products without pkg_size")
-        print("14. Check pkt products with low label prints")
-        print("15. Check pkt products below % of prev year sales")
-        print("16. Find bulk products with low prints")
-        print("17. View products with missing rack locations")
+        print("3.  View missing product attributes")
+        print("4.  Check pkt products with low label prints") 
+        print("5.  Check pkt products below percent of prev year sales")
+        print("6.  Find bulk products with low prints")
+        print("6.  Find bulk products with low prints")
+        print("7.  Reset bulk pre-pack to zero")
+        print("8.  Reset all website_bulk to False") 
+        print("9.  Reset all wholesale to False") 
+        print("10.  View/edit products with bulk pre-pack")
+        print("11.  Find pkt products with wrong print_back setting") 
+        print("12. Add new product")
+        print("13. Edit product")
+        print("14. Delete product")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'])
 
         if choice == '0':
             break
@@ -1338,27 +1232,33 @@ def product_menu():
             view_product_details()
             pause()
         elif choice == '3':
-            view_bad_lineitems()
+            view_missing_product_attributes()
             pause()
         elif choice == '4':
-            view_products_without_lineitem()  
+            check_pkt_products_low_label_prints()
             pause()
         elif choice == '5':
-            reset_bulk_pre_pack_to_zero()
+            check_pkt_products_below_sales_percentage()
             pause()
         elif choice == '6':
-            reset_all_website_bulk()
+            find_bulk_products_low_prints()
             pause()
         elif choice == '7':
-            reset_all_wholesale()
+            reset_bulk_pre_pack_to_zero()
             pause()
         elif choice == '8':
-            # view_products_with_bulk_pre_pack() 
-            view_edit_products_with_bulk_pre_pack()
+            reset_all_website_bulk()
             pause()
         elif choice == '9':
+            reset_all_wholesale()
+            pause()
+        elif choice == '10':
+            view_edit_products_with_bulk_pre_pack()
+            pause()
+        elif choice == '11':
             find_pkt_products_with_wrong_print_back_setting()
             pause()
+
         elif choice == '10':
             add_product()
             pause()
@@ -1368,22 +1268,6 @@ def product_menu():
         elif choice == '12':
             delete_product()
             pause()
-        elif choice == '13':
-            view_products_without_pkg_size()
-            pause()
-        elif choice == '14':
-            check_pkt_products_low_label_prints()
-            pause()
-        elif choice == '15':
-            check_pkt_products_below_sales_percentage()
-            pause()
-        elif choice == '16':
-            find_bulk_products_low_prints()
-            pause()
-        elif choice == '17':
-            view_products_missing_rack_location()
-            pause()
-
 
 # ============================================================================
 # SALES MANAGEMENT
