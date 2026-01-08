@@ -739,7 +739,7 @@ async function loadPendingOrders() {
         data.orders.forEach(order => {
             console.log('Pending order object:', order); // Debug what fields are available
             ordersHTML += `
-                <div class="pending-order-item" onclick="loadOrderFromPending(${order.id}, '${order.store_id || order.store_num || ''}', '${order.store_name}')">
+                <div class="pending-order-item" data-order-id="${order.id}" data-store-id="${order.store_id || order.store_num || ''}" data-store-name="${order.store_name}">
                     <div class="pending-order-number">Order #${order.order_number}</div>
                     <div class="pending-order-details">
                         <span class="pending-order-store">${order.store_name}</span>
@@ -1584,6 +1584,17 @@ document.addEventListener('DOMContentLoaded', function() {
             closeFinalizeConfirmModal();
             closePickListConfirmModal();  
             closeShippingModal();
+        }
+    });
+
+    // Add event delegation for pending order items
+    document.addEventListener('click', function(e) {
+        const pendingItem = e.target.closest('.pending-order-item');
+        if (pendingItem && document.getElementById('pending-orders-modal').style.display === 'block') {
+            const orderId = parseInt(pendingItem.dataset.orderId);
+            const storeId = pendingItem.dataset.storeId;
+            const storeName = pendingItem.dataset.storeName;
+            loadOrderFromPending(orderId, storeId, storeName);
         }
     });
 
