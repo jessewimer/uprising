@@ -23,5 +23,9 @@ Need to take pkt price out of settings.py and make sure anything that references
 gets pulled form wholesalepktprice table in stores models
 
 
-
-
+=== SYNCING LOCAL DB WITH PRODUCTION SITE ===
+Backup sqlite db
+Download the .json backup from pythonanywhere and put in the same dir as manage.py
+To clear the local db, run: python manage.py flush --no-input
+Load the production data: python manage.py loaddata django_backup_2026-01-09.json (replace .json filename with actual file name)
+That's it!

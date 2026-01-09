@@ -16,7 +16,8 @@ import requests
 from django.contrib.auth.decorators import login_required, user_passes_test
 from uprising.utils.auth import is_employee
 import pandas as pd
-from products.models import Product, MiscProduct
+from products.models import Product, MiscProduct, LabelPrint
+from lots.models import Lot, MixLot
 from django.db import transaction
 from django.utils.timezone import now
 from datetime import datetime
@@ -1155,6 +1156,78 @@ def generate_order_pdf(request, order_id):
     except Exception as e:
         return HttpResponse(f"Error: {str(e)}", content_type="text/plain")
 
+
+@login_required
+@require_http_methods(["POST"])
+def record_label_prints(request):
+    """
+    Records label prints in the LabelPrint table.
+    Expects JSON data with:
+    {
+        "items": [
+            {
+                "sku": "BEA-TA-1/2lb",
+                "quantity": 50,
+                "for_year": 2025
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        items = data.get('items', [])
+        
+        if not items:
+            return JsonResponse({'success': False, 'error': 'No items provided'}, status=400)
+        
+        today = localtime(timezone.now(), pacific_tz).date()
+        recorded_count = 0
+        errors = []
+        
+        with transaction.atomic():
+            for item in items:
+                sku = item.get('sku')
+                quantity = item.get('quantity')
+                for_year = item.get('for_year')
+                
+                if not all([sku, quantity, for_year]):
+                    errors.append(f"Missing data for SKU: {sku}")
+                    continue
+                
+                # Find the product
+                product = Product.objects.filter(
+                    variety__sku_prefix=sku[:6],
+                    sku_suffix=sku[7:]
+                ).select_related('variety', 'lot', 'mix_lot').first()
+                
+                if not product:
+                    errors.append(f"Product not found for SKU: {sku}")
+                    continue
+                
+                # Create LabelPrint record
+                LabelPrint.objects.create(
+                    product=product,
+                    lot=product.lot,
+                    mix_lot=product.mix_lot,
+                    date=today,
+                    qty=quantity,
+                    for_year=for_year
+                )
+                recorded_count += 1
+        
+        return JsonResponse({
+            'success': True,
+            'recorded_count': recorded_count,
+            'errors': errors if errors else None
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
 

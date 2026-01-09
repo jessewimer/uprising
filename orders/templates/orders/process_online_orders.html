@@ -1771,6 +1771,9 @@
                         const skuList = data.items_missing_data.join(', ');
                         showErrorModal(`Cannot print the following items due to missing data: ${skuList}`);
                     }
+                    
+                    // Record the label prints in Django
+                    recordLabelPrints(selectedItems);
                 } else {
                     showErrorModal(data.error || 'Error generating labels.');
                 }
@@ -1785,6 +1788,39 @@
                 document.body.classList.remove('processing');
                 validateRange();
             });
+        }
+
+        async function recordLabelPrints(items) {
+            // Prepare data for Django
+            const printRecords = items.map(item => ({
+                sku: item.sku,
+                quantity: item.quantity,
+                for_year: item.for_year || currentOrderYear
+            }));
+            
+            try {
+                const response = await fetch('/orders/record-label-prints/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ items: printRecords })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`Recorded ${result.recorded_count} label prints`);
+                    if (result.errors && result.errors.length > 0) {
+                        console.warn('Some prints could not be recorded:', result.errors);
+                    }
+                } else {
+                    console.error('Error recording label prints:', result.error);
+                }
+            } catch (error) {
+                console.error('Failed to record label prints:', error);
+            }
         }
 
 

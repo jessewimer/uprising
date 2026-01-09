@@ -16,9 +16,5 @@ urlpatterns = [
     path('process-orders/', views.process_orders, name='process_orders'),
     path('reprint-packing-slip/<str:order_id>/', views.reprint_packing_slip, name='reprint_packing_slip'), 
     path('reprocess-order/<str:order_id>/', views.reprocess_order, name='reprocess_order'),
-
-
-    # Old URL patterns for outdated functionality
-    # path('api/', include(router.urls)),
-    # path('process-online-orders/', views.process_online_orders, name='process_online_orders'),
+    path('record-label-prints/', views.record_label_prints, name='record_label_prints'),
 ]
