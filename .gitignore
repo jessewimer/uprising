@@ -41,3 +41,6 @@ csv/
 
 # Claude Code
 .claude/
+
+# all json files
+*.json

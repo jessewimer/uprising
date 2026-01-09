@@ -1197,6 +1197,62 @@ def delete_product():
     else:
         print("Deletion cancelled")
 
+def set_bulk_pre_pack_for_product():
+    # prompt for sku prefix, display products, select one, set bulk_pre_pack
+    sku_prefix = input("\nEnter SKU prefix (e.g., BEA-RN): ").strip().upper()
+    if not sku_prefix:
+        print("❌ SKU prefix is required")
+        return
+    products = Product.objects.filter(variety__sku_prefix=sku_prefix).select_related('variety')
+    if not products.exists():
+        print(f"\n❌ No products found with SKU prefix '{sku_prefix}'")
+        return
+    print(f"\n{'='*80}")
+    print(f"PRODUCTS FOR {sku_prefix}")
+    print(f"{'='*80}")
+    print(f"{'#':<4} {'SKU Suffix':<15} {'Bulk Pre-Pack':<15}")
+    print("-"*80)
+    product_list = list(products)
+    for idx, product in enumerate(product_list, 1):
+        bulk_pre_pack = product.bulk_pre_pack if product.bulk_pre_pack is not None else '--'
+        print(f"{idx:<4} {product.sku_suffix or '--':<15} {bulk_pre_pack:<15}")
+    print(f"\nTotal: {len(product_list)} products")
+    selection = input("\nEnter product number to set bulk_pre_pack (or 'cancel'): ").strip()
+    if selection.lower() == 'cancel':
+        print("Operation cancelled")
+        return
+    try:
+        idx = int(selection)
+        if idx < 1 or idx > len(product_list):
+            print(f"❌ Invalid selection. Please enter a number between 1 and {len(product_list)}")
+            return
+    except ValueError:
+        print("❌ Invalid input. Please enter a number")
+        return
+    product = product_list[idx - 1]
+    full_sku = f"{product.variety.sku_prefix}-{product.sku_suffix}"
+    print(f"\n{'='*80}")
+    print(f"SET BULK PRE-PACK FOR: {full_sku}")
+    print(f"{'='*80}")
+    print(f"Current bulk_pre_pack: {product.bulk_pre_pack if product.bulk_pre_pack is not None else '--'}")
+    new_value = input("\nEnter new bulk_pre_pack value (or press Enter to cancel): ").strip()
+    if not new_value:
+        print("Operation cancelled")
+        return
+    try:
+        new_value_int = int(new_value)
+        if new_value_int < 0:
+            print("❌ Value must be 0 or greater")
+            return
+        old_value = product.bulk_pre_pack
+        product.bulk_pre_pack = new_value_int
+        product.save()
+        print(f"\n✅ Updated {full_sku}: {old_value if old_value is not None else '--'} → {new_value_int}")
+    except ValueError:
+        print("❌ Invalid number. Please enter a valid integer")
+        return
+    
+
 def product_menu():
     """Product management submenu"""
     while True:
@@ -1214,14 +1270,15 @@ def product_menu():
         print("7.  Reset bulk pre-pack to zero")
         print("8.  Reset all website_bulk to False") 
         print("9.  Reset all wholesale to False") 
-        print("10.  View/edit products with bulk pre-pack")
-        print("11.  Find pkt products with wrong print_back setting") 
+        print("10. View/edit products with bulk pre-pack")
+        print("11. Find pkt products with wrong print_back setting") 
         print("12. Add new product")
         print("13. Edit product")
         print("14. Delete product")
+        print("15. Set bulk pre-pack for a product")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'])
 
         if choice == '0':
             break
@@ -1259,14 +1316,17 @@ def product_menu():
             find_pkt_products_with_wrong_print_back_setting()
             pause()
 
-        elif choice == '10':
+        elif choice == '12':
             add_product()
             pause()
-        elif choice == '11':
+        elif choice == '13':
             edit_product()
             pause()
-        elif choice == '12':
+        elif choice == '14':
             delete_product()
+            pause()
+        elif choice == '15':
+            set_bulk_pre_pack_for_product()
             pause()
 
 # ============================================================================
