@@ -21,7 +21,7 @@ sys.path.append(project_path)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "uprising.settings")
 django.setup()
 
-from lots.models import Grower, Lot, StockSeed, Inventory, GermSamplePrint, Germination, GerminationBatch, RetiredLot, LotNote, Growout
+from lots.models import Grower, Lot, StockSeed, Inventory, GermSamplePrint, Germination, GerminationBatch, RetiredLot, LotNote, Growout, MixLot
 from products.models import Variety
 
 
@@ -407,6 +407,116 @@ def find_lots_with_pending_germs():
     
     print(f"\nTotal lots with pending germs: {lots_with_pending.count()}")
 
+
+
+# ============================================================================
+# MIXED LOT MANAGEMENT
+# ============================================================================
+
+def view_and_delete_mix_lot():
+    """View mix lot details and optionally delete it"""
+    from lots.models import MixLotComponent
+    
+    mix_lots = MixLot.objects.all().select_related('variety').prefetch_related(
+        'components__lot__variety',
+        'components__lot__grower',
+        'components__sub_mix_lot__variety',
+        'batches'
+    ).order_by('variety__sku_prefix', '-created_date')
+    
+    if not mix_lots:
+        print("\n❌ No mix lots found.")
+        return
+    
+    print("\n--- Select a mix lot to view/delete ---")
+    for idx, mix_lot in enumerate(mix_lots, start=1):
+        is_retired = hasattr(mix_lot, 'retired_mix_info') and mix_lot.retired_mix_info is not None
+        status = " [RETIRED]" if is_retired else ""
+        print(f"{idx}. {mix_lot.variety.sku_prefix} - {mix_lot.lot_code} - {mix_lot.variety.var_name}{status}")
+    
+    try:
+        selection = int(input("\nEnter number (0 to cancel): ").strip())
+        if selection == 0:
+            return
+        mix_lot = mix_lots[selection - 1]
+    except (ValueError, IndexError):
+        print("❌ Invalid selection.")
+        return
+    
+    # Display detailed information
+    is_retired = hasattr(mix_lot, 'retired_mix_info') and mix_lot.retired_mix_info is not None
+    
+    print("\n" + "="*80)
+    print(f"MIX LOT DETAILS")
+    print("="*80)
+    print(f"Database ID: {mix_lot.id}")
+    print(f"Mix Variety: {mix_lot.variety.var_name} ({mix_lot.variety.sku_prefix})")
+    print(f"Lot Code: {mix_lot.lot_code}")
+    print(f"Created Date: {mix_lot.created_date.strftime('%Y-%m-%d')}")
+    print(f"Status: {'RETIRED' if is_retired else 'Active'}")
+    print(f"Germination Rate: {mix_lot.get_current_germ_rate() or 'N/A'}")
+    
+    # Show components
+    print(f"\n--- Components ({mix_lot.components.count()}) ---")
+    for comp in mix_lot.components.all():
+        if comp.lot:
+            # Regular lot component
+            print(f"  • Regular Lot: {comp.lot.build_lot_code()} - {comp.lot.variety.var_name} ({comp.parts} parts)")
+        elif comp.sub_mix_lot:
+            # Sub-mix lot component
+            print(f"  • Mix Lot: {comp.sub_mix_lot.lot_code} - {comp.sub_mix_lot.variety.var_name} ({comp.parts} parts)")
+    
+    # Show batches
+    print(f"\n--- Batches ({mix_lot.batches.count()}) ---")
+    if mix_lot.batches.exists():
+        for batch in mix_lot.batches.all():
+            print(f"  • {batch.date.strftime('%Y-%m-%d')}: {batch.final_weight} lbs")
+            if batch.notes:
+                print(f"    Notes: {batch.notes}")
+    else:
+        print("  (No batches recorded)")
+    
+    print("="*80)
+    
+    # Confirm deletion
+    print("\n⚠️  WARNING: This will permanently delete this mix lot!")
+    print("This will also delete:")
+    print(f"  - {mix_lot.components.count()} component record(s)")
+    print(f"  - {mix_lot.batches.count()} batch record(s)")
+    if is_retired:
+        print(f"  - The retired lot record")
+    
+    confirm = input("\nType 'DELETE' to permanently remove this mix lot: ").strip()
+    
+    if confirm == "DELETE":
+        lot_info = f"{mix_lot.variety.sku_prefix} - {mix_lot.lot_code}"
+        mix_lot.delete()  # Django will cascade delete components, batches, and retired info
+        print(f"\n✅ Mix lot '{lot_info}' has been deleted.")
+    else:
+        print("\n❌ Deletion cancelled.")
+
+
+def mix_lot_menu():
+    """Mix lot management submenu"""
+    while True:
+        clear_screen()
+        print("\n" + "="*50)
+        print("MIX LOT MANAGEMENT")
+        print("="*50)
+        print("1. View/Delete a mix lot")
+        print("0. Back to main menu")
+        
+        choice = get_choice("\nSelect option: ", ['0', '1'])
+        
+        if choice == '0':
+            break
+        elif choice == '1':
+            view_and_delete_mix_lot()
+            pause()
+
+
+
+
 def lot_menu():
     """Lot management submenu"""
     while True:
@@ -422,9 +532,10 @@ def lot_menu():
         print("6. Find lots without germ entry for year")
         print("7. Delete all mix variety lots")
         print("8. Find lots with pending germination")
+        print("9. View/delete mixed lots")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
         
         if choice == '0':
             break
@@ -451,6 +562,9 @@ def lot_menu():
             pause()
         elif choice == '8':
             find_lots_with_pending_germs()
+            pause()
+        elif choice == '9':
+            view_and_delete_mix_lot()
             pause()
 
 

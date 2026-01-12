@@ -1463,17 +1463,15 @@
                 return;
             }
 
-            const components = [];
+            {% comment %} const components = [];
             checkboxes.forEach(cb => {
                 const lotId = cb.dataset.lotId;
-                const isMix = cb.dataset.isMix === 'true';  // Check if this is a mix lot
                 const partsInput = document.querySelector(`.parts-input[data-lot-id="${lotId}"]`);
                 components.push({
                     lot_id: parseInt(lotId),
-                    is_mix: isMix,  // Pass the is_mix flag to backend
                     parts: parseInt(partsInput.value) || 1
                 });
-            });
+            }); {% endcomment %}
 
             fetch(`/office/mixes/create-lot/`, {
                 method: 'POST',

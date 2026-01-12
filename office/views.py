@@ -3695,13 +3695,29 @@ def create_mix_lot(request):
             lot_code=lot_code
         )
         
+        # # Create components
+        # for comp in components:
+        #     MixLotComponent.objects.create(
+        #         mix_lot=mix_lot,
+        #         lot_id=comp['lot_id'],
+        #         parts=comp['parts']
+        #     )
         # Create components
         for comp in components:
-            MixLotComponent.objects.create(
-                mix_lot=mix_lot,
-                lot_id=comp['lot_id'],
-                parts=comp['parts']
-            )
+            if comp.get('is_mix', False):
+                # This is a nested mix component (e.g., base mix like MIX-LB)
+                MixLotComponent.objects.create(
+                    mix_lot=mix_lot,
+                    sub_mix_lot_id=comp['lot_id'],  # Use sub_mix_lot_id
+                    parts=comp['parts']
+                )
+            else:
+                # This is a regular lot component (e.g., individual variety lot)
+                MixLotComponent.objects.create(
+                    mix_lot=mix_lot,
+                    lot_id=comp['lot_id'],  # Use lot_id
+                    parts=comp['parts']
+                )
         
         return JsonResponse({
             'success': True,
@@ -3724,25 +3740,59 @@ def get_mix_lot_details(request, mix_lot_id):
         mix_lot = MixLot.objects.get(id=mix_lot_id)
         
         # Get components
-        components = []
-        for comp in mix_lot.components.select_related('lot__variety', 'lot__grower'):
-            lot = comp.lot
-            germ = lot.germinations.filter(
-                status='active',
-                for_year=settings.CURRENT_ORDER_YEAR
-            ).first()
+        # components = []
+        # for comp in mix_lot.components.select_related('lot__variety', 'lot__grower'):
+        #     lot = comp.lot
+        #     germ = lot.germinations.filter(
+        #         status='active',
+        #         for_year=settings.CURRENT_ORDER_YEAR
+        #     ).first()
             
-            components.append({
-                'variety_name': lot.variety.var_name,
-                'variety_sku': lot.variety.sku_prefix,
-                'lot_code': lot.get_four_char_lot_code(),
-                'is_retired': hasattr(mix_lot, 'retired_mix_info') and mix_lot.retired_mix_info is not None,
-                'created_date': mix_lot.created_date.strftime('%Y-%m-%d'),
-                'full_lot_code': str(lot),
-                'germ_rate': germ.germination_rate if germ else None,
-                'parts': comp.parts
-            })
-        
+        #     components.append({
+        #         'variety_name': lot.variety.var_name,
+        #         'variety_sku': lot.variety.sku_prefix,
+        #         'lot_code': lot.get_four_char_lot_code(),
+        #         'is_retired': hasattr(mix_lot, 'retired_mix_info') and mix_lot.retired_mix_info is not None,
+        #         'created_date': mix_lot.created_date.strftime('%Y-%m-%d'),
+        #         'full_lot_code': str(lot),
+        #         'germ_rate': germ.germination_rate if germ else None,
+        #         'parts': comp.parts
+        #     })
+        # Get components
+        # Get components
+        components = []
+        for comp in mix_lot.components.select_related('lot__variety', 'lot__grower', 'sub_mix_lot__variety'):
+            if comp.lot:
+                # Regular lot component
+                lot = comp.lot
+                germ = lot.germinations.filter(
+                    status='active',
+                    for_year=settings.CURRENT_ORDER_YEAR
+                ).first()
+                
+                components.append({
+                    'variety_name': lot.variety.var_name,
+                    'variety_sku': lot.variety.sku_prefix,
+                    'lot_code': lot.get_four_char_lot_code(),
+                    'full_lot_code': str(lot),
+                    'germ_rate': germ.germination_rate if germ else None,
+                    'parts': comp.parts
+                })
+            elif comp.sub_mix_lot:
+                # Sub-mix lot component (nested mix)
+                sub_mix = comp.sub_mix_lot
+                germ_rate = sub_mix.calculate_germ_rate(for_year=settings.CURRENT_ORDER_YEAR)
+                
+                components.append({
+                    'variety_name': sub_mix.variety.var_name,
+                    'variety_sku': sub_mix.variety.sku_prefix,
+                    'lot_code': sub_mix.lot_code,
+                    'full_lot_code': sub_mix.lot_code,
+                    'germ_rate': germ_rate,
+                    'parts': comp.parts
+                })
+
+
         # Get batches
         batches = []
         for batch in mix_lot.batches.all():
