@@ -142,6 +142,7 @@ def calculate_bulk_pull_and_print(bulk_items):
                 bulk_to_pull[sku] = {
                     "var_name": product.variety.var_name,
                     "crop": product.variety.crop,
+                    "category": product.variety.category,
                     "sku_suffix": product.sku_suffix,
                     "quantity": quantity_to_pull,
                 }
@@ -159,7 +160,13 @@ def calculate_bulk_pull_and_print(bulk_items):
         )
     )
 
-    bulk_to_pull = dict(sorted(bulk_to_pull.items()))
+    bulk_to_pull = dict(
+        sorted(
+            bulk_to_pull.items(),
+            key=lambda item: (item[1].get("category", ""), item[0])  # category first, then SKU
+        )
+    )
+    # bulk_to_pull = dict(sorted(bulk_to_pull.items()))
 
     return bulk_to_print, bulk_to_pull
 
@@ -249,6 +256,7 @@ def enrich_bulk_to_pull_and_print(bulk_items):
             bulk_to_pull[sku] = {
                 "var_name": product.variety.var_name,
                 "crop": product.variety.crop,
+                "category": product.variety.category,
                 "sku_suffix": product.sku_suffix,
                 "quantity": pull_qty,
             }
@@ -263,7 +271,13 @@ def enrich_bulk_to_pull_and_print(bulk_items):
         )
     )
 
-    bulk_to_pull = dict(sorted(bulk_to_pull.items()))
+    bulk_to_pull = dict(
+        sorted(
+            bulk_to_pull.items(),
+            key=lambda item: (item[1].get("category", ""), item[0])  # category first, then SKU
+        )
+    )
+    # bulk_to_pull = dict(sorted(bulk_to_pull.items()))
 
     return bulk_to_print, bulk_to_pull
 

@@ -288,7 +288,7 @@ function renderOrderTable(readOnly = false) {
             </thead>
             <tbody>
                 ${sortedItems.map(([key, item]) => `
-                    <tr class="${item.quantity === 0 ? 'backordered-item' : ''}" ${readOnly ? 'style="cursor: default; opacity: 0.8;"' : `onclick="openEditItemModal('${key}', '${item.var_name.replace(/'/g, "\\'")}')" style="cursor: pointer;"`}>
+                    <tr class="${item.quantity === 0 ? 'backordered-item' : ''}" ${readOnly ? 'style="cursor: default; opacity: 0.8;"' : `onclick="openEditItemModal('${key}', '${item.var_name}')" style="cursor: pointer;"`}>
                         <td>
                             ${readOnly ? 
                                 `<span style="padding: 5px; display: inline-block; width: 60px; text-align: center; background: #f8f9fa; border-radius: 4px;">${item.quantity}</span>` :
