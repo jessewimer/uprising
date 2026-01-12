@@ -1246,7 +1246,11 @@
                         .then(data => {
                             // Set lot code in the header
                             //document.getElementById('newLotCode').textContent = data.lot_code;
-                            document.getElementById('newLotCode').textContent = `${data.lot_code} - ${currentMixName}`;
+                            {% comment %} document.getElementById('newLotCode').textContent = `${data.lot_code} - ${currentMixName}`; {% endcomment %}
+                            
+                            const lotCodeElement = document.getElementById('newLotCode');
+                            lotCodeElement.textContent = `${data.lot_code} - ${currentMixName}`;
+                            lotCodeElement.dataset.lotCode = data.lot_code;  // Store actual code
                             
                             // Set recipe section
                             const recipeHTML = getRecipeHTML(currentMixSku);
@@ -1439,7 +1443,7 @@
         }
 
         function saveMixLot() {
-            const lotCode = document.getElementById('newLotCode').textContent.trim();
+            const lotCode = document.getElementById('newLotCode').dataset.lotCode;
             const checkboxes = document.querySelectorAll('.lot-checkbox:checked');
             
             if (!lotCode) {
