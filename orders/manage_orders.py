@@ -70,6 +70,90 @@ def display_counts(counts):
     print("-" * 60)
 
 
+
+
+
+
+def search_order():
+    """Search for an order by order number and display details"""
+    order_number = input("\nEnter order number to search: ").strip().upper()
+    
+    if not order_number:
+        print("\n✗ Order number cannot be empty!")
+        return
+    
+    try:
+        order = OnlineOrder.objects.get(order_number=order_number)
+    except OnlineOrder.DoesNotExist:
+        print(f"\n✗ Order {order_number} not found!")
+        return
+    
+    # Display order details
+    print("\n" + "=" * 70)
+    print(f"ORDER DETAILS: {order.order_number}")
+    print("=" * 70)
+    print(f"Customer Name:     {order.customer_name}")
+    print(f"Shipping Company:  {order.shipping_company or 'N/A'}")
+    print(f"Order Date:        {order.date.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Subtotal:          ${order.subtotal}")
+    print(f"Shipping:          ${order.shipping}")
+    print(f"Tax:               ${order.tax}")
+    print(f"Total:             ${order.total}")
+    print(f"Bulk Order:        {'Yes' if order.bulk else 'No'}")
+    print(f"Misc Items:        {'Yes' if order.misc else 'No'}")
+    if order.note:
+        print(f"Notes:             {order.note}")
+    
+    # Display shipping address
+    print("\n--- Shipping Address ---")
+    if order.address:
+        print(f"  {order.address}")
+        if order.address2:
+            print(f"  {order.address2}")
+        print(f"  {order.city}, {order.state} {order.postal_code}")
+        print(f"  {order.country}")
+    else:
+        print("  No address on file")
+    
+    # Display order items (OOIncludes)
+    items = OOIncludes.objects.filter(order=order).select_related('product', 'product__variety')
+    if items.exists():
+        print("\n--- Order Items (OOIncludes) ---")
+        print(f"{'SKU':<15} {'Variety':<35} {'Qty':<8} {'Price':<10} {'Line Total'}")
+        print("-" * 70)
+        for item in items:
+            sku = f"{item.product.variety.sku_prefix}-{item.product.sku_suffix}"
+            var_name = item.product.variety.var_name[:33]
+            line_total = item.qty * item.price
+            print(f"{sku:<15} {var_name:<35} {item.qty:<8} ${item.price:<9.2f} ${line_total:.2f}")
+        print("-" * 70)
+        print(f"Total items: {items.count()}")
+        total_qty = sum(item.qty for item in items)
+        print(f"Total quantity: {total_qty}")
+    else:
+        print("\n--- Order Items (OOIncludes) ---")
+        print("  No standard items in this order")
+    
+    # Display misc items (OOIncludesMisc)
+    misc_items = OOIncludesMisc.objects.filter(order=order)
+    if misc_items.exists():
+        print("\n--- Misc Items (OOIncludesMisc) ---")
+        print(f"{'SKU':<30} {'Qty':<8} {'Price':<10} {'Line Total'}")
+        print("-" * 70)
+        for item in misc_items:
+            line_total = item.qty * item.price
+            print(f"{item.sku:<30} {item.qty:<8} ${item.price:<9.2f} ${line_total:.2f}")
+        print("-" * 70)
+        print(f"Total misc items: {misc_items.count()}")
+    else:
+        print("\n--- Misc Items (OOIncludesMisc) ---")
+        print("  No misc items in this order")
+    
+    print("=" * 70)
+
+
+
+
 def confirm_action(message):
     """Get user confirmation with y/n"""
     while True:
@@ -193,9 +277,10 @@ def main_menu():
         print("  1. Clear ALL tables")
         print("  2. Clear specific table")
         print("  3. Refresh counts")
+        print("  4. Search for an order by order number")
         print("  0. Exit")
         
-        choice = input("\nEnter choice (0-3): ").strip()
+        choice = input("\nEnter choice (0-4): ").strip()
         
         if choice == '0':
             print("\nGoodbye!")
@@ -208,6 +293,9 @@ def main_menu():
             input("\nPress Enter to continue...")
         elif choice == '3':
             continue  # Loop will refresh counts
+        elif choice == '4':
+            search_order()
+            input("\nPress Enter to continue...")
         else:
             print("\n✗ Invalid choice!")
             input("\nPress Enter to continue...")

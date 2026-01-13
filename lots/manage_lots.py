@@ -1298,48 +1298,116 @@ def add_retired_lot():
     """Retire a lot - PLACEHOLDER"""
     print("\n⚠️  RETIRE LOT - Function placeholder")
 
+
 def remove_retired_status():
     """Un-retire a regular lot by deleting its RetiredLot entry"""
-    retired_lots = RetiredLot.objects.select_related('lot', 'lot__variety', 'lot__grower').all()
     
-    if not retired_lots.exists():
-        print("\nNo retired lots found!")
+    # Step 1: Prompt for SKU prefix
+    sku_prefix = input("\nEnter SKU prefix (e.g., BEA-CA, CAR-DR): ").strip().upper()
+    
+    if not sku_prefix:
+        print("❌ SKU prefix cannot be empty.")
         return
     
-    print("\n" + "="*60)
-    print("RETIRED LOTS")
-    print("="*60)
+    # Step 2: Check if variety exists
+    try:
+        variety = Variety.objects.get(sku_prefix=sku_prefix)
+    except Variety.DoesNotExist:
+        print(f"❌ Variety with SKU prefix '{sku_prefix}' not found.")
+        return
+    
+    # Step 3: Get retired lots for this variety
+    retired_lots = RetiredLot.objects.filter(
+        lot__variety=variety
+    ).select_related('lot', 'lot__grower').order_by('-retired_date')
+    
+    if not retired_lots.exists():
+        print(f"\n✓ No retired lots found for {variety.var_name} ({sku_prefix})")
+        return
+    
+    # Step 4: Display retired lots for this variety
+    print("\n" + "="*80)
+    print(f"RETIRED LOTS FOR: {variety.var_name} ({sku_prefix})")
+    print("="*80)
     
     for i, retired in enumerate(retired_lots, 1):
         lot = retired.lot
         print(f"\n{i}. {lot.build_lot_code()}")
-        print(f"   Variety: {lot.variety.var_name}")
-        print(f"   Retired: {retired.retired_date}")
-        print(f"   Remaining: {retired.lbs_remaining} lbs")
+        print(f"   Grower: {lot.grower.name if lot.grower else 'Unknown'}")
+        print(f"   Year: {lot.year}")
+        print(f"   Retired Date: {retired.retired_date}")
+        print(f"   Lbs Remaining: {retired.lbs_remaining} lbs")
         if retired.notes:
             print(f"   Notes: {retired.notes}")
     
     print("\n0. Cancel")
     
+    # Step 5: Select lot to un-retire
     try:
-        selection = int(input("\nSelect lot to un-retire: "))
+        selection = int(input("\nSelect lot number to un-retire (0 to cancel): ").strip())
         if selection == 0:
+            print("\n❌ Operation cancelled.")
             return
         
         if 1 <= selection <= len(retired_lots):
             retired = list(retired_lots)[selection - 1]
             lot = retired.lot
             
-            confirm = input(f"\nUn-retire {lot.build_lot_code()}? (yes/no): ").lower()
-            if confirm == 'yes':
+            # Step 6: Confirm un-retirement
+            print(f"\n⚠️  You are about to un-retire: {lot.build_lot_code()}")
+            confirm = input("Type 'YES' to confirm: ").strip()
+            
+            if confirm == 'YES':
                 retired.delete()
-                print(f"\n✓ {lot.build_lot_code()} has been un-retired!")
+                print(f"\n✅ {lot.build_lot_code()} has been un-retired successfully!")
             else:
-                print("\nCancelled.")
+                print("\n❌ Operation cancelled.")
         else:
-            print("\nInvalid selection!")
+            print("\n❌ Invalid selection!")
     except ValueError:
-        print("\nInvalid input!")
+        print("\n❌ Invalid input! Please enter a number.")
+# def remove_retired_status():
+#     """Un-retire a regular lot by deleting its RetiredLot entry"""
+#     retired_lots = RetiredLot.objects.select_related('lot', 'lot__variety', 'lot__grower').all()
+    
+#     if not retired_lots.exists():
+#         print("\nNo retired lots found!")
+#         return
+    
+#     print("\n" + "="*60)
+#     print("RETIRED LOTS")
+#     print("="*60)
+    
+#     for i, retired in enumerate(retired_lots, 1):
+#         lot = retired.lot
+#         print(f"\n{i}. {lot.build_lot_code()}")
+#         print(f"   Variety: {lot.variety.var_name}")
+#         print(f"   Retired: {retired.retired_date}")
+#         print(f"   Remaining: {retired.lbs_remaining} lbs")
+#         if retired.notes:
+#             print(f"   Notes: {retired.notes}")
+    
+#     print("\n0. Cancel")
+    
+#     try:
+#         selection = int(input("\nSelect lot to un-retire: "))
+#         if selection == 0:
+#             return
+        
+#         if 1 <= selection <= len(retired_lots):
+#             retired = list(retired_lots)[selection - 1]
+#             lot = retired.lot
+            
+#             confirm = input(f"\nUn-retire {lot.build_lot_code()}? (yes/no): ").lower()
+#             if confirm == 'yes':
+#                 retired.delete()
+#                 print(f"\n✓ {lot.build_lot_code()} has been un-retired!")
+#             else:
+#                 print("\nCancelled.")
+#         else:
+#             print("\nInvalid selection!")
+#     except ValueError:
+#         print("\nInvalid input!")
 
 def update_retired_lot_lbs():
     """Update lbs remaining for a retired lot"""
