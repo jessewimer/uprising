@@ -415,6 +415,8 @@
             padding: 25px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;              /* ADD */
+            flex-direction: column; 
         }
 
         .table-header {
@@ -541,7 +543,8 @@
         }
 
         .table-container-scrollable {
-            max-height: 400px;
+            {% comment %} max-height: 600px; {% endcomment %}
+            flex: 1;  
             overflow-y: auto;
             border-radius: 12px;
         }
