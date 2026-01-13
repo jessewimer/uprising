@@ -1679,6 +1679,8 @@ def germination_inventory_data(request):
         
         # print(f"Returning {len(inventory_data)} records")
         germ_year = settings.FOR_YEAR
+        website_stock_enabled = settings.WEBSITE_STOCK
+        print(f"Website stock enabled: {website_stock_enabled}")
         return JsonResponse({
             'inventory_data': inventory_data,
             'germ_years': germ_years,
@@ -1686,7 +1688,8 @@ def germination_inventory_data(request):
             'categories': categories,
             'groups': groups,
             'crops': crops,
-            'germ_year': germ_year
+            'germ_year': germ_year,
+            'website_stock_enabled': website_stock_enabled
         })
         
     except Exception as e:

@@ -7,10 +7,12 @@ let appData = {
     germYear: null,
     categories: [],
     groups: [],
-    crops: []
+    crops: [],
+    websiteStockEnabled: false
 };
 let currentBulkJob = null; 
 let currentPrintJob = null;
+let bulkIcon = null;
 
 // CSRF helper
 function getCSRFToken() {
@@ -230,6 +232,9 @@ function processLoadedData(data) {
     appData.categories = data.categories;
     appData.groups = data.groups;
     appData.crops = data.crops;
+    appData.websiteStockEnabled = data.website_stock_enabled;
+
+    console.log('JUST ADDED websiteStockEnabled:', appData.websiteStockEnabled);
     
     setupTable();
     populateFilters();
@@ -401,11 +406,19 @@ function renderTable() {
             const varietyCellContent = document.createElement('div');
             varietyCellContent.className = 'variety-cell-content';
             
-            // Bulk icon (B)
-            const bulkIcon = document.createElement('div');
-            bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-            bulkIcon.innerHTML = 'B';
-            bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
+            // // Bulk icon (B)
+            // const bulkIcon = document.createElement('div');
+            // bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
+            // bulkIcon.innerHTML = 'B';
+            // bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
+            // Bulk icon (B) - only show if websiteStockEnabled is true
+            if (appData.websiteStockEnabled) {  // ADD THIS CONDITION
+                bulkIcon = document.createElement('div');
+                bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
+                bulkIcon.innerHTML = 'B';
+                bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
+                varietyCellContent.appendChild(bulkIcon);  // Move this inside the if
+            }
             
             // Variety link
             const varietyLink = document.createElement('a');
@@ -413,7 +426,7 @@ function renderTable() {
             varietyLink.textContent = firstLot.variety_name;
             varietyLink.addEventListener('click', () => showSalesData(firstLot.sku_prefix, firstLot.variety_name));
             
-            varietyCellContent.appendChild(bulkIcon);
+            // varietyCellContent.appendChild(bulkIcon);
             varietyCellContent.appendChild(varietyLink);
             varietyCell.appendChild(varietyCellContent);
             varietyRow.appendChild(varietyCell);
@@ -448,11 +461,20 @@ function renderTable() {
             const varietyCellContent = document.createElement('div');
             varietyCellContent.className = 'variety-cell-content';
             
-            // Bulk icon (B)
-            const bulkIcon = document.createElement('div');
-            bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
-            bulkIcon.innerHTML = 'B';
-            bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
+            // // Bulk icon (B)
+            // const bulkIcon = document.createElement('div');
+            // bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
+            // bulkIcon.innerHTML = 'B';
+            // bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
+            // Bulk icon (B) - only show if websiteStockEnabled is true
+            
+            if (appData.websiteStockEnabled) {  // ADD THIS CONDITION
+                bulkIcon = document.createElement('div');
+                bulkIcon.className = firstLot.website_bulk ? 'bulk-icon bulk-icon-active' : 'bulk-icon bulk-icon-inactive';
+                bulkIcon.innerHTML = 'B';
+                bulkIcon.addEventListener('click', () => showBulkModal(firstLot));
+                varietyCellContent.appendChild(bulkIcon);  // Move this inside the if
+            }
             
             // Variety link
             const varietyLink = document.createElement('a');
@@ -460,7 +482,7 @@ function renderTable() {
             varietyLink.textContent = firstLot.variety_name;
             varietyLink.addEventListener('click', () => showSalesData(firstLot.sku_prefix, firstLot.variety_name));
             
-            varietyCellContent.appendChild(bulkIcon);
+            // varietyCellContent.appendChild(bulkIcon);
             varietyCellContent.appendChild(varietyLink);
             varietyCell.appendChild(varietyCellContent);
             varietyRow.appendChild(varietyCell);
