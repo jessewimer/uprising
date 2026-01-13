@@ -127,6 +127,80 @@
         </div>
     </div>
 
+
+
+    <div id="growout-modal" class="modal">
+        <div class="modal-content">
+
+            <div class="modal-title">
+            Record Growout
+            </div>
+
+            <div class="modal-message">
+            Record growout for
+            <strong id="growout-variety-name"></strong>
+            </div>
+
+            <div class="growout-form">
+
+            <div class="form-row">
+                <label for="growout-grower">Grower</label>
+                <select id="growout-grower">
+                <option value="" disabled selected hidden>— Select grower —</option>
+
+                {% for grower in growers %}
+                    <option value="{{ grower.code }}">
+                    {{ grower.code }} – {{ grower.name }}
+                    </option>
+                {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label for="growout-year">Year</label>
+                <input
+                type="text"
+                id="growout-year"
+                placeholder="YY"
+                maxlength="2"
+                pattern="\d{2}"
+                />
+            </div>
+
+            <div class="form-row">
+                <label for="growout-qty">Quantity (lbs)</label>
+                <input
+                type="number"
+                id="growout-qty"
+                step="0.01"
+                />
+            </div>
+
+            <div class="form-row">
+                <label for="growout-price">Price / lb</label>
+                <input
+                type="number"
+                id="growout-price"
+                step="0.01"
+                />
+            </div>
+
+            </div> <!-- /.growout-form -->
+
+            <div class="modal-buttons">
+            <button type="button" class="modal-btn secondary" id="growout-cancel-btn">
+                Cancel
+            </button>
+            <button type="button" class="modal-btn primary" id="growout-save-btn">
+                Save
+            </button>
+            </div>
+
+        </div>
+    </div>
+
+
+
     <!-- Reprint/Resend Modal -->
     <div class="modal" id="reprintModal">
         <div class="modal-content">

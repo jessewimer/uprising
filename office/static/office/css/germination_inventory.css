@@ -1106,6 +1106,110 @@ body {
 
 
 
+.growout-box-new {
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    margin-right: 6px;
+    cursor: pointer;
+    border: 1px solid #888;
+}
+
+.growout-none {
+    background-color: white;
+}
+
+.growout-green {
+    background-color: #4caf50;
+}
+
+.growout-orange {
+    background-color: #ff9800;
+}
+
+.growout-red {
+    background-color: #f44336;
+}
+
+
+.growout-form {
+    margin-top: 16px;
+    text-align: left;
+}
+
+.growout-form .form-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+.growout-form label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #444;
+}
+
+.growout-form input {
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+}
+
+
+
+
+
+/* Growout modal form controls */
+.growout-form input,
+.growout-form select {
+    height: 36px;                 /* match input height */
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+    box-sizing: border-box;
+}
+
+/* Remove native styling differences */
+.growout-form select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #666 50%),
+        linear-gradient(135deg, #666 50%, transparent 50%);
+    background-position:
+        calc(100% - 16px) 14px,
+        calc(100% - 11px) 14px;
+    background-size:
+        5px 5px,
+        5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 28px; /* space for arrow */
+}
+
+/* Focus state to match inputs */
+.growout-form input:focus,
+.growout-form select:focus {
+    outline: none;
+    border-color: #4a90e2; /* match your theme */
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.15);
+}
+
+/* Disabled / empty look */
+.growout-form select:invalid {
+    color: #888;
+}
+
+
+
+
+
 /* Message System */
 .messages-container {
     position: fixed;
@@ -1308,6 +1412,8 @@ body {
 .data-table .lot-cell {
     text-align: left !important;
 }
+
+
 
 /* Responsive Design */
 @media (max-width: 1400px) {

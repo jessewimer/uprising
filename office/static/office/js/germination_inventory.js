@@ -13,6 +13,10 @@ let appData = {
 let currentBulkJob = null; 
 let currentPrintJob = null;
 let bulkIcon = null;
+let selectedGrowoutVarietySku = null;
+
+let selectedGrowoutLotId = null;
+let selectedGrowoutValue = null;
 
 // CSRF helper
 function getCSRFToken() {
@@ -57,6 +61,8 @@ function setupEventListeners() {
         if (e.target === this) closeReprintModal();
     });
     
+    document.getElementById('growout-cancel-btn').addEventListener('click', closeGrowoutModal);
+    
     // Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
@@ -67,6 +73,100 @@ function setupEventListeners() {
         }
     });
 
+
+
+    document.getElementById('growout-save-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+
+        const payload = {
+            variety_sku: selectedGrowoutVarietySku,
+            grower: document.getElementById('growout-grower').value,
+            year: document.getElementById('growout-year').value,
+            qty: document.getElementById('growout-qty').value,
+            price_per_lb: document.getElementById('growout-price').value,
+        };
+
+        console.log('Submitting growout payload:', payload);
+
+        fetch('/office/create-growout/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify(payload),
+        })
+
+        .then(r => r.json())
+        .then(data => {
+            console.log('Growout saved:', data);
+            if (data.success) {
+                showMessage('Growout recorded successfully!', 'success');
+                closeGrowoutModal();
+                
+                // Add the new lot to the data without reloading
+                const newLot = {
+                    lot_id: data.lot_id,
+                    variety_name: data.variety_name,  // We'll add this to backend response
+                    sku_prefix: data.sku_prefix,      // We'll add this to backend response
+                    category: data.category,          // We'll add this to backend response
+                    group: data.group,                // We'll add this to backend response
+                    crop: data.crop,                  // We'll add this to backend response
+                    species: data.species,            // We'll add this to backend response
+                    lot_code: data.lot_code,          // We'll add this to backend response
+                    website_bulk: data.website_bulk,  // We'll add this to backend response
+                    growout_needed: data.growout_needed,
+                    current_inventory_weight: null,
+                    current_inventory_date: null,
+                    previous_inventory_weight: null,
+                    previous_inventory_date: null,
+                    inventory_difference: null,
+                    germination_rates: {},
+                    germ_sample_prints: {},
+                    germination_records: {}
+                };
+                
+                // Add to allLots array
+                appData.allLots.push(newLot);
+                
+                // Re-apply filters and re-render
+                applyFilters();
+                
+            } else {
+                showMessage(data.error || 'Failed to create growout', 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showMessage('Error creating growout. Please try again.', 'error');
+        });
+        // .then(r => r.json())
+        // .then(data => {
+        //     console.log('Growout saved:', data);
+        //     if (data.success) {
+        //         showMessage('Growout recorded successfully!', 'success');
+        //         closeGrowoutModal();
+        //         // Reload the data to show the new lot
+        //         loadData();
+        //     } else {
+        //         showMessage(data.error || 'Failed to create growout', 'error');
+        //     }
+        // })
+        // .catch(err => {
+        //     console.error(err);
+        //     showMessage('Error creating growout. Please try again.', 'error');
+        // });
+        // .then(r => r.json())
+        // .then(data => {
+        //     console.log('Growout saved:', data);
+        //     closeGrowoutModal();
+        // })
+        // .catch(err => console.error(err));
+    });
+
+
+
+    
     // Growout box selection handler
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('growout-box')) {
@@ -108,6 +208,31 @@ function setupEventListeners() {
         }
     });
 }
+
+
+
+function showGrowoutModal(lot) {
+    selectedGrowoutLotId = lot.lot_id;
+    selectedGrowoutVarietySku = lot.sku_prefix;
+
+    document.getElementById('growout-variety-name').textContent =
+        `${lot.variety_name} (${lot.sku_prefix})`;
+
+    document.getElementById('growout-grower').value = '';
+    document.getElementById('growout-year').value = '';
+    document.getElementById('growout-qty').value = '';
+    document.getElementById('growout-price').value = '';
+
+    document.getElementById('growout-modal').style.display = 'block';
+}
+
+
+function closeGrowoutModal() {
+    document.getElementById('growout-modal').style.display = 'none';
+    currentGrowoutVariety = null;
+}
+
+
 
 // Add wholesale checkbox change handler
 document.getElementById('wholesaleCheckbox')?.addEventListener('change', function() {
@@ -420,6 +545,38 @@ function renderTable() {
                 varietyCellContent.appendChild(bulkIcon);  // Move this inside the if
             }
             
+
+
+
+
+            // Growout status box
+            const growoutBox = document.createElement('div');
+            growoutBox.classList.add('growout-box-new');
+
+            // normalize growout_needed (null / undefined / "" → "none")
+            const growoutStatus =
+                typeof firstLot.growout_needed === 'string' && firstLot.growout_needed.trim() !== ''
+                    ? firstLot.growout_needed.trim()
+                    : 'none';
+
+            growoutBox.classList.add(`growout-${growoutStatus}`);
+
+            growoutBox.title = 'Record growout';
+
+            growoutBox.addEventListener('click', (e) => {
+                console.log('Growout box clicked for variety:', firstLot.variety_name);
+                e.stopPropagation();   // IMPORTANT: don’t trigger variety click
+                showGrowoutModal(firstLot);
+            });
+
+            varietyCellContent.appendChild(growoutBox);
+
+
+
+
+
+
+
             // Variety link
             const varietyLink = document.createElement('a');
             varietyLink.className = 'variety-link';
@@ -476,6 +633,39 @@ function renderTable() {
                 varietyCellContent.appendChild(bulkIcon);  // Move this inside the if
             }
             
+            // console.log(
+            //     firstLot.variety_name,
+            //     firstLot.growout_needed
+            // );
+
+
+
+            // Growout status box
+            const growoutBox = document.createElement('div');
+            growoutBox.classList.add('growout-box-new');
+
+            // normalize growout_needed (null / undefined / "" → "none")
+            const growoutStatus =
+                typeof firstLot.growout_needed === 'string' && firstLot.growout_needed.trim() !== ''
+                    ? firstLot.growout_needed.trim()
+                    : 'none';
+
+            growoutBox.classList.add(`growout-${growoutStatus}`);
+
+            growoutBox.title = 'Record growout';
+
+            growoutBox.addEventListener('click', (e) => {
+                console.log('Growout box clicked for variety:', firstLot.variety_name);
+                e.stopPropagation();   // IMPORTANT: don’t trigger variety click
+                showGrowoutModal(firstLot);
+            });
+
+            varietyCellContent.appendChild(growoutBox);
+
+
+
+
+
             // Variety link
             const varietyLink = document.createElement('a');
             varietyLink.className = 'variety-link';

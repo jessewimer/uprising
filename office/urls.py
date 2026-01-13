@@ -95,6 +95,7 @@ urlpatterns = [
     # ============================================================================
     path('growouts/', lot_views.growouts, name='growouts'),
     path('update-growout/<int:lot_id>/', lot_views.update_growout, name='update_growout'),
+    path('create-growout/', create_growout, name='create_growout'),
     
     # ============================================================================
     # STOCK SEED & BATCHING

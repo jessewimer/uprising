@@ -9,7 +9,7 @@ from django.contrib.auth import login
 from products.models import Variety, Product, LastSelected, LabelPrint, Sales, MiscSales, MiscProduct
 from stores.models import Store, StoreProduct, StoreOrder, SOIncludes, PickListPrinted, StoreReturns, WholesalePktPrice
 from orders.models import OOIncludes, OnlineOrder
-from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory, MixLot, MixLotComponent, MixBatch, RetiredMixLot
+from lots.models import Grower, Lot, RetiredLot, StockSeed, Germination, GermSamplePrint, Inventory, MixLot, MixLotComponent, MixBatch, RetiredMixLot, Growout
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Case, When, IntegerField, Max, Sum, F, CharField, Value, Q, Prefetch
 from django.db.models.functions import Concat
@@ -1455,8 +1455,9 @@ def admin_dashboard(request):
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def germination_inventory_view(request):
+    growers = Grower.objects.all().order_by('name')
     """Render the germination/inventory page"""
-    return render(request, 'office/germination_inventory.html')
+    return render(request, 'office/germination_inventory.html', {'growers': growers})
 
 
 @login_required(login_url='/office/login/')
@@ -1613,6 +1614,7 @@ def germination_inventory_data(request):
                 'species': variety.species,
                 'lot_code': lot_code,
                 'website_bulk': variety.website_bulk,
+                'growout_needed': variety.growout_needed,
                 'current_inventory_weight': current_inventory_weight,
                 'current_inventory_date': current_inventory_date,
                 'previous_inventory_weight': previous_inventory_weight,
@@ -1661,6 +1663,7 @@ def germination_inventory_data(request):
                     'species': variety.species,
                     'lot_code': '-',
                     'website_bulk': variety.website_bulk,
+                    'growout_needed': variety.growout_needed,
                     'current_inventory_weight': None,
                     'current_inventory_date': None,
                     'previous_inventory_weight': None,
@@ -1698,6 +1701,153 @@ def germination_inventory_data(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def create_growout(request):
+    try:
+        data = json.loads(request.body)
+
+        variety_sku = data.get('variety_sku')
+        grower_code = data.get('grower')
+        year = data.get('year')
+        qty = data.get('qty')
+        price_per_lb = data.get('price_per_lb')
+
+        print('--- GROWOUT RECORD RECEIVED ---')
+        print('Variety SKU:', variety_sku)
+        print('Grower code:', grower_code)
+        print('Year (2-digit):', year)
+        print('Quantity (lbs):', qty)
+        print('Price / lb:', price_per_lb)
+        print('-------------------------------')
+
+        # --- Validate required fields ---
+        if not variety_sku or not grower_code or not year:
+            return JsonResponse(
+                {'success': False, 'error': 'Missing required fields'},
+                status=400
+            )
+
+        # --- Lookups ---
+        variety = get_object_or_404(Variety, sku_prefix=variety_sku)
+        grower = get_object_or_404(Grower, code=grower_code)
+
+        # --- CHECK IF LOT ALREADY EXISTS ---
+        existing_lot = Lot.objects.filter(
+            variety=variety,
+            # grower=grower,
+            year=year
+        ).first()
+        
+        if existing_lot:
+            lot_code = f"{grower.code}{year}"
+            return JsonResponse({
+                'success': False,
+                'error': f"A lot ({lot_code}) already exists for {variety.var_name} for {year}. To add another lot for this variety/year, please visit the view variety page."
+            }, status=400)
+
+        # --- Create Lot ---
+        lot = Lot.objects.create(
+            variety=variety,
+            grower=grower,
+            year=year
+        )
+
+        # --- Create Growout (only if data provided) ---
+        if qty or price_per_lb:
+            Growout.objects.create(
+                lot=lot,
+                quantity=qty if qty else None,
+                price_per_lb=price_per_lb if price_per_lb else None
+            )
+        
+        # Build lot code for response
+        lot_code = f"{grower.code}{year}"
+            
+        return JsonResponse({
+            'success': True,
+            'lot_id': lot.id,
+            'variety_name': variety.var_name,
+            'sku_prefix': variety.sku_prefix,
+            'category': variety.category,
+            'group': variety.group,
+            'crop': variety.crop,
+            'species': variety.species,
+            'lot_code': lot_code,
+            'website_bulk': variety.website_bulk,
+            'growout_needed': variety.growout_needed,
+            'message': 'Growout recorded successfully'
+        })
+
+    except Exception as e:
+        print('ERROR creating growout:', str(e))
+        return JsonResponse(
+            {'success': False, 'error': str(e)},
+            status=500
+        )
+
+# @login_required(login_url='/office/login/')
+# @user_passes_test(is_employee)
+# @require_http_methods(["POST"])
+# def create_growout(request):
+#     try:
+#         data = json.loads(request.body)
+
+#         variety_sku = data.get('variety_sku')
+#         grower_code = data.get('grower')
+#         year = data.get('year')
+#         qty = data.get('qty')
+#         price_per_lb = data.get('price_per_lb')
+
+#         print('--- GROWOUT RECORD RECEIVED ---')
+#         print('Variety SKU:', variety_sku)
+#         print('Grower code:', grower_code)
+#         print('Year (2-digit):', year)
+#         print('Quantity (lbs):', qty)
+#         print('Price / lb:', price_per_lb)
+#         print('-------------------------------')
+
+#         # --- Validate required fields ---
+#         if not variety_sku or not grower_code or not year:
+#             return JsonResponse(
+#                 {'error': 'Missing required fields'},
+#                 status=400
+#             )
+
+#         # --- Lookups ---
+#         variety = get_object_or_404(Variety, sku_prefix=variety_sku)
+#         grower = get_object_or_404(Grower, code=grower_code)
+
+#         # --- Create Lot ---
+#         lot = Lot.objects.create(
+#             variety=variety,
+#             grower=grower,
+#             year=year
+#         )
+
+#         # --- Create Growout (only if data provided) ---
+#         if qty or price_per_lb:
+#             Growout.objects.create(
+#                 lot=lot,
+#                 quantity=qty if qty else None,
+#                 price_per_lb=price_per_lb if price_per_lb else None
+#             )
+
+#         return JsonResponse({
+#             'success': True,
+#             'lot_id': lot.id,
+#             'message': 'Growout recorded successfully'
+#         })
+
+#     except Exception as e:
+#         print('ERROR creating growout:', str(e))
+#         return JsonResponse(
+#             {'error': str(e)},
+#             status=500
+#         )
+    
 
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
