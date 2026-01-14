@@ -347,6 +347,77 @@ def set_all_packet_prices():
 
 
 
+def delete_store_order():
+    """Delete a store order and its associated line items"""
+    orders = StoreOrder.objects.select_related('store').order_by('-date')
+    
+    if not orders.exists():
+        print("\n❌ No store orders found")
+        return
+    
+    print("\n" + "="*100)
+    print("AVAILABLE STORE ORDERS")
+    print("="*100)
+    print(f"{'#':<5} {'Order Number':<20} {'Date':<12} {'Store':<30} {'Status':<12}")
+    print("-"*100)
+    
+    orders_list = []
+    for idx, order in enumerate(orders, start=1):
+        status = "FULFILLED" if order.fulfilled_date else "PENDING"
+        print(f"{idx:<5} {order.order_number:<20} {order.date.strftime('%Y-%m-%d'):<12} "
+              f"{order.store.store_name:<30} {status:<12}")
+        orders_list.append(order)
+    
+    print("\n0. Cancel")
+    
+    try:
+        choice = input("\nSelect order number to delete: ").strip()
+        
+        if choice == "0":
+            print("Cancelled.")
+            return
+        
+        index = int(choice) - 1
+        if index < 0 or index >= len(orders_list):
+            print("\n❌ Invalid selection")
+            return
+            
+        order = orders_list[index]
+        
+    except ValueError:
+        print("\n❌ Invalid selection")
+        return
+    
+    # Show what will be deleted
+    items_count = order.items.count()
+    has_pick_list = hasattr(order, 'pick_list_record')
+    
+    print(f"\n{'='*80}")
+    print(f"⚠️  WARNING: About to delete order: {order.order_number}")
+    print(f"{'='*80}")
+    print(f"Store: {order.store.store_name}")
+    print(f"Date: {order.date.strftime('%Y-%m-%d')}")
+    print(f"Status: {'FULFILLED' if order.fulfilled_date else 'PENDING'}")
+    print(f"\nThis will also delete:")
+    print(f"  - {items_count} line item(s) (SOIncludes)")
+    if has_pick_list:
+        print(f"  - 1 pick list print record")
+    
+    print(f"\n{'='*80}")
+    confirm = input('Type "DELETE" to confirm deletion: ').strip()
+    
+    if confirm != "DELETE":
+        print("Deletion cancelled.")
+        return
+    
+    # Perform deletion
+    order_number = order.order_number
+    order.delete()  # This cascades to SOIncludes and PickListPrinted
+    
+    print(f"\n✅ Order '{order_number}' and all related records have been deleted.")
+
+
+
 
 
 
@@ -818,9 +889,10 @@ def store_order_menu():
         print("2.  Reset store order tables")
         print("3.  Set order to pending")
         print("4:  Change ALL SOIncludes packet prices")
+        print("5:  Delete a store order")
         print("0.  Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5'])
         
         if choice == '0':
             break
@@ -836,6 +908,10 @@ def store_order_menu():
         elif choice == '4':
             set_all_packet_prices()
             pause()
+        elif choice == '5': 
+            delete_store_order()
+            pause()
+
 
 # ============================================================================
 # MAIN MENU
