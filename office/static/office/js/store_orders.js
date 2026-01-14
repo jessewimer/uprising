@@ -1123,12 +1123,21 @@ async function proceedWithPickList() {
 // Updated generatePickList function to record the print
 async function generatePickList() {
     try {
-        // Prepare pick list data
-        const pickListItems = Object.values(orderItems).map(item => ({
+        // // Prepare pick list data
+        // const pickListItems = Object.values(orderItems).map(item => ({
+        //     variety_name: item.var_name,
+        //     crop: item.crop,
+        //     quantity: item.quantity,
+        //     has_photo: item.hasPhoto
+        // }));
+        // Prepare pick list data - use sorted order from the UI
+        const sortedItems = sortOrderItems(orderItems);
+        const pickListItems = sortedItems.map(([key, item]) => ({
             variety_name: item.var_name,
             crop: item.crop,
             quantity: item.quantity,
-            has_photo: item.hasPhoto
+            has_photo: item.hasPhoto,
+            rack_location: item.rack_location || null  // Include rack_location if available
         }));
 
         const pickListData = {
