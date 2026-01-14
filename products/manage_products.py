@@ -1251,7 +1251,74 @@ def set_bulk_pre_pack_for_product():
     except ValueError:
         print("❌ Invalid number. Please enter a valid integer")
         return
+
+def set_bulk_rack_locations():
+    """
+    Calculate and set rack_location for all bulk products based on packet rack_location / 10.
+    For each variety, finds the packet product's rack_location, divides by 10,
+    and applies that value to all bulk products of that variety.
+    Example: packet rack_location 6.54 becomes 0.654 for bulk products.
+    """
+    from products.models import Variety, Product
     
+    updated_count = 0
+    skipped_count = 0
+    error_count = 0
+    
+    # Get all varieties
+    varieties = Variety.objects.all()
+    
+    for variety in varieties:
+        try:
+            # Find the packet product for this variety
+            packet_product = Product.objects.filter(
+                variety=variety,
+                sku_suffix='pkt'
+            ).first()
+            
+            if not packet_product:
+                print(f"No packet product found for {variety.sku_prefix}")
+                skipped_count += 1
+                continue
+            
+            if not packet_product.rack_location:
+                print(f"No rack_location set for packet {variety.sku_prefix}")
+                skipped_count += 1
+                continue
+            
+            # Calculate bulk rack location (divide by 10)
+            # try:
+            #     bulk_rack_location = str(float(packet_product.rack_location) / 10)
+            # except (ValueError, TypeError):
+            #     print(f"Invalid rack_location for {variety.sku_prefix}: {packet_product.rack_location}")
+            #     error_count += 1
+            #     continue
+            # Calculate bulk rack location (divide by 10, round to 5 decimal places)
+            try:
+                bulk_rack_location = str(round(float(packet_product.rack_location) / 10, 5))
+            except (ValueError, TypeError):
+                print(f"Invalid rack_location for {variety.sku_prefix}: {packet_product.rack_location}")
+                error_count += 1
+                continue
+            
+            # Update all bulk products for this variety
+            bulk_products = Product.objects.filter(
+                variety=variety
+            ).exclude(sku_suffix='pkt')
+            
+            if bulk_products.exists():
+                count = bulk_products.update(rack_location=bulk_rack_location)
+                updated_count += count
+                print(f"Updated {count} bulk products for {variety.sku_prefix}: {packet_product.rack_location} -> {bulk_rack_location}")
+            
+        except Exception as e:
+            print(f"Error processing {variety.sku_prefix}: {str(e)}")
+            error_count += 1
+    
+    print(f"\n=== Summary ===")
+    print(f"Total bulk products updated: {updated_count}")
+    print(f"Varieties skipped (no packet or rack_location): {skipped_count}")
+    print(f"Errors encountered: {error_count}")
 
 def product_menu():
     """Product management submenu"""
@@ -1276,9 +1343,10 @@ def product_menu():
         print("13. Edit product")
         print("14. Delete product")
         print("15. Set bulk pre-pack for a product")
+        print("16. Set bulk rack locations based on pkt products")
         print("0.  Back to main menu")
 
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'])
 
         if choice == '0':
             break
@@ -1328,7 +1396,9 @@ def product_menu():
         elif choice == '15':
             set_bulk_pre_pack_for_product()
             pause()
-
+        elif choice == '16':
+            set_bulk_rack_locations()
+            pause()
 # ============================================================================
 # SALES MANAGEMENT
 # ============================================================================
