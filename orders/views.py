@@ -106,6 +106,7 @@ def calculate_bulk_pull_and_print(bulk_items):
                     "quantity": quantity_to_print,
                     "variety_name": product.variety.var_name,
                     "crop": product.variety.crop,
+                    "category": product.variety.category,
                     "days": product.variety.days,
                     "common_name": product.variety.common_name or "",
                     "desc1": product.variety.desc_line1,
@@ -153,10 +154,20 @@ def calculate_bulk_pull_and_print(bulk_items):
 
     # sort dicts by SKU
     # bulk_to_print = dict(sorted(bulk_to_print.items()))
+    # bulk_to_print = dict(
+    #     sorted(
+    #         bulk_to_print.items(),
+    #         key=lambda item: (item[1].get("env_type", ""), item[1].get("sku_prefix", ""))
+    #     )
+    # )
     bulk_to_print = dict(
         sorted(
             bulk_to_print.items(),
-            key=lambda item: (item[1].get("env_type", ""), item[1].get("sku_prefix", ""))
+            key=lambda item: (
+                item[1].get("category", ""),
+                item[1].get("env_type", ""),
+                item[1].get("sku_prefix", "")
+            )
         )
     )
 
@@ -222,6 +233,7 @@ def enrich_bulk_to_pull_and_print(bulk_items):
                 "quantity": print_qty,
                 "variety_name": product.variety.var_name,
                 "crop": product.variety.crop,
+                "category": product.variety.category, 
                 "days": product.variety.days,
                 "common_name": product.variety.common_name or "",
                 "desc1": product.variety.desc_line1,
@@ -264,10 +276,20 @@ def enrich_bulk_to_pull_and_print(bulk_items):
 
     # sort dicts by SKU
     # bulk_to_print = dict(sorted(bulk_to_print.items()))
+    # bulk_to_print = dict(
+    #     sorted(
+    #         bulk_to_print.items(),
+    #         key=lambda item: (item[1].get("env_type", ""), item[1].get("sku_prefix", ""))
+    #     )
+    # )
     bulk_to_print = dict(
         sorted(
             bulk_to_print.items(),
-            key=lambda item: (item[1].get("env_type", ""), item[1].get("sku_prefix", ""))
+            key=lambda item: (
+                item[1].get("category", ""),
+                item[1].get("env_type", ""),
+                item[1].get("sku_prefix", "")
+            )
         )
     )
 
