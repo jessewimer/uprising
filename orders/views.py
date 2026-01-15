@@ -447,28 +447,62 @@ def process_orders(request):
                         item.save()
 
                 # Parse dates with multiple format fallbacks
+                # date_string = row['Created at'].strip()
+                # formats = [
+                #     '%m/%d/%Y %H:%M',
+                #     '%Y-%m-%d %H:%M:%S %z',
+                #     '%Y-%m-%d %H:%M:%S',
+                # ]
+                # for fmt in formats:
+                #     try:
+                #         date = datetime.strptime(date_string, fmt)
+                        
+                #         # Handle timezone properly based on whether date already has timezone info
+                #         if date.tzinfo is None:
+                #             # Naive datetime - localize to Pacific timezone
+                #             date = pacific_tz.localize(date)
+                #         else:
+                #             # Already has timezone info - convert to Pacific timezone
+                #             date = date.astimezone(pacific_tz)
+                #         break
+                #     except ValueError:
+                #         continue
+                # else:
+                #     raise ValueError(f"Unexpected date format: {date_string}")
+
+
+
+                # === BEGIN NEW DATE PARSING LOGIC === 1/14/26
+                # Parse date and extract just the date portion  
                 date_string = row['Created at'].strip()
                 formats = [
                     '%m/%d/%Y %H:%M',
                     '%Y-%m-%d %H:%M:%S %z',
                     '%Y-%m-%d %H:%M:%S',
                 ]
+                parsed_date = None
                 for fmt in formats:
                     try:
-                        date = datetime.strptime(date_string, fmt)
-                        
-                        # Handle timezone properly based on whether date already has timezone info
-                        if date.tzinfo is None:
-                            # Naive datetime - localize to Pacific timezone
-                            date = pacific_tz.localize(date)
-                        else:
-                            # Already has timezone info - convert to Pacific timezone
-                            date = date.astimezone(pacific_tz)
+                        parsed_datetime = datetime.strptime(date_string, fmt)
+                        parsed_date = parsed_datetime.date()  # Extract just the date (1/8/2026)
                         break
                     except ValueError:
                         continue
-                else:
+
+                if parsed_date is None:
                     raise ValueError(f"Unexpected date format: {date_string}")
+
+                # Create datetime at noon Pacific time - this ensures it stays the same date in any timezone
+                date = pacific_tz.localize(datetime.combine(parsed_date, datetime.strptime('12:00', '%H:%M').time()))
+
+
+                # === END NEW DATE PARSING LOGIC ===
+
+
+
+
+
+
                 # date = date.date()
                 order_start_date = min(order_start_date, date) if order_start_date else date
                 order_end_date = max(order_end_date, date) if order_end_date else date
