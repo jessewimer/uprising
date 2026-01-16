@@ -2545,7 +2545,7 @@
 
             function displayResults(data) {
                 const resultsContent = document.getElementById('results-content');
-                const firstSku = Object.keys(data.type_inventory)[0] || '';
+                const firstSku = data.type_inventory ? Object.keys(data.type_inventory)[0] || '' : '';
                 const skuPrefix = firstSku.split('-')[0] || '';
                 let html = '';
 
