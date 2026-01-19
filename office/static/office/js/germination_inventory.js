@@ -167,48 +167,145 @@ function setupEventListeners() {
 
 
     
-    // Growout box selection handler
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('growout-box')) {
-            e.preventDefault();
+//     // Growout box selection handler
+//     document.addEventListener('click', function(e) {
+//         if (e.target.classList.contains('growout-box')) {
+//             e.preventDefault();
             
-            // Remove selected from all boxes
-            document.querySelectorAll('.growout-box').forEach(box => {
-                box.classList.remove('selected');
-            });
+//             // Remove selected from all boxes
+//             document.querySelectorAll('.growout-box').forEach(box => {
+//                 box.classList.remove('selected');
+//             });
             
-            // Add selected to clicked box
-            e.target.classList.add('selected');
+//             // Add selected to clicked box
+//             e.target.classList.add('selected');
             
-            // Save the selection
-            const growoutSection = document.getElementById('growoutSection');
-            const skuPrefix = growoutSection.dataset.skuPrefix;
-            const growoutValue = e.target.dataset.value;
+//             // Save the selection
+//             const growoutSection = document.getElementById('growoutSection');
+//             const skuPrefix = growoutSection.dataset.skuPrefix;
+//             const growoutValue = e.target.dataset.value;
             
-            fetch(`/office/variety/${skuPrefix}/update-growout/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: JSON.stringify({ growout_needed: growoutValue })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('Growout status updated', 'success');
-                } else {
-                    showMessage('Error updating growout status', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating growout:', error);
-                showMessage('Error updating growout status', 'error');
-            });
-        }
-    });
+//             fetch(`/office/variety/${skuPrefix}/update-growout/`, {
+//                 method: 'POST',
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                     'X-CSRFToken': getCSRFToken()
+//                 },
+//                 body: JSON.stringify({ growout_needed: growoutValue })
+//             })
+//             .then(response => response.json())
+//             .then(data => {
+//                 if (data.success) {
+//                     showMessage('Growout status updated', 'success');
+//                 } else {
+//                     showMessage('Error updating growout status', 'error');
+//                 }
+//             })
+//             .catch(error => {
+//                 console.error('Error updating growout:', error);
+//                 showMessage('Error updating growout status', 'error');
+//             });
+//         }
+//     });
 }
 
+
+    // Growout box click handler - cycles through colors
+    function handleGrowoutBoxClick(e) {
+        e.stopPropagation(); // Don't trigger variety click
+        
+        const box = e.target;
+        const skuPrefix = box.dataset.skuPrefix;
+        const currentStatus = box.dataset.currentStatus;
+        
+        // Define the color cycle: none -> green -> orange -> red -> none
+        const statusCycle = {
+            'none': 'green',
+            'green': 'orange',
+            'orange': 'red',
+            'red': 'none'
+        };
+        
+        const newStatus = statusCycle[currentStatus] || 'green';
+        
+        // Update the box immediately in the UI
+        box.classList.remove(`growout-${currentStatus}`);
+        box.classList.add(`growout-${newStatus}`);
+        box.dataset.currentStatus = newStatus;
+        
+        // Update the data in memory
+        appData.allLots.forEach(lot => {
+            if (lot.sku_prefix === skuPrefix) {
+                lot.growout_needed = newStatus === 'none' ? '' : newStatus;
+            }
+        });
+        
+        appData.filteredLots.forEach(lot => {
+            if (lot.sku_prefix === skuPrefix) {
+                lot.growout_needed = newStatus === 'none' ? '' : newStatus;
+            }
+        });
+        
+        // Send update to backend
+        const growoutValue = newStatus === 'none' ? '' : newStatus;
+        
+        fetch(`/office/variety/${skuPrefix}/update-growout/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ growout_needed: growoutValue })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                clearCache(); 
+                // showMessage('Growout status updated', 'success');
+            } else {
+                // Revert on error
+                box.classList.remove(`growout-${newStatus}`);
+                box.classList.add(`growout-${currentStatus}`);
+                box.dataset.currentStatus = currentStatus;
+                
+                appData.allLots.forEach(lot => {
+                    if (lot.sku_prefix === skuPrefix) {
+                        lot.growout_needed = currentStatus === 'none' ? '' : currentStatus;
+                    }
+                });
+                
+                appData.filteredLots.forEach(lot => {
+                    if (lot.sku_prefix === skuPrefix) {
+                        lot.growout_needed = currentStatus === 'none' ? '' : currentStatus;
+                    }
+                });
+                
+                showMessage('Error updating growout status', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating growout:', error);
+            
+            // Revert on error
+            box.classList.remove(`growout-${newStatus}`);
+            box.classList.add(`growout-${currentStatus}`);
+            box.dataset.currentStatus = currentStatus;
+            
+            appData.allLots.forEach(lot => {
+                if (lot.sku_prefix === skuPrefix) {
+                    lot.growout_needed = currentStatus === 'none' ? '' : currentStatus;
+                }
+            });
+            
+            appData.filteredLots.forEach(lot => {
+                if (lot.sku_prefix === skuPrefix) {
+                    lot.growout_needed = currentStatus === 'none' ? '' : currentStatus;
+                }
+            });
+            
+            showMessage('Error updating growout status', 'error');
+        });
+    }
 
 
 function showGrowoutModal(lot) {
@@ -561,13 +658,20 @@ function renderTable() {
 
             growoutBox.classList.add(`growout-${growoutStatus}`);
 
-            growoutBox.title = 'Record growout';
+            // growoutBox.title = 'Record growout';
+            growoutBox.title = 'Click to cycle growout status';
+            // growoutBox.addEventListener('click', (e) => {
+            //     console.log('Growout box clicked for variety:', firstLot.variety_name);
+            //     e.stopPropagation();   // IMPORTANT: don’t trigger variety click
+            //     showGrowoutModal(firstLot);
+            // });
 
-            growoutBox.addEventListener('click', (e) => {
-                console.log('Growout box clicked for variety:', firstLot.variety_name);
-                e.stopPropagation();   // IMPORTANT: don’t trigger variety click
-                showGrowoutModal(firstLot);
-            });
+
+            // NEW CODE TO ADD:
+            growoutBox.dataset.skuPrefix = firstLot.sku_prefix;
+            growoutBox.dataset.currentStatus = growoutStatus;
+            growoutBox.addEventListener('click', handleGrowoutBoxClick);
+
 
             varietyCellContent.appendChild(growoutBox);
 
@@ -652,13 +756,16 @@ function renderTable() {
 
             growoutBox.classList.add(`growout-${growoutStatus}`);
 
-            growoutBox.title = 'Record growout';
-
-            growoutBox.addEventListener('click', (e) => {
-                console.log('Growout box clicked for variety:', firstLot.variety_name);
-                e.stopPropagation();   // IMPORTANT: don’t trigger variety click
-                showGrowoutModal(firstLot);
-            });
+            // growoutBox.title = 'Record growout';
+            growoutBox.title = 'Click to cycle growout status';
+            // growoutBox.addEventListener('click', (e) => {
+            //     console.log('Growout box clicked for variety:', firstLot.variety_name);
+            //     e.stopPropagation();   // IMPORTANT: don’t trigger variety click
+            //     showGrowoutModal(firstLot);
+            // });
+            growoutBox.dataset.skuPrefix = firstLot.sku_prefix;
+            growoutBox.dataset.currentStatus = growoutStatus;
+            growoutBox.addEventListener('click', handleGrowoutBoxClick);
 
             varietyCellContent.appendChild(growoutBox);
 
@@ -1356,28 +1463,22 @@ function showSalesData(sku_prefix, variety_name) {
                 });
             }
 
-
-
-            // Show and populate growout section
-            const growoutSection = document.getElementById('growoutSection');
-            growoutSection.style.display = 'block';
+            // // Show and populate growout section
+            // const growoutSection = document.getElementById('growoutSection');
+            // growoutSection.style.display = 'block';
             
-            // Set the selected growout box
-            const growoutValue = data.growout_needed || '';
-            document.querySelectorAll('.growout-box').forEach(box => {
-                if (box.dataset.value === growoutValue) {
-                    box.classList.add('selected');
-                } else {
-                    box.classList.remove('selected');
-                }
-            });
+            // // Set the selected growout box
+            // const growoutValue = data.growout_needed || '';
+            // document.querySelectorAll('.growout-box').forEach(box => {
+            //     if (box.dataset.value === growoutValue) {
+            //         box.classList.add('selected');
+            //     } else {
+            //         box.classList.remove('selected');
+            //     }
+            // });
             
-            // Store SKU for growout updates
-            growoutSection.dataset.skuPrefix = sku_prefix;
-
-
-
-
+            // // Store SKU for growout updates
+            // growoutSection.dataset.skuPrefix = sku_prefix;
 
             // Show inventory section
             if (data.lot_inventory_data) {

@@ -12,6 +12,7 @@ from datetime import datetime
 from django.db.models import Q
 from django.conf import settings 
 
+
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 def send_germ_samples(request):
@@ -324,3 +325,41 @@ def update_growout(request, lot_id):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid method'})
+
+
+
+def growout_prep(request):
+    # Get all varieties with orange or red growout_needed
+    varieties = Variety.objects.filter(
+        growout_needed__in=['orange', 'red']
+    ).order_by('var_name')
+    
+    # Get all growers, sorted with Uprising first, then alphabetically
+    growers = Grower.objects.all()
+    uprising_grower = growers.filter(code='UO').first()  # Changed to 'UO'
+    other_growers = growers.exclude(code='UO').order_by('name')
+    
+    # Combine with Uprising first
+    sorted_growers = []
+    if uprising_grower:
+        sorted_growers.append(uprising_grower)
+    sorted_growers.extend(other_growers)
+    
+    # Get unique categories and crops for filters
+    categories = Variety.objects.filter(
+        growout_needed__in=['orange', 'red']
+    ).values_list('category', flat=True).distinct().order_by('category')
+    
+    crops = Variety.objects.filter(
+        growout_needed__in=['orange', 'red']
+    ).values_list('crop', flat=True).distinct().order_by('crop')
+    
+    context = {
+        'varieties': varieties,
+        'growers': sorted_growers,
+        'current_order_year': settings.CURRENT_ORDER_YEAR,
+        'categories': [c for c in categories if c],
+        'crops': [c for c in crops if c],
+    }
+    
+    return render(request, 'lots/growout_prep.html', context)

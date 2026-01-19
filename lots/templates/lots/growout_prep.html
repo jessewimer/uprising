@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Growout Prep - Uprising Seeds</title>
+
+    <link rel="stylesheet" href="{% static 'lots/css/growout_prep.css' %}">
+</head>
+
+<body>
+
+    <div class="container">
+        {% comment %} <!-- Header Section -->
+        <div class="header">
+            <a href="/office/dashboard/" class="back-button">
+                <span>← Dashboard</span>
+            </a>
+            
+            <div class="header-content">
+                <h1 class="brand-title">Growout Prep</h1>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="filter-controls">
+                <select id="statusFilter" class="filter-dropdown">
+                    <option value="">All Statuses</option>
+                    <option value="orange">Orange</option>
+                    <option value="red">Red</option>
+                </select>
+
+                <select id="categoryFilter" class="filter-dropdown">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+
+                <select id="cropFilter" class="filter-dropdown">
+                    <option value="">All Crops</option>
+                    {% for crop in crops %}
+                        <option value="{{ crop }}">{{ crop }}</option>
+                    {% endfor %}
+                </select>
+
+                <button id="saveChangesBtn" class="save-button" disabled onclick="saveChanges()">
+                    Save Changes
+                </button>
+            </div>
+        </div> {% endcomment %}
+
+
+        <!-- Header Section -->
+        <div class="header">
+            <a href="/office/dashboard/" class="back-button">
+                <span>← Dashboard</span>
+            </a>
+            
+            <h1 class="brand-title">Growout Prep</h1>
+
+            <!-- Filter Controls -->
+            <div class="filter-controls">
+                <select id="statusFilter" class="filter-dropdown">
+                    <option value="">All Statuses</option>
+                    <option value="orange">Orange</option>
+                    <option value="red">Red</option>
+                </select>
+
+                <select id="categoryFilter" class="filter-dropdown">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+
+                <select id="cropFilter" class="filter-dropdown">
+                    <option value="">All Crops</option>
+                    {% for crop in crops %}
+                        <option value="{{ crop }}">{{ crop }}</option>
+                    {% endfor %}
+                </select>
+
+                <div class="variety-count" id="varietyCount">{{ varieties|length }} showing</div>
+
+                <button id="saveChangesBtn" class="save-button" disabled onclick="saveChanges()">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Table Section -->
+        <div class="table-section">
+            {% comment %} <div class="table-header">
+                <h3 class="table-title">Growout Preparation</h3>
+                <div class="table-count" id="varietyCount">{{ varieties|length }} varieties</div>
+            </div> {% endcomment %}
+
+            <div class="table-container-scrollable" id="growoutPrepContainer">
+                {% if varieties %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Variety</th>
+                                <th>Assign Grower</th>
+                                <th>Year</th>
+                                <th>Create Lot</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            {% for variety in varieties %}
+                                <tr data-variety-id="{{ variety.id }}"
+                                    data-variety-name="{{ variety.var_name }}"
+                                    data-sku-prefix="{{ variety.sku_prefix }}"
+                                    data-category="{{ variety.category|default:'' }}"
+                                    data-crop="{{ variety.crop|default:'' }}"
+                                    data-status="{{ variety.growout_needed }}">
+                                    
+                                    <td class="variety-cell">
+                                        <div class="variety-cell-content">
+                                            <div class="growout-box-display growout-{{ variety.growout_needed }}" 
+                                                 title="{{ variety.growout_needed|title }} status"></div>
+                                            <span>{{ variety.var_name }}</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="grower-cell">
+                                        <select class="grower-select" data-variety-id="{{ variety.id }}">
+                                            <option value="">Select grower...</option>
+                                            {% for grower in growers %}
+                                                <option value="{{ grower.code }}">
+                                                    {{ grower.code }} – {{ grower.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <td class="year-cell">
+                                        <div class="year-controls">
+                                            <button class="year-btn year-decrease" 
+                                                    data-variety-id="{{ variety.id }}"
+                                                    onclick="decreaseYear(this)">−</button>
+                                            <input type="text" 
+                                                   class="year-input" 
+                                                   value="{{ current_order_year }}"
+                                                   data-variety-id="{{ variety.id }}"
+                                                   data-min-year="{{ current_order_year }}"
+                                                   readonly>
+                                            <button class="year-btn year-increase" 
+                                                    data-variety-id="{{ variety.id }}"
+                                                    onclick="increaseYear(this)">+</button>
+                                        </div>
+                                    </td>
+
+                                    <td class="create-lot-cell">
+                                        <button class="create-lot-btn" 
+                                                data-variety-id="{{ variety.id }}"
+                                                data-created="false"
+                                                onclick="toggleCreateLot(this)">
+                                            ✗
+                                        </button>
+                                    </td>
+
+                                    <td class="qty-cell">
+                                        <input type="text" 
+                                               class="qty-input editable-input" 
+                                               data-variety-id="{{ variety.id }}"
+                                               placeholder="Qty"
+                                               oninput="handleInputChange()">
+                                    </td>
+
+                                    <td class="price-cell">
+                                        <input type="text" 
+                                               class="price-input editable-input" 
+                                               data-variety-id="{{ variety.id }}"
+                                               placeholder="$/lb"
+                                               oninput="handleInputChange()">
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌱</div>
+                        <div class="empty-state-text">No varieties need growout preparation</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pass Django data to JavaScript
+        window.appData = {
+            currentOrderYear: {{ current_order_year }},
+            csrfToken: '{{ csrf_token }}'
+        };
+    </script>
+    <script src="{% static 'lots/js/growout_prep.js' %}"></script>
+    
+</body>
+</html>
