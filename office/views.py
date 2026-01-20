@@ -2307,6 +2307,7 @@ def view_stores(request):
     
     return render(request, 'office/view_stores.html', context)
 
+
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -2319,16 +2320,36 @@ def update_store(request, store_num):
         # Parse the JSON data from the request
         data = json.loads(request.body)
         
-        # Update the store fields
+        # Update ALL the store fields
         if 'name' in data:
             store.store_name = data['name']
-        if 'email' in data:
-            store.store_email = data['email']
-        if 'slots' in data:
-            store.slots = int(data['slots']) if data['slots'] else None
         if 'contact_name' in data:
             store.store_contact_name = data['contact_name']
-
+        if 'contact_phone' in data:
+            store.store_contact_phone = data['contact_phone']
+        if 'email' in data:
+            store.store_contact_email = data['email']
+        if 'address' in data:
+            store.store_address = data['address']
+        if 'city' in data:
+            store.store_city = data['city']
+        if 'state' in data:
+            store.store_state = data['state']
+        if 'zip' in data:
+            store.store_zip = data['zip']
+        if 'slots' in data:
+            store.slots = int(data['slots']) if data['slots'] else 0
+        if 'rack_num' in data:
+            store.rack_num = data['rack_num']
+        if 'header' in data:
+            store.header = data['header']
+        if 'rack_material' in data:
+            store.rack_material = data['rack_material']
+        if 'velcro' in data:
+            store.velcro = data['velcro']
+        if 'first_order' in data:
+            store.first_order = data['first_order']
+        
         # Save the changes to the database
         store.save()
         
@@ -2344,6 +2365,43 @@ def update_store(request, store_num):
             'success': False,
             'error': str(e)
         }, status=500)
+# @login_required(login_url='/office/login/')
+# @user_passes_test(is_employee)
+# @require_http_methods(["POST"])
+# def update_store(request, store_num):
+#     print(f"Updating store with number: {store_num}")
+#     try:
+#         # Get the store object
+#         store = get_object_or_404(Store, store_num=store_num)
+        
+#         # Parse the JSON data from the request
+#         data = json.loads(request.body)
+        
+#         # Update the store fields
+#         if 'name' in data:
+#             store.store_name = data['name']
+#         if 'email' in data:
+#             store.store_email = data['email']
+#         if 'slots' in data:
+#             store.slots = int(data['slots']) if data['slots'] else None
+#         if 'contact_name' in data:
+#             store.store_contact_name = data['contact_name']
+
+#         # Save the changes to the database
+#         store.save()
+        
+#         return JsonResponse({
+#             'success': True,
+#             'message': 'Store updated successfully'
+#         })
+        
+#     except Exception as e:
+#         # Log the error for debugging
+#         print(f"Error in update_store: {e}")
+#         return JsonResponse({
+#             'success': False,
+#             'error': str(e)
+#         }, status=500)
     
 
 @login_required(login_url='/office/login/')

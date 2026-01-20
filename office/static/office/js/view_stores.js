@@ -31,21 +31,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+
     // Handle edit button clicks
     document.addEventListener('click', function(e) {
         if (e.target.closest('.edit-btn')) {
             const btn = e.target.closest('.edit-btn');
-            const storeId = btn.dataset.storeId;
-            const storeNum = btn.dataset.storeNum;
-            const storeName = btn.dataset.storeName;
-            const storeEmail = btn.dataset.storeEmail;
-            const storePhone = btn.dataset.storePhone;
-            const storeSlots = btn.dataset.storeSlots;
-            const contactName = btn.dataset.contactName;
+            const storeData = {
+                storeId: btn.dataset.storeId,
+                storeNum: btn.dataset.storeNum,
+                storeName: btn.dataset.storeName,
+                storeEmail: btn.dataset.storeEmail,
+                storePhone: btn.dataset.storePhone,
+                storeSlots: btn.dataset.storeSlots,
+                contactName: btn.dataset.contactName,
+                storeAddress: btn.dataset.storeAddress,
+                storeCity: btn.dataset.storeCity,
+                storeState: btn.dataset.storeState,
+                storeZip: btn.dataset.storeZip,
+                rackNum: btn.dataset.rackNum,
+                header: btn.dataset.header,
+                rackMaterial: btn.dataset.rackMaterial,
+                velcro: btn.dataset.velcro === 'True',
+                firstOrder: btn.dataset.firstOrder
+            };
             
-            editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName);
+            editStore(storeData);
         }
     });
+    // Handle edit button clicks
+    // document.addEventListener('click', function(e) {
+    //     if (e.target.closest('.edit-btn')) {
+    //         const btn = e.target.closest('.edit-btn');
+    //         const storeId = btn.dataset.storeId;
+    //         const storeNum = btn.dataset.storeNum;
+    //         const storeName = btn.dataset.storeName;
+    //         const storeEmail = btn.dataset.storeEmail;
+    //         const storePhone = btn.dataset.storePhone;
+    //         const storeSlots = btn.dataset.storeSlots;
+    //         const contactName = btn.dataset.contactName;
+            
+    //         editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName);
+    //     }
+    // });
 
 
     // Handle add returns button clicks
@@ -449,15 +476,38 @@ function renderSalesTable(stores) {
 
 
 // Edit Store Functions
-function editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName) {
-    currentStoreId = storeNum;
-    currentStoreNum = storeNum;
+// function editStore(storeId, storeNum, storeName, storeEmail, storePhone, storeSlots, contactName) {
+//     currentStoreId = storeNum;
+//     currentStoreNum = storeNum;
     
-    document.getElementById('storeName').value = storeName || '';
-    document.getElementById('contactEmail').value = storeEmail || '';
-    document.getElementById('contactPhone').value = storePhone || '';
-    document.getElementById('storeSlots').value = storeSlots || '';
-    document.getElementById('contactName').value = contactName || '';
+//     document.getElementById('storeName').value = storeName || '';
+//     document.getElementById('contactEmail').value = storeEmail || '';
+//     document.getElementById('contactPhone').value = storePhone || '';
+//     document.getElementById('storeSlots').value = storeSlots || '';
+//     document.getElementById('contactName').value = contactName || '';
+    
+//     document.getElementById('editModal').classList.add('active');
+//     document.body.style.overflow = 'hidden';
+// }
+function editStore(storeData) {
+    currentStoreId = storeData.storeId;
+    currentStoreNum = storeData.storeNum;
+    
+    // Populate all form fields
+    document.getElementById('storeName').value = storeData.storeName || '';
+    document.getElementById('contactName').value = storeData.contactName || '';
+    document.getElementById('contactPhone').value = storeData.storePhone || '';
+    document.getElementById('contactEmail').value = storeData.storeEmail || '';
+    document.getElementById('storeAddress').value = storeData.storeAddress || '';
+    document.getElementById('storeCity').value = storeData.storeCity || '';
+    document.getElementById('storeState').value = storeData.storeState || '';
+    document.getElementById('storeZip').value = storeData.storeZip || '';
+    document.getElementById('storeSlots').value = storeData.storeSlots || '';
+    document.getElementById('rackNum').value = storeData.rackNum || '';
+    document.getElementById('header').value = storeData.header || '';
+    document.getElementById('rackMaterial').value = storeData.rackMaterial || '';
+    document.getElementById('velcro').checked = storeData.velcro;
+    document.getElementById('firstOrder').value = storeData.firstOrder || '';
     
     document.getElementById('editModal').classList.add('active');
     document.body.style.overflow = 'hidden';

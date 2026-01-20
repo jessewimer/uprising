@@ -119,10 +119,10 @@
                                 {% endif %}
                             </td>
                             <td class="col-group-rack">
-                                {{ store.rack_header|default:"--" }}
+                                {{ store.header|default:"--" }}
                             </td>
                             <td class="col-group-rack">
-                                {% if store.velcro_required %}
+                                {% if store.velcro %}
                                     <span class="boolean-indicator boolean-true">✓</span>
                                 {% else %}
                                     <span class="boolean-indicator boolean-false">✗</span>
@@ -143,19 +143,28 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="edit-btn"
-                                        data-store-id="{{ store.id }}"
-                                        data-store-num="{{ store.store_num }}"
-                                        data-store-name="{{ store.store_name|default:'Unnamed Store'|escapejs }}"
-                                        data-store-email="{{ store.store_contact_email|default:''}}"
-                                        data-store-phone="{{ store.store_contact_phone|default:''}}"
-                                        data-store-slots="{{ store.slots|default:''}}"
-                                        data-contact-name="{{ store.store_contact_name|default:''|escapejs }}">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="m18 2 4 4-12 12H6v-4L18 2z"/>
-                                        <path d="m21.5 6.5-4-4"/>
-                                    </svg>
-                                </button>
+                            <button class="edit-btn"
+                                    data-store-id="{{ store.id }}"
+                                    data-store-num="{{ store.store_num }}"
+                                    data-store-name="{{ store.store_name|default:'Unnamed Store'|escapejs }}"
+                                    data-store-email="{{ store.store_contact_email|default:''}}"
+                                    data-store-phone="{{ store.store_contact_phone|default:''}}"
+                                    data-store-slots="{{ store.slots|default:''}}"
+                                    data-contact-name="{{ store.store_contact_name|default:''|escapejs }}"
+                                    data-store-address="{{ store.store_address|default:''|escapejs }}"
+                                    data-store-city="{{ store.store_city|default:''}}"
+                                    data-store-state="{{ store.store_state|default:''}}"
+                                    data-store-zip="{{ store.store_zip|default:''}}"
+                                    data-rack-num="{{ store.rack_num|default:''}}"
+                                    data-header="{{ store.header|default:''}}"
+                                    data-rack-material="{{ store.rack_material|default:''}}"
+                                    data-velcro="{{ store.velcro|default:False }}"
+                                    data-first-order="{{ store.first_order|default:''}}">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="m18 2 4 4-12 12H6v-4L18 2z"/>
+                                    <path d="m21.5 6.5-4-4"/>
+                                </svg>
+                            </button>
                             </td>
                         </tr>
                         {% endfor %}
