@@ -182,6 +182,8 @@ def calculate_bulk_pull_and_print(bulk_items):
     return bulk_to_print, bulk_to_pull
 
 def enrich_bulk_to_pull_and_print(bulk_items):
+    print(f"DEBUG - enrich_bulk_to_pull_and_print received: {list(bulk_items.keys())}")
+    print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
     # print("Enriching bulk items:", bulk_items)
     bulk_to_print = {}
     bulk_to_pull = {}
@@ -625,6 +627,10 @@ def process_orders(request):
 
 
         if bulk_items:
+
+            print(f"DEBUG - bulk_items keys: {list(bulk_items.keys())}")
+            print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
+
             # get the last batch record
             last_batch = BatchMetadata.objects.order_by("-id").first()
             if last_batch:
