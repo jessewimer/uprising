@@ -222,7 +222,42 @@
         </div>
     </div>
 
-
+    <!-- Combine Orders Confirmation Modal -->
+    <div id="combine-confirm-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Combine Orders</h3>
+                <span class="close" id="close-combine-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3rem; color: #667eea; margin-bottom: 10px;">🔀</div>
+                    <p style="font-size: 1.1rem; margin-bottom: 10px;">Combine <span id="combine-count"></span> orders?</p>
+                    <p style="color: #666; font-size: 0.9rem;">All items will be merged into <strong id="combine-target-order"></strong></p>
+                </div>
+                <div id="combine-order-list" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; max-height: 200px; overflow-y: auto;">
+                    <!-- Order list will be populated here -->
+                </div>
+                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px; margin: 15px 0;">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <div style="font-size: 1.2rem; color: #856404;">⚠️</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #856404; margin-bottom: 4px;">Important</div>
+                            <div style="color: #856404; font-size: 0.9rem;">
+                                • Duplicate items will keep the larger quantity<br>
+                                • Other orders will be permanently deleted<br>
+                                • This action cannot be undone
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-combine-btn">Cancel</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #667eea, #764ba2);" id="confirm-combine-btn">Combine Orders</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bulk Photo Modal -->
     <div id="bulk-photo-modal" class="modal" style="display: none;">

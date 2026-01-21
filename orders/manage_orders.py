@@ -243,6 +243,33 @@ def clear_specific_table():
         print(f"\n✗ Error during deletion: {str(e)}")
 
 
+
+def find_hybrid_orders():
+    """Find orders that have combinations of misc, bulk, and packet items"""
+    print("\n" + "=" * 70)
+    print("SEARCHING FOR HYBRID ORDERS")
+    print("=" * 70)
+    
+    # Find orders with misc=True, bulk=True, and have packet items (OOIncludes)
+    orders_with_all_three = OnlineOrder.objects.filter(
+        misc=True,
+        bulk=True,
+        includes__isnull=False
+    ).distinct()
+    
+    if orders_with_all_three.exists():
+        print(f"\n✓ Found {orders_with_all_three.count()} orders with MISC + BULK + PACKETS:")
+        print("-" * 70)
+        for order in orders_with_all_three:
+            pkt_count = order.includes.count()
+            misc_count = order.includes_misc.count()
+            print(f"  {order.order_number} - {pkt_count} pkt items, {misc_count} misc items")
+    else:
+        print("\n✗ No orders found with all three types")
+    
+    print("=" * 70)
+
+
 def main_menu():
     """Display and handle main menu"""
     while True:
@@ -255,9 +282,10 @@ def main_menu():
         print("  2. Clear specific table")
         print("  3. Refresh counts")
         print("  4. Search for an order by order number")
+        print("  5. Find hybrid orders (misc + bulk + packets)")
         print("  0. Exit")
         
-        choice = input("\nEnter choice (0-4): ").strip()
+        choice = input("\nEnter choice (0-5): ").strip()
         
         if choice == '0':
             print("\nGoodbye!")
@@ -272,6 +300,9 @@ def main_menu():
             continue  # Loop will refresh counts
         elif choice == '4':
             search_order()
+            input("\nPress Enter to continue...")
+        elif choice == '5':
+            find_hybrid_orders()
             input("\nPress Enter to continue...")
         else:
             print("\n✗ Invalid choice!")

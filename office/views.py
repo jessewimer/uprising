@@ -26,6 +26,7 @@ import math
 import csv
 import io
 import shopify
+from django.db import transaction
 
 
 BASE_COMPONENT_MIXES = {
@@ -2365,43 +2366,6 @@ def update_store(request, store_num):
             'success': False,
             'error': str(e)
         }, status=500)
-# @login_required(login_url='/office/login/')
-# @user_passes_test(is_employee)
-# @require_http_methods(["POST"])
-# def update_store(request, store_num):
-#     print(f"Updating store with number: {store_num}")
-#     try:
-#         # Get the store object
-#         store = get_object_or_404(Store, store_num=store_num)
-        
-#         # Parse the JSON data from the request
-#         data = json.loads(request.body)
-        
-#         # Update the store fields
-#         if 'name' in data:
-#             store.store_name = data['name']
-#         if 'email' in data:
-#             store.store_email = data['email']
-#         if 'slots' in data:
-#             store.slots = int(data['slots']) if data['slots'] else None
-#         if 'contact_name' in data:
-#             store.store_contact_name = data['contact_name']
-
-#         # Save the changes to the database
-#         store.save()
-        
-#         return JsonResponse({
-#             'success': True,
-#             'message': 'Store updated successfully'
-#         })
-        
-#     except Exception as e:
-#         # Log the error for debugging
-#         print(f"Error in update_store: {e}")
-#         return JsonResponse({
-#             'success': False,
-#             'error': str(e)
-#         }, status=500)
     
 
 @login_required(login_url='/office/login/')
@@ -2700,6 +2664,103 @@ def finalize_order(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
+
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def combine_store_orders(request):
+    """
+    Combine multiple pending store orders from the same store.
+    Transfers all items to the order with the lowest order number.
+    """
+    try:
+        data = json.loads(request.body)
+        order_numbers = data.get('order_numbers', [])
+        
+        if len(order_numbers) < 2:
+            return JsonResponse({
+                'success': False,
+                'error': 'Please select at least 2 orders to combine'
+            }, status=400)
+        
+        # Fetch all orders
+        orders = StoreOrder.objects.filter(
+            order_number__in=order_numbers,
+            fulfilled_date__isnull=True  # Only pending orders
+        ).select_related('store')
+        
+        if orders.count() != len(order_numbers):
+            return JsonResponse({
+                'success': False,
+                'error': 'One or more orders not found or already fulfilled'
+            }, status=400)
+        
+        # Verify all orders belong to the same store
+        store_nums = set(order.store.store_num for order in orders)
+        if len(store_nums) > 1:
+            return JsonResponse({
+                'success': False,
+                'error': 'Selected orders do not belong to the same store'
+            }, status=400)
+        
+        # Sort orders by order number to find the one to keep (lowest number)
+        sorted_orders = sorted(orders, key=lambda x: x.order_number)
+        target_order = sorted_orders[0]
+        orders_to_delete = sorted_orders[1:]
+        
+        # Use transaction to ensure atomicity
+        with transaction.atomic():
+            # Transfer all items from orders being deleted to target order
+            for order in orders_to_delete:
+                items = SOIncludes.objects.filter(store_order=order)
+                
+                for item in items:
+                    # Check if target order already has this product
+                    existing_item = SOIncludes.objects.filter(
+                        store_order=target_order,
+                        product=item.product
+                    ).first()
+                    
+                    if existing_item:
+                        # Keep the LARGER quantity instead of adding them
+                        if item.quantity > existing_item.quantity:
+                            existing_item.quantity = item.quantity
+                        # Keep photo=True if either order had it
+                        existing_item.photo = existing_item.photo or item.photo
+                        existing_item.save()
+                        item.delete()
+                    else:
+                        # Move item to target order
+                        item.store_order = target_order
+                        item.save()
+            
+            # Delete the empty orders
+            order_numbers_deleted = [order.order_number for order in orders_to_delete]
+            for order in orders_to_delete:
+                order.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'target_order': target_order.order_number,
+            'deleted_orders': order_numbers_deleted,
+            'message': f'Successfully combined {len(order_numbers)} orders into {target_order.order_number}'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+
 
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)

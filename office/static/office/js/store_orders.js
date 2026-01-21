@@ -11,7 +11,7 @@ let currentLookupType = 'variety';
 let hasUnsavedChanges = false;
 let currentEditItem = null;
 let currentShippingCost = 0;
-
+let selectedOrdersForCombine = new Set();
 // Flask configuration
 const FLASK_BASE_URL = 'http://127.0.0.1:5000';
 
@@ -694,7 +694,84 @@ function closePendingOrdersModal() {
     document.getElementById('pending-orders-modal').style.display = 'none';
 }
 
-// Function to load pending orders
+// // Function to load pending orders
+// async function loadPendingOrders() {
+//     const container = document.getElementById('pending-orders-container');
+    
+//     try {
+//         const response = await fetch('/office/get-pending-orders/', {
+//             method: 'GET',
+//             headers: {
+//                 'X-CSRFToken': getCSRFToken(),
+//                 'Content-Type': 'application/json',
+//             },
+//         });
+        
+//         if (!response.ok) {
+//             throw new Error(`HTTP error! status: ${response.status}`);
+//         }
+        
+//         const data = await response.json();
+        
+//         if (data.error) {
+//             container.innerHTML = `
+//                 <div class="no-pending-orders">
+//                     <div class="no-pending-icon">❌</div>
+//                     <p>Error loading pending orders</p>
+//                     <small>${data.error}</small>
+//                 </div>
+//             `;
+//             return;
+//         }
+        
+//         if (!data.orders || data.orders.length === 0) {
+//             container.innerHTML = `
+//                 <div class="no-pending-orders">
+//                     <div class="no-pending-icon">✅</div>
+//                     <p>No pending orders</p>
+//                     <small>All orders are fulfilled!</small>
+//                 </div>
+//             `;
+//             return;
+//         }
+        
+//         let ordersHTML = '<div class="pending-orders-list">';
+//         data.orders.forEach(order => {
+//             console.log('Pending order object:', order); // Debug what fields are available
+//             ordersHTML += `
+//                 <div class="pending-order-item" data-order-id="${order.id}" data-store-id="${order.store_id || order.store_num || ''}" data-store-name="${order.store_name}">
+//                     <div class="pending-order-number">Order #${order.order_number}</div>
+//                     <div class="pending-order-details">
+//                         <span class="pending-order-store">${order.store_name}</span>
+//                         <span class="pending-order-date">${order.date}</span>
+//                     </div>
+//                 </div>
+//             `;
+//         });
+//         ordersHTML += '</div>';
+        
+//         container.innerHTML = ordersHTML;
+        
+//     } catch (error) {
+//         console.error('Error loading pending orders:', error);
+//         container.innerHTML = `
+//             <div class="no-pending-orders">
+//                 <div class="no-pending-icon">❌</div>
+//                 <p>Error loading pending orders</p>
+//                 <small>Please try again</small>
+//             </div>
+//         `;
+//     }
+// }
+
+
+
+
+
+
+
+
+// Replace your loadPendingOrders function with this:
 async function loadPendingOrders() {
     const container = document.getElementById('pending-orders-container');
     
@@ -735,15 +812,42 @@ async function loadPendingOrders() {
             return;
         }
         
-        let ordersHTML = '<div class="pending-orders-list">';
+        // Clear selected orders when reloading
+        selectedOrdersForCombine.clear();
+        
+        // Add combine button and selected count at the top
+        let ordersHTML = `
+            <div style="margin-bottom: 15px; padding: 0 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn" id="combine-orders-btn" style="background: #667eea; display: none;">
+                    Combine Selected Orders
+                </button>
+                <span id="selected-count" style="color: #666; font-size: 0.9rem; display: none;"></span>
+            </div>
+            <div class="pending-orders-list">
+        `;
+        
         data.orders.forEach(order => {
-            console.log('Pending order object:', order); // Debug what fields are available
+            console.log('Pending order object:', order);
+            
+            // Extract store number from order number (format: WXXYY-ZZ where XX is store number)
+            const storeNumMatch = order.order_number.match(/^W(\d{2})/);
+            const storeNum = storeNumMatch ? storeNumMatch[1] : (order.store_id || order.store_num || '');
+            
             ordersHTML += `
-                <div class="pending-order-item" data-order-id="${order.id}" data-store-id="${order.store_id || order.store_num || ''}" data-store-name="${order.store_name}">
-                    <div class="pending-order-number">Order #${order.order_number}</div>
-                    <div class="pending-order-details">
-                        <span class="pending-order-store">${order.store_name}</span>
-                        <span class="pending-order-date">${order.date}</span>
+                <div class="pending-order-item" data-order-id="${order.id}" data-store-id="${storeNum}" data-store-name="${order.store_name}" style="position: relative; padding-left: 40px;">
+                    <input 
+                        type="checkbox" 
+                        class="order-combine-checkbox" 
+                        data-order-number="${order.order_number}"
+                        data-store-num="${storeNum}"
+                        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; cursor: pointer;"
+                    >
+                    <div onclick="loadPendingOrderByNumber('${order.order_number}')" style="cursor: pointer; flex: 1;">
+                        <div class="pending-order-number">Order #${order.order_number}</div>
+                        <div class="pending-order-details">
+                            <span class="pending-order-store">${order.store_name}</span>
+                            <span class="pending-order-date">${order.date}</span>
+                        </div>
                     </div>
                 </div>
             `;
@@ -751,6 +855,21 @@ async function loadPendingOrders() {
         ordersHTML += '</div>';
         
         container.innerHTML = ordersHTML;
+        
+        // Add event listeners to checkboxes
+        document.querySelectorAll('.order-combine-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', handleCombineCheckboxChange);
+            // Stop click events from bubbling up to parent
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        });
+        
+        // Add event listener to combine button
+        const combineBtn = document.getElementById('combine-orders-btn');
+        if (combineBtn) {
+            combineBtn.addEventListener('click', handleCombineOrders);
+        }
         
     } catch (error) {
         console.error('Error loading pending orders:', error);
@@ -763,6 +882,592 @@ async function loadPendingOrders() {
         `;
     }
 }
+
+async function loadPendingOrderByNumber(orderNumber) {
+    // Close the modal
+    document.getElementById('pending-orders-modal').style.display = 'none';
+    
+    // Find the order data from the pending orders list to get the order ID
+    const orderItem = document.querySelector(`[data-order-number="${orderNumber}"]`);
+    if (!orderItem) {
+        console.error('Could not find order item for:', orderNumber);
+        return;
+    }
+    
+    const orderId = orderItem.closest('.pending-order-item').dataset.orderId;
+    const storeId = orderItem.dataset.storeNum;
+    const storeName = orderItem.closest('.pending-order-item').dataset.storeName;
+    
+    console.log('Loading order:', { orderNumber, orderId, storeId, storeName });
+    
+    // Use your existing loadOrderFromPending function
+    await loadOrderFromPending(orderId, storeId, storeName);
+}
+
+// Add this NEW function - loads order directly when clicked from pending modal
+// async function loadPendingOrderByNumber(orderNumber) {
+//     // Close the modal
+//     document.getElementById('pending-orders-modal').style.display = 'none';
+    
+//     // Extract store number from order number
+//     const storeNumMatch = orderNumber.match(/^W(\d{2})/);
+//     if (storeNumMatch) {
+//         const storeNum = parseInt(storeNumMatch[1], 10);
+        
+//         // Set the store filter (just for visual consistency)
+//         const storeFilter = document.getElementById('store-filter');
+//         storeFilter.value = storeNum;
+        
+//         // Load the order data directly
+//         try {
+//             const response = await fetch(`/office/get-order/${orderNumber}/`, {
+//                 method: 'GET',
+//                 headers: {
+//                     'X-CSRFToken': getCSRFToken(),
+//                     'Content-Type': 'application/json',
+//                 },
+//             });
+            
+//             if (!response.ok) {
+//                 throw new Error(`HTTP error! status: ${response.status}`);
+//             }
+            
+//             const data = await response.json();
+            
+//             if (data.error) {
+//                 showNotification(data.error, 'error');
+//                 return;
+//             }
+            
+//             // Update current order
+//             currentOrderNumber = orderNumber;
+            
+//             // Display the order
+//             displayOrder(data);
+            
+//             // Update the order dropdown to show this order is selected
+//             const orderFilter = document.getElementById('order-filter');
+//             // First trigger store change to populate orders
+//             storeFilter.dispatchEvent(new Event('change'));
+//             // Then after a moment, set the order
+//             setTimeout(() => {
+//                 orderFilter.value = orderNumber;
+//             }, 300);
+            
+//         } catch (error) {
+//             console.error('Error loading order:', error);
+//             showNotification('Failed to load order', 'error');
+//         }
+//     }
+// }
+
+// Checkbox change handler
+function handleCombineCheckboxChange(e) {
+    const checkbox = e.target;
+    const orderNumber = checkbox.dataset.orderNumber;
+    
+    if (checkbox.checked) {
+        selectedOrdersForCombine.add(orderNumber);
+    } else {
+        selectedOrdersForCombine.delete(orderNumber);
+    }
+    
+    updateCombineButton();
+}
+
+// Update combine button visibility
+function updateCombineButton() {
+    const combineBtn = document.getElementById('combine-orders-btn');
+    const selectedCount = document.getElementById('selected-count');
+    
+    if (selectedOrdersForCombine.size >= 2) {
+        combineBtn.style.display = 'block';
+        selectedCount.style.display = 'inline';
+        selectedCount.textContent = `${selectedOrdersForCombine.size} orders selected`;
+    } else {
+        combineBtn.style.display = 'none';
+        selectedCount.style.display = 'none';
+    }
+}
+
+
+
+
+
+
+
+
+async function handleCombineOrders() {
+    const orderNumbers = Array.from(selectedOrdersForCombine);
+    
+    // Verify all selected orders are from the same store
+    const checkboxes = document.querySelectorAll('.order-combine-checkbox:checked');
+    const storeNums = new Set();
+    checkboxes.forEach(cb => storeNums.add(cb.dataset.storeNum));
+    
+    if (storeNums.size > 1) {
+        showNotification('Error: Selected orders do not belong to the same store', 'error');
+        return;
+    }
+    
+    // Sort order numbers to find the target (lowest)
+    const sortedOrders = orderNumbers.sort();
+    const targetOrder = sortedOrders[0];
+    
+    // Show custom confirmation modal
+    showCombineConfirmation(sortedOrders, targetOrder);
+}
+
+// New function to show the combine confirmation modal
+function showCombineConfirmation(orderNumbers, targetOrder) {
+    const modal = document.getElementById('combine-confirm-modal');
+    const countEl = document.getElementById('combine-count');
+    const targetEl = document.getElementById('combine-target-order');
+    const listEl = document.getElementById('combine-order-list');
+    
+    // Update modal content
+    countEl.textContent = orderNumbers.length;
+    targetEl.textContent = targetOrder;
+    
+    // Build order list HTML
+    let listHTML = '<div style="font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: #666;">Orders to combine:</div>';
+    orderNumbers.forEach((orderNum, index) => {
+        const isTarget = orderNum === targetOrder;
+        listHTML += `
+            <div style="padding: 8px; margin-bottom: 6px; background: ${isTarget ? '#e7f3ff' : '#fff'}; border-radius: 6px; border: ${isTarget ? '2px solid #667eea' : '1px solid #e1e5e9'}; display: flex; align-items: center; gap: 8px;">
+                ${isTarget ? '<span style="color: #667eea; font-size: 1.2rem;">→</span>' : '<span style="color: #999;">•</span>'}
+                <span style="font-family: monospace; font-weight: ${isTarget ? '600' : '400'};">${orderNum}</span>
+                ${isTarget ? '<span style="margin-left: auto; background: #667eea; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">TARGET</span>' : ''}
+            </div>
+        `;
+    });
+    listEl.innerHTML = listHTML;
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Set up event handlers
+    const closeBtn = document.getElementById('close-combine-modal');
+    const cancelBtn = document.getElementById('cancel-combine-btn');
+    const confirmBtn = document.getElementById('confirm-combine-btn');
+    
+    const closeModal = () => {
+        modal.style.display = 'none';
+    };
+    
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    
+    confirmBtn.onclick = async () => {
+        closeModal();
+        await executeCombineOrders(orderNumbers);
+    };
+    
+    // Close on outside click
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+}
+
+// New function to execute the actual combine
+async function executeCombineOrders(orderNumbers) {
+    try {
+        const response = await fetch('/office/combine-orders/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                order_numbers: orderNumbers
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            selectedOrdersForCombine.clear();
+            // Reload pending orders
+            loadPendingOrders();
+            // Load the combined order
+            loadPendingOrderByNumber(data.target_order);
+        } else {
+            showNotification(data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error combining orders:', error);
+        showNotification('Failed to combine orders', 'error');
+    }
+}
+
+// Handle combining orders
+// async function handleCombineOrders() {
+//     const orderNumbers = Array.from(selectedOrdersForCombine);
+    
+//     // Verify all selected orders are from the same store
+//     const checkboxes = document.querySelectorAll('.order-combine-checkbox:checked');
+//     const storeNums = new Set();
+//     checkboxes.forEach(cb => storeNums.add(cb.dataset.storeNum));
+    
+//     if (storeNums.size > 1) {
+//         showNotification('Error: Selected orders do not belong to the same store', 'error');
+//         return;
+//     }
+    
+//     if (!confirm(`Combine ${orderNumbers.length} orders? Items will be merged into ${orderNumbers.sort()[0]}`)) {
+//         return;
+//     }
+    
+//     try {
+//         const response = await fetch('/office/combine-orders/', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'X-CSRFToken': getCSRFToken()
+//             },
+//             body: JSON.stringify({
+//                 order_numbers: orderNumbers
+//             })
+//         });
+        
+//         const data = await response.json();
+        
+//         if (data.success) {
+//             showNotification(data.message, 'success');
+//             selectedOrdersForCombine.clear();
+//             // Reload pending orders
+//             loadPendingOrders();
+//             // Load the combined order
+//             loadPendingOrderByNumber(data.target_order);
+//         } else {
+//             showNotification(data.error, 'error');
+//         }
+//     } catch (error) {
+//         console.error('Error combining orders:', error);
+//         showNotification('Failed to combine orders', 'error');
+//     }
+// }
+
+
+
+// Function to load pending orders
+// async function loadPendingOrders() {
+//     const container = document.getElementById('pending-orders-container');
+    
+//     try {
+//         const response = await fetch('/office/get-pending-orders/', {
+//             method: 'GET',
+//             headers: {
+//                 'X-CSRFToken': getCSRFToken(),
+//                 'Content-Type': 'application/json',
+//             },
+//         });
+        
+//         if (!response.ok) {
+//             throw new Error(`HTTP error! status: ${response.status}`);
+//         }
+        
+//         const data = await response.json();
+        
+//         if (data.error) {
+//             container.innerHTML = `
+//                 <div class="no-pending-orders">
+//                     <div class="no-pending-icon">❌</div>
+//                     <p>Error loading pending orders</p>
+//                     <small>${data.error}</small>
+//                 </div>
+//             `;
+//             return;
+//         }
+        
+//         if (!data.orders || data.orders.length === 0) {
+//             container.innerHTML = `
+//                 <div class="no-pending-orders">
+//                     <div class="no-pending-icon">✅</div>
+//                     <p>No pending orders</p>
+//                     <small>All orders are fulfilled!</small>
+//                 </div>
+//             `;
+//             return;
+//         }
+        
+//         // Clear selected orders when reloading
+//         selectedOrdersForCombine.clear();
+        
+//         // Add combine button and selected count at the top
+//         let ordersHTML = `
+//             <div style="margin-bottom: 15px; padding: 0 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+//                 <button class="btn" id="combine-orders-btn" style="background: #667eea; display: none;">
+//                     Combine Selected Orders
+//                 </button>
+//                 <span id="selected-count" style="color: #666; font-size: 0.9rem; display: none;"></span>
+//             </div>
+//             <div class="pending-orders-list">
+//         `;
+        
+//         data.orders.forEach(order => {
+//             console.log('Pending order object:', order); // Debug what fields are available
+            
+//             // Extract store number from order number (format: WXXYY-ZZ where XX is store number)
+//             const storeNumMatch = order.order_number.match(/^W(\d{2})/);
+//             const storeNum = storeNumMatch ? storeNumMatch[1] : (order.store_id || order.store_num || '');
+            
+//             ordersHTML += `
+//                 <div class="pending-order-item" data-order-id="${order.id}" data-store-id="${storeNum}" data-store-name="${order.store_name}" style="position: relative; padding-left: 40px;">
+//                     <input 
+//                         type="checkbox" 
+//                         class="order-combine-checkbox" 
+//                         data-order-number="${order.order_number}"
+//                         data-store-num="${storeNum}"
+//                         style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; cursor: pointer;"
+//                     >
+//                     <div onclick="loadPendingOrder('${order.order_number}')" style="cursor: pointer; flex: 1;">
+//                         <div class="pending-order-number">Order #${order.order_number}</div>
+//                         <div class="pending-order-details">
+//                             <span class="pending-order-store">${order.store_name}</span>
+//                             <span class="pending-order-date">${order.date}</span>
+//                         </div>
+//                     </div>
+//                 </div>
+//             `;
+//         });
+//         ordersHTML += '</div>';
+        
+//         container.innerHTML = ordersHTML;
+        
+//         // Add event listeners to checkboxes
+//         // Add event listeners to checkboxes
+//         document.querySelectorAll('.order-combine-checkbox').forEach(checkbox => {
+//             checkbox.addEventListener('change', handleCombineCheckboxChange);
+//             // Stop click events from bubbling up to parent
+//             checkbox.addEventListener('click', (e) => {
+//                 e.stopPropagation();
+//             });
+//         });
+        
+//         // Add event listener to combine button
+//         const combineBtn = document.getElementById('combine-orders-btn');
+//         if (combineBtn) {
+//             combineBtn.addEventListener('click', handleCombineOrders);
+//         }
+        
+//     } catch (error) {
+//         console.error('Error loading pending orders:', error);
+//         container.innerHTML = `
+//             <div class="no-pending-orders">
+//                 <div class="no-pending-icon">❌</div>
+//                 <p>Error loading pending orders</p>
+//                 <small>Please try again</small>
+//             </div>
+//         `;
+//     }
+// }
+
+
+// async function loadPendingOrderByNumber(orderNumber) {
+//     // Close the modal
+//     document.getElementById('pending-orders-modal').style.display = 'none';
+    
+//     // Extract store number from order number
+//     const storeNumMatch = orderNumber.match(/^W(\d{2})/);
+//     if (storeNumMatch) {
+//         const storeNum = parseInt(storeNumMatch[1], 10);
+        
+//         // Set the store filter (just for visual consistency)
+//         const storeFilter = document.getElementById('store-filter');
+//         storeFilter.value = storeNum;
+        
+//         // Load the order data directly - same as what the order dropdown does
+//         try {
+//             const response = await fetch(`/office/get-order/${orderNumber}/`, {
+//                 method: 'GET',
+//                 headers: {
+//                     'X-CSRFToken': getCSRFToken(),
+//                     'Content-Type': 'application/json',
+//                 },
+//             });
+            
+//             if (!response.ok) {
+//                 throw new Error(`HTTP error! status: ${response.status}`);
+//             }
+            
+//             const data = await response.json();
+            
+//             if (data.error) {
+//                 showNotification(data.error, 'error');
+//                 return;
+//             }
+            
+//             // Update current order
+//             currentOrderNumber = orderNumber;
+            
+//             // Display the order
+//             displayOrder(data);
+            
+//             // Update the order dropdown to show this order is selected
+//             const orderFilter = document.getElementById('order-filter');
+//             // First trigger store change to populate orders
+//             storeFilter.dispatchEvent(new Event('change'));
+//             // Then after a moment, set the order
+//             setTimeout(() => {
+//                 orderFilter.value = orderNumber;
+//             }, 300);
+            
+//         } catch (error) {
+//             console.error('Error loading order:', error);
+//             showNotification('Failed to load order', 'error');
+//         }
+//     }
+// }
+
+// function handleCombineCheckboxChange(e) {
+//     const checkbox = e.target;
+//     const orderNumber = checkbox.dataset.orderNumber;
+    
+//     if (checkbox.checked) {
+//         selectedOrdersForCombine.add(orderNumber);
+//     } else {
+//         selectedOrdersForCombine.delete(orderNumber);
+//     }
+    
+//     updateCombineButton();
+// }
+
+// function updateCombineButton() {
+//     const combineBtn = document.getElementById('combine-orders-btn');
+//     const selectedCount = document.getElementById('selected-count');
+    
+//     if (selectedOrdersForCombine.size >= 2) {
+//         combineBtn.style.display = 'block';
+//         selectedCount.style.display = 'inline';
+//         selectedCount.textContent = `${selectedOrdersForCombine.size} orders selected`;
+//     } else {
+//         combineBtn.style.display = 'none';
+//         selectedCount.style.display = 'none';
+//     }
+// }
+
+// async function handleCombineOrders() {
+//     const orderNumbers = Array.from(selectedOrdersForCombine);
+    
+//     // Verify all selected orders are from the same store
+//     const checkboxes = document.querySelectorAll('.order-combine-checkbox:checked');
+//     const storeNums = new Set();
+//     checkboxes.forEach(cb => storeNums.add(cb.dataset.storeNum));
+    
+//     if (storeNums.size > 1) {
+//         showNotification('Error: Selected orders do not belong to the same store', 'error');
+//         return;
+//     }
+    
+//     if (!confirm(`Combine ${orderNumbers.length} orders? Items will be merged into ${orderNumbers.sort()[0]}`)) {
+//         return;
+//     }
+    
+//     try {
+//         const response = await fetch('/office/combine-orders/', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'X-CSRFToken': getCSRFToken()
+//             },
+//             body: JSON.stringify({
+//                 order_numbers: orderNumbers
+//             })
+//         });
+        
+//         const data = await response.json();
+        
+//         if (data.success) {
+//             showNotification(data.message, 'success');
+//             selectedOrdersForCombine.clear();
+//             // Reload pending orders
+//             loadPendingOrders();
+//             // Load the combined order using the original function
+//             loadPendingOrder(data.target_order);  // Changed to use loadPendingOrder
+//         } else {
+//             showNotification(data.error, 'error');
+//         }
+//     } catch (error) {
+//         console.error('Error combining orders:', error);
+//         showNotification('Failed to combine orders', 'error');
+//     }
+// }
+
+
+function loadPendingOrder(orderNumber) {
+    // Close the modal
+    document.getElementById('pending-orders-modal').style.display = 'none';
+    
+    // Extract store number from order number (format: WXXYY-ZZ)
+    const storeNumMatch = orderNumber.match(/^W(\d{2})/);
+    if (storeNumMatch) {
+        const storeNum = parseInt(storeNumMatch[1], 10);
+        
+        // Set the store filter
+        const storeFilter = document.getElementById('store-filter');
+        storeFilter.value = storeNum;
+        
+        // Trigger the store filter change to load orders - this is async!
+        const storeChangeEvent = new Event('change');
+        storeFilter.dispatchEvent(storeChangeEvent);
+        
+        // Wait longer for orders to populate (loadOrdersForStore is async)
+        setTimeout(() => {
+            const orderFilter = document.getElementById('order-filter');
+            
+            // Double check the order is in the dropdown
+            const orderOption = Array.from(orderFilter.options).find(opt => opt.value === orderNumber);
+            
+            if (orderOption) {
+                orderFilter.value = orderNumber;
+                
+                // Trigger the order filter change to load the order
+                const orderChangeEvent = new Event('change');
+                orderFilter.dispatchEvent(orderChangeEvent);
+            } else {
+                console.error('Order not found in dropdown:', orderNumber);
+                // Fallback: load the order directly
+                loadOrder(orderNumber);
+            }
+        }, 500); // Increased from 300ms to 500ms
+    }
+}
+
+
+// Update showNotification to handle error type
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    const messageEl = notification.querySelector('.notification-message');
+    const icon = notification.querySelector('.notification-icon');
+    
+    messageEl.textContent = message;
+    
+    if (type === 'error') {
+        notification.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a52)';
+        icon.textContent = '⚠';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #26de81, #20bf6b)';
+        icon.textContent = '✓';
+    }
+    
+    notification.classList.add('show');
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+
+
+
+
+
+
+
+
 
 // Function to load order from pending orders modal
 async function loadOrderFromPending(orderId, storeId, storeName) {
@@ -1479,6 +2184,7 @@ async function refreshOrderDropdowns() {
 function goToDashboard() {
     window.location.href = "/office/dashboard/";
 }
+
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
