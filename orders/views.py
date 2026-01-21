@@ -6,7 +6,6 @@ from io import BytesIO
 from django.db.models import Max
 from .models import OnlineOrder, OOIncludes, OOIncludesMisc, BatchMetadata, BulkBatch
 from django.http import JsonResponse
-from django.conf import settings
 from stores.models import StoreOrder, SOIncludes
 import json
 import csv
@@ -26,6 +25,7 @@ from django.utils import timezone
 pacific_tz = pytz.timezone("America/Los_Angeles")
 from django.utils.timezone import localtime
 from io import BytesIO
+ 
 
 # ReportLab imports
 from reportlab.lib.pagesizes import letter
@@ -1028,209 +1028,1263 @@ def get_order_id_by_number(request, order_number):
         return JsonResponse({'error': 'Order not found'}, status=404)
 
 
+
+
+
 @login_required
 def generate_order_pdf(request, order_id):
+    """
+    Generate store invoice PDF matching the Flask version exactly
+    """
+    from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, NextPageTemplate, Table, TableStyle
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from datetime import timedelta
+    from io import BytesIO
+    from django.conf import settings
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+    import platform
+    
+    # Register Calibri fonts for Unicode support (Turkish, etc.)
+    # Try multiple locations for font files
+    use_calibri = False
+    
+    # Font paths to try (in order of preference)
+    font_paths = []
+    
+    # Windows path (for local development)
+    if platform.system() == 'Windows':
+        font_paths.append({
+            'regular': 'C:/Windows/Fonts/calibri.ttf',
+            'bold': 'C:/Windows/Fonts/calibrib.ttf'
+        })
+    
+    # PythonAnywhere/Linux paths
+    # Option 1: In a 'fonts' directory in your project
+    font_dir = os.path.join(settings.BASE_DIR, 'fonts')
+    if os.path.exists(font_dir):
+        font_paths.append({
+            'regular': os.path.join(font_dir, 'calibri.ttf'),
+            'bold': os.path.join(font_dir, 'calibrib.ttf')
+        })
+    
+    # Option 2: In static files directory
+    if hasattr(settings, 'STATIC_ROOT') and settings.STATIC_ROOT:
+        static_font_dir = os.path.join(settings.STATIC_ROOT, 'fonts')
+        if os.path.exists(static_font_dir):
+            font_paths.append({
+                'regular': os.path.join(static_font_dir, 'calibri.ttf'),
+                'bold': os.path.join(static_font_dir, 'calibrib.ttf')
+            })
+    
+    # Try each font path until one works
+    for paths in font_paths:
+        try:
+            if os.path.exists(paths['regular']) and os.path.exists(paths['bold']):
+                pdfmetrics.registerFont(TTFont('Calibri', paths['regular']))
+                pdfmetrics.registerFont(TTFont('Calibri-Bold', paths['bold']))
+                use_calibri = True
+                print(f"✓ Calibri fonts loaded from: {paths['regular']}")
+                break
+        except Exception as e:
+            print(f"Failed to load Calibri from {paths['regular']}: {e}")
+            continue
+    
+    if not use_calibri:
+        print("⚠ Warning: Calibri font not found, using Helvetica (may not display Turkish characters correctly)")
+        print(f"  Searched paths: {[p['regular'] for p in font_paths]}")
+        print(f"  To fix: Create a 'fonts' folder at {os.path.join(settings.BASE_DIR, 'fonts')} and add calibri.ttf and calibrib.ttf")
+    
     try:
         # Get the order and items
         order = get_object_or_404(StoreOrder, id=order_id)
         order_includes = (
-            SOIncludes.objects.filter(store_order_id=order)
-            .select_related("product")
+            SOIncludes.objects.filter(store_order=order)
+            .select_related("product__variety")
         )
-
-        # Create PDF buffer and document
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=letter,
-            topMargin=0.75 * inch,
-            bottomMargin=0.75 * inch,
-            leftMargin=0.75 * inch,
-            rightMargin=0.75 * inch,
+        
+        # Get store information
+        store = order.store
+        
+        # Extract order data
+        order_number = order.order_number
+        shipping = float(order.shipping or 0)
+        
+        # Calculate subtotal from order items
+        subtotal = sum(
+            float(item.quantity or 0) * float(item.price or 0) 
+            for item in order_includes
         )
-
-        elements = []
-        styles = getSampleStyleSheet()
-
-        # Custom styles
-        header_style = ParagraphStyle(
-            "CustomHeader",
-            parent=styles["Heading1"],
-            fontSize=28,
-            spaceAfter=8,
-            textColor=colors.HexColor("#2d4a22"),
-            alignment=TA_CENTER,
-            fontName="Helvetica-Bold",
-        )
-
-        subheader_style = ParagraphStyle(
-            "CustomSubHeader",
-            parent=styles["Normal"],
-            fontSize=16,
-            spaceAfter=20,
-            textColor=colors.HexColor("#4a5568"),
-            alignment=TA_CENTER,
-            fontName="Helvetica",
-        )
-
-        # Header
-        elements.append(Paragraph("UPRISING SEEDS", header_style))
-        elements.append(Paragraph("Wholesale Order Summary", subheader_style))
-        elements.append(Spacer(1, 20))
-
-        # Order info
-        elements.append(
-            Paragraph(f"<b>Order Number:</b> {order.order_number}", styles["Normal"])
-        )
-        elements.append(
-            Paragraph(
-                f"<b>Order Date:</b> {order.date.strftime('%B %d, %Y') if order.date else 'N/A'}",
-                styles["Normal"],
-            )
-        )
-
-                # Add fulfilled date
-        fulfilled_text = "Pending"
-        if order.fulfilled_date:
-            fulfilled_text = order.fulfilled_date.strftime('%B %d, %Y')
-        elements.append(
-            Paragraph(f"<b>Fulfilled Date:</b> {fulfilled_text}", styles["Normal"])
-        )
-
-        if hasattr(order, "store") and order.store:
-            elements.append(
-                Paragraph(f"<b>Store:</b> {order.store.store_name}", styles["Normal"])
-            )
-
-        elements.append(Spacer(1, 25))
-
-        # Items table
-        elements.append(Paragraph("Order Items", styles["Heading2"]))
-
-        table_data = [["Qty", "Variety", "Crop", "Unit Price", "Subtotal"]]
-        pkt_price = settings.PACKET_PRICE
-        total_cost = 0
+        
+        # Get credit from store returns for first invoice of the year
+        # Order number format: WXXYY-ZZ where XX=store_id, YY=order_seq, ZZ=year
+        # Example: W1501-25 means store 15, first order (01), year 2025
+        try:
+            # Extract parts from order number (format: WXXYY-ZZ)
+            order_parts = order_number.split('-')
+            order_prefix = order_parts[0]  # WXXYY
+            year_suffix = order_parts[1]   # ZZ
+            
+            # Get the YY part (order sequence number - last 2 digits of prefix)
+            order_sequence = order_prefix[-2:]  # Last 2 digits
+            
+            print(f"\n=== CREDIT CALCULATION DEBUG ===")
+            print(f"Order number: {order_number}")
+            print(f"Order prefix: {order_prefix}")
+            print(f"Order sequence: {order_sequence}")
+            print(f"Year suffix: {year_suffix}")
+            
+            # Check if this is the first order of the year (sequence = "01")
+            if order_sequence == "01":
+                invoice_year = int(year_suffix)  # Keep as 2-digit year (e.g., 25)
+                previous_year = invoice_year - 1  # e.g., 24
+                print(f"✓ This IS the first order of year {invoice_year}")
+                print(f"Looking for returns from previous year: {previous_year}")
+                
+                # Apply credit using StoreReturns model
+                from stores.models import StoreReturns
+                
+                # Manually query for returns using 2-digit year
+                try:
+                    return_record = StoreReturns.objects.get(
+                        store__store_num=store.store_num,
+                        return_year=previous_year
+                    )
+                    print(f"✓ Found return record: {return_record}")
+                    print(f"  Packets returned: {return_record.packets_returned}")
+                    
+                    # Calculate credit using the packet price
+                    from stores.models import WholesalePktPrice
+                    price = WholesalePktPrice.get_price_for_year(previous_year)
+                    print(f"  Price for year {previous_year}: {price}")
+                    
+                    if price:
+                        from decimal import Decimal
+                        credit_amount = Decimal(str(return_record.packets_returned)) * price
+                        credit = float(credit_amount)
+                        print(f"✓ Calculated credit: ${credit}")
+                    else:
+                        print(f"✗ No price found for year {previous_year}")
+                        credit = 0.0
+                except StoreReturns.DoesNotExist:
+                    print(f"✗ No return record found for store {store.store_num}, year {previous_year}")
+                    credit = 0.0
+            else:
+                print(f"✗ NOT first order (sequence is {order_sequence}, not 01)")
+                credit = 0.0
+            
+            print(f"=== CREDIT CALCULATION DEBUG END ===\n")
+        except (IndexError, ValueError, AttributeError) as e:
+            print(f"Error parsing order number for credit: {e}")
+            import traceback
+            traceback.print_exc()
+            credit = 0.0
+        
+        total_due = subtotal + shipping - credit
+        
+        # Get order date and calculate due date (Net 30)
+        try:
+            if order.fulfilled_date:
+                order_date = order.fulfilled_date
+                order_date_formatted = order_date.strftime("%m/%d/%Y")
+                due_date = order_date + timedelta(days=30)
+                due_date_str = due_date.strftime("%m/%d/%Y")
+            else:
+                order_date_formatted = 'N/A'
+                due_date_str = 'N/A'
+        except:
+            order_date_formatted = 'N/A'
+            due_date_str = 'N/A'
+        
+        # Store address information
+        store_address = store.store_address or ''
+        store_address2 = store.store_address2 or ''
+        store_city = store.store_city or ''
+        store_state = store.store_state or ''
+        store_zip = store.store_zip or ''
+        
+        # Build items data
+        items = []
         for item in order_includes:
+            variety_name = item.product.variety.var_name if item.product and item.product.variety else 'Unknown'
+            crop = item.product.variety.crop if item.product and item.product.variety else 'Unknown'
             quantity = item.quantity or 0
-            variety = (
-                item.product.variety.var_name if item.product else "N/A"
-            )
-            crop = item.product.variety.crop if item.product else "N/A"
-            line_total = quantity * pkt_price
-
-            # Truncate long variety names
-            if len(variety) > 35:
-                variety = variety[:32] + "..."
-
-            table_data.append(
-                [
-                    str(quantity),
-                    variety,
-                    crop,
-                    f"${pkt_price:.2f}",
-                    f"${line_total:.2f}",
-                ]
-            )
-
-            total_cost += line_total
-
-        items_table = Table(
-            table_data,
-            colWidths=[0.5 * inch, 2.8 * inch, 1.9 * inch, 0.8 * inch, 0.8 * inch],
+            price = float(settings.PACKET_PRICE)
+            
+            items.append({
+                'variety_name': variety_name,
+                'crop': crop,
+                'quantity': quantity,
+                'price': price
+            })
+        
+        # Create PDF buffer
+        buffer = BytesIO()
+        width, height = letter
+        
+        # Calculate pagination based on item count
+        item_count = len(items)
+        if item_count <= 25:
+            num_pages = 1
+        elif item_count <= 62:
+            num_pages = 2
+        elif item_count <= 99:
+            num_pages = 3
+        elif item_count <= 136:
+            num_pages = 4
+        elif item_count <= 173:
+            num_pages = 5
+        elif item_count <= 210:
+            num_pages = 6
+        elif item_count <= 247:
+            num_pages = 7
+        else:
+            num_pages = 8
+        
+        # Build table data - COLUMN ORDER: Qty, Variety, Crop, Unit Price, Extended
+        data = [["Qty", "Variety", "Crop", "Unit Price", "Extended"]]
+        for item in items:
+            variety = item['variety_name']
+            crop = item['crop']
+            quantity = item['quantity']
+            price = item['price']
+            line_total = quantity * price
+            
+            data.append([
+                str(quantity),
+                variety,
+                crop,
+                f"${price:.2f}",
+                f"${line_total:.2f}"
+            ])
+        
+        # Create table with exact column widths from Flask
+        table = Table(data, colWidths=[40, 193, 135, 70, 70], repeatRows=1, hAlign='LEFT')
+        
+        # Determine which font to use
+        font_name = "Calibri" if use_calibri else "Helvetica"
+        font_bold = "Calibri-Bold" if use_calibri else "Helvetica-Bold"
+        
+        # Apply exact table styling from Flask
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("FONTNAME", (0, 0), (-1, 0), font_bold),
+            ("FONTNAME", (0, 1), (-1, -1), font_name),
+            ("ALIGN", (0, 0), (0, -1), "CENTER"),
+            ("ALIGN", (1, 1), (2, -1), "LEFT"),
+            ("ALIGN", (3, 0), (-1, -1), "RIGHT"),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ]))
+        
+        # Frames with different top margins (matching Flask)
+        first_page_frame = Frame(
+            45,
+            30,
+            width - 60,
+            height - 300
         )
-        items_table.setStyle(
-            TableStyle(
-                [
-                    # Header
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d4a22")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, 0), 11),
-                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-                    # Data rows
-                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-                    ("FONTSIZE", (0, 1), (-1, -1), 10),
-                    ("ALIGN", (0, 1), (0, -1), "CENTER"),
-                    ("ALIGN", (1, 1), (2, -1), "LEFT"),
-                    ("ALIGN", (3, 1), (-1, -1), "RIGHT"),
-                    # Styling
-                    ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e2e8f0")),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("TOPPADDING", (0, 0), (-1, -1), 8),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
-                ]
-            )
+        
+        later_pages_frame = Frame(
+            45,
+            30,
+            width - 60,
+            height - 80
         )
-
-        elements.append(items_table)
-        elements.append(Spacer(1, 25))
-
-        # Totals
-        elements.append(Paragraph("Order Summary", styles["Heading2"]))
-
-        totals_data = [
-            ["Subtotal:", f"${total_cost:.2f}"],
-            ["Shipping:", "TBD"],
-            ["Total:", "TBD"],
+        
+        # Logo path - adjust this to match your Django static files setup
+        # You'll need to use Django's static file finder or hardcode the path
+        logo_path = os.path.join(settings.STATIC_ROOT or settings.BASE_DIR, 'images', 'logo.png')
+        # Alternative: logo_path = finders.find('images/logo.png')
+        
+        # Page header functions
+        def on_first_page(canvas, doc):
+            # Top header line with order number and page number
+            canvas.setFont(font_name, 13)
+            canvas.drawString(30, height - 30, f"Order #: {order_number}")
+            canvas.drawCentredString(width / 2, height - 30, "INVOICE")
+            canvas.drawRightString(width - 40, height - 30, f"PAGE 1 of {num_pages}")
+            canvas.line(0, height - 40, width - 0, height - 40)
+            
+            # Logo (if logo file exists)
+            if os.path.exists(logo_path):
+                logo_width = 100
+                logo_height = 50
+                logo_x = width - logo_width - 40
+                logo_y = height - logo_height - 50
+                canvas.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+            
+            # Company info
+            canvas.setFont(font_bold, 14)
+            canvas.drawString(50, height - 60, "Uprising Seeds")
+            canvas.setFont(font_name, 12)
+            canvas.drawString(50, height - 75, "1501 Fraser St")
+            canvas.drawString(50, height - 90, "Suite 105")
+            canvas.drawString(50, height - 105, "Bellingham, WA 98229")
+            canvas.drawString(50, height - 120, "360-778-3749")
+            canvas.drawString(50, height - 135, "wholesale@uprisingorganics.com")
+            
+            # Ship To box
+            canvas.line(50, height - 150, width - 300, height - 150)
+            canvas.setFont(font_bold, 12)
+            canvas.drawString(60, height - 164, "SHIP TO:")
+            canvas.line(50, height - 150, 50, height - 265)
+            canvas.line(width - 300, height - 150, width - 300, height - 265)
+            canvas.line(50, height - 170, width - 300, height - 170)
+            
+            # Right-aligned label helper
+            def draw_right_label(label, y):
+                text_width = canvas.stringWidth(label, font_name, 12)
+                canvas.drawString(130 - text_width, y, label)
+            
+            canvas.setFont(font_name, 12)
+            
+            # Ship to info
+            draw_right_label("Order #:", height - 185)
+            draw_right_label("Name:", height - 200)
+            draw_right_label("Date:", height - 215)
+            canvas.drawString(140, height - 215, order_date_formatted)
+            draw_right_label("Address:", height - 230)
+            canvas.drawString(140, height - 230, store_address)
+            
+            if store_address2:
+                draw_right_label("Address 2:", height - 245)
+                canvas.drawString(140, height - 245, store_address2)
+                draw_right_label("City/State/Zip:", height - 260)
+                canvas.drawString(140, height - 260, f"{store_city}, {store_state}   {store_zip}")
+            else:
+                draw_right_label("City/State/Zip:", height - 245)
+                canvas.drawString(140, height - 245, f"{store_city}, {store_state}   {store_zip}")
+            
+            # Order info
+            canvas.setFont(font_bold, 12)
+            canvas.drawString(140, height - 185, order_number)
+            canvas.drawString(140, height - 200, store.store_name)
+            
+            # Order summary box
+            right_x = 550
+            label_x = 435
+            
+            def format_currency(value):
+                try:
+                    return f"${float(value):.2f}"
+                except (ValueError, TypeError):
+                    return "$0.00"
+            
+            def draw_right_aligned_label_value(label, value, y_position):
+                try:
+                    float(value)
+                    value_str = format_currency(value)
+                except (ValueError, TypeError):
+                    value_str = str(value)
+                
+                canvas.drawString(label_x, y_position, label)
+                value_width = canvas.stringWidth(value_str, font_name, 12)
+                canvas.drawString(right_x - value_width, y_position, value_str)
+            
+            canvas.setFont(font_name, 12)
+            draw_right_aligned_label_value("Subtotal:", subtotal, height - 180)
+            draw_right_aligned_label_value("Shipping:", shipping, height - 195)
+            draw_right_aligned_label_value("Credit:", credit, height - 210)
+            
+            canvas.setFont(font_bold, 12)
+            draw_right_aligned_label_value("Total Due:", total_due, height - 225)
+            canvas.setFont(font_name, 12)
+            draw_right_aligned_label_value("Term:", "Net 30", height - 245)
+            draw_right_aligned_label_value("Due Date:", due_date_str, height - 260)
+            
+            # Box around order summary
+            canvas.drawString(452, height - 159, "Order Summary")
+            canvas.line(428, height - 145, 428, height - 265)
+            canvas.line(558, height - 145, 558, height - 265)
+            canvas.line(428, height - 145, 558, height - 145)
+            canvas.line(428, height - 166, 558, height - 166)
+            canvas.line(428, height - 265, 558, height - 265)
+            canvas.line(428, height - 232, 558, height - 232)
+            
+            canvas.line(50, height - 265, width - 300, height - 265)
+        
+        def on_later_pages(canvas, doc):
+            canvas.setFont(font_name, 13)
+            canvas.drawString(30, height - 30, f"Order #: {order_number}")
+            canvas.drawCentredString(width / 2, height - 30, "INVOICE")
+            canvas.drawRightString(width - 40, height - 30, f"PAGE {doc.page} of {num_pages}")
+            canvas.line(0, height - 40, width - 0, height - 40)
+        
+        # Set up the document
+        doc = BaseDocTemplate(buffer, pagesize=letter)
+        doc.addPageTemplates([
+            PageTemplate(id='FirstPage', frames=first_page_frame, onPage=on_first_page),
+            PageTemplate(id='LaterPages', frames=later_pages_frame, onPage=on_later_pages)
+        ])
+        
+        # Build elements list with first page handling
+        elements = [
+            NextPageTemplate('LaterPages'),
+            table
         ]
-
-        totals_table = Table(totals_data, colWidths=[4.5 * inch, 1.5 * inch])
-        totals_table.setStyle(
-            TableStyle(
-                [
-                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 11),
-                    ("ALIGN", (0, 0), (0, -1), "RIGHT"),
-                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ]
-            )
-        )
-
-        elements.append(totals_table)
-        elements.append(Spacer(1, 30))
-
-        # Footer
-        footer_style = ParagraphStyle(
-            "FooterStyle",
-            parent=styles["Normal"],
-            fontSize=9,
-            textColor=colors.HexColor("#6c757d"),
-            alignment=TA_CENTER,
-        )
-
-        elements.append(
-            Paragraph("Thank you for your order!", footer_style)
-        )
-        elements.append(
-            Paragraph(
-                "For questions, please contact us at wholesale@uprisingorganics.com.",
-                footer_style,
-            )
-        )
-
-         # Metadata callback
-        def add_pdf_metadata(canvas, doc):
-            clean_title = f""
-            canvas.setTitle(clean_title)
-            canvas.setAuthor("Uprising Seeds")
-            canvas.setSubject("Wholesale Order Summary")
-
-        # Build PDF with metadata
-        doc.build(elements, onFirstPage=add_pdf_metadata)
-
+        
+        # Build the PDF
+        doc.build(elements)
+        
+        # Return the PDF
         pdf_data = buffer.getvalue()
         buffer.close()
-
+        
         response = HttpResponse(pdf_data, content_type="application/pdf")
-        clean_filename = f"Uprising Order {order.order_number}.pdf"
+        clean_filename = f"Uprising_Invoice_{order_number}.pdf"
         response["Content-Disposition"] = f'inline; filename="{clean_filename}"'
         return response
-
+        
     except Exception as e:
-        return HttpResponse(f"Error: {str(e)}", content_type="text/plain")
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(f"Error generating PDF: {str(e)}", content_type="text/plain", status=500)
+
+# @login_required
+# def generate_order_pdf(request, order_id):
+#     """
+#     Generate store invoice PDF matching the Flask version exactly
+#     """
+#     from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, NextPageTemplate, Table, TableStyle
+#     from reportlab.lib.pagesizes import letter
+#     from reportlab.lib import colors
+#     from reportlab.lib.units import inch
+#     from datetime import timedelta
+#     from io import BytesIO
+#     from django.conf import settings
+#     import os
+    
+#     try:
+#         # Get the order and items
+#         order = get_object_or_404(StoreOrder, id=order_id)
+#         order_includes = (
+#             SOIncludes.objects.filter(store_order=order)
+#             .select_related("product__variety")
+#         )
+        
+#         # Get store information
+#         store = order.store
+        
+#         # Extract order data
+#         order_number = order.order_number
+#         shipping = float(order.shipping or 0)
+        
+#         # Calculate subtotal from order items
+#         subtotal = sum(
+#             float(item.quantity or 0) * float(item.price or 0) 
+#             for item in order_includes
+#         )
+        
+#         # Get credit from store returns for first invoice of the year
+#         # Order number format: WXXYY-ZZ where XX=store_id, YY=order_seq, ZZ=year
+#         # Example: W1501-25 means store 15, first order (01), year 2025
+#         try:
+#             # Extract parts from order number (format: WXXYY-ZZ)
+#             order_parts = order_number.split('-')
+#             order_prefix = order_parts[0]  # WXXYY
+#             year_suffix = order_parts[1]   # ZZ
+            
+#             print(f"Order Prefix: {order_prefix}, Year Suffix: {year_suffix}")
+#             # Get the YY part (order sequence number - last 2 digits of prefix)
+#             order_sequence = order_prefix[-2:]  # Last 2 digits
+#             print(f"Order Sequence: {order_sequence}")
+#             # Check if this is the first order of the year (sequence = "01")
+#             if order_sequence == "01":
+#                 invoice_year = 2000 + int(year_suffix)
+                
+#                 # Apply credit using StoreReturns model
+#                 from stores.models import StoreReturns
+#                 packets_returned, credit = StoreReturns.get_credit_for_first_invoice(
+#                     store.store_num, 
+#                     invoice_year
+#                 )
+#                 credit = float(credit)
+#             else:
+#                 credit = 0.0
+#         except (IndexError, ValueError, AttributeError) as e:
+#             print(f"Error parsing order number for credit: {e}")
+#             credit = 0.0
+        
+#         total_due = subtotal + shipping - credit
+        
+#         # Get order date and calculate due date (Net 30)
+#         try:
+#             if order.fulfilled_date:
+#                 order_date = order.fulfilled_date
+#                 order_date_formatted = order_date.strftime("%m/%d/%Y")
+#                 due_date = order_date + timedelta(days=30)
+#                 due_date_str = due_date.strftime("%m/%d/%Y")
+#             else:
+#                 order_date_formatted = 'N/A'
+#                 due_date_str = 'N/A'
+#         except:
+#             order_date_formatted = 'N/A'
+#             due_date_str = 'N/A'
+        
+#         # Store address information
+#         store_address = store.store_address or ''
+#         store_address2 = store.store_address2 or ''
+#         store_city = store.store_city or ''
+#         store_state = store.store_state or ''
+#         store_zip = store.store_zip or ''
+        
+#         # Build items data
+#         items = []
+#         for item in order_includes:
+#             variety_name = item.product.variety.var_name if item.product and item.product.variety else 'Unknown'
+#             crop = item.product.variety.crop if item.product and item.product.variety else 'Unknown'
+#             quantity = item.quantity or 0
+#             price = float(settings.PACKET_PRICE)
+            
+#             items.append({
+#                 'variety_name': variety_name,
+#                 'crop': crop,
+#                 'quantity': quantity,
+#                 'price': price
+#             })
+        
+#         # Create PDF buffer
+#         buffer = BytesIO()
+#         width, height = letter
+        
+#         # Calculate pagination based on item count
+#         item_count = len(items)
+#         if item_count <= 25:
+#             num_pages = 1
+#         elif item_count <= 62:
+#             num_pages = 2
+#         elif item_count <= 99:
+#             num_pages = 3
+#         elif item_count <= 136:
+#             num_pages = 4
+#         elif item_count <= 173:
+#             num_pages = 5
+#         elif item_count <= 210:
+#             num_pages = 6
+#         elif item_count <= 247:
+#             num_pages = 7
+#         else:
+#             num_pages = 8
+        
+#         # Build table data - COLUMN ORDER: Qty, Variety, Crop, Unit Price, Extended
+#         data = [["Qty", "Variety", "Crop", "Unit Price", "Extended"]]
+#         for item in items:
+#             variety = item['variety_name']
+#             crop = item['crop']
+#             quantity = item['quantity']
+#             price = item['price']
+#             line_total = quantity * price
+            
+#             data.append([
+#                 str(quantity),
+#                 variety,
+#                 crop,
+#                 f"${price:.2f}",
+#                 f"${line_total:.2f}"
+#             ])
+        
+#         # Create table with exact column widths from Flask
+#         table = Table(data, colWidths=[40, 193, 135, 70, 70], repeatRows=1, hAlign='LEFT')
+        
+#         # Apply exact table styling from Flask
+#         table.setStyle(TableStyle([
+#             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+#             ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+#             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+#             ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+#             ("ALIGN", (0, 0), (0, -1), "CENTER"),
+#             ("ALIGN", (1, 1), (2, -1), "LEFT"),
+#             ("ALIGN", (3, 0), (-1, -1), "RIGHT"),
+#             ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+#         ]))
+        
+#         # Frames with different top margins (matching Flask)
+#         first_page_frame = Frame(
+#             45,
+#             30,
+#             width - 60,
+#             height - 300
+#         )
+        
+#         later_pages_frame = Frame(
+#             45,
+#             30,
+#             width - 60,
+#             height - 80
+#         )
+        
+#         # Logo path - adjust this to match your Django static files setup
+#         # You'll need to use Django's static file finder or hardcode the path
+#         logo_path = os.path.join(settings.STATIC_ROOT or settings.BASE_DIR, 'images', 'logo.png')
+#         # Alternative: logo_path = finders.find('images/logo.png')
+        
+#         # Page header functions
+#         def on_first_page(canvas, doc):
+#             # Top header line with order number and page number
+#             canvas.setFont("Helvetica", 13)
+#             canvas.drawString(30, height - 30, f"Order #: {order_number}")
+#             canvas.drawCentredString(width / 2, height - 30, "INVOICE")
+#             canvas.drawRightString(width - 40, height - 30, f"PAGE 1 of {num_pages}")
+#             canvas.line(0, height - 40, width - 0, height - 40)
+            
+#             # Logo (if logo file exists)
+#             if os.path.exists(logo_path):
+#                 logo_width = 100
+#                 logo_height = 50
+#                 logo_x = width - logo_width - 40
+#                 logo_y = height - logo_height - 50
+#                 canvas.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+            
+#             # Company info
+#             canvas.setFont("Helvetica-Bold", 14)
+#             canvas.drawString(50, height - 60, "Uprising Seeds")
+#             canvas.setFont("Helvetica", 12)
+#             canvas.drawString(50, height - 75, "1501 Fraser St")
+#             canvas.drawString(50, height - 90, "Suite 105")
+#             canvas.drawString(50, height - 105, "Bellingham, WA 98229")
+#             canvas.drawString(50, height - 120, "360-778-3749")
+#             canvas.drawString(50, height - 135, "wholesale@uprisingorganics.com")
+            
+#             # Ship To box
+#             canvas.line(50, height - 150, width - 300, height - 150)
+#             canvas.setFont("Helvetica-Bold", 12)
+#             canvas.drawString(60, height - 164, "SHIP TO:")
+#             canvas.line(50, height - 150, 50, height - 265)
+#             canvas.line(width - 300, height - 150, width - 300, height - 265)
+#             canvas.line(50, height - 170, width - 300, height - 170)
+            
+#             # Right-aligned label helper
+#             def draw_right_label(label, y):
+#                 text_width = canvas.stringWidth(label, "Helvetica", 12)
+#                 canvas.drawString(130 - text_width, y, label)
+            
+#             canvas.setFont("Helvetica", 12)
+            
+#             # Ship to info
+#             draw_right_label("Order #:", height - 185)
+#             draw_right_label("Name:", height - 200)
+#             draw_right_label("Date:", height - 215)
+#             canvas.drawString(140, height - 215, order_date_formatted)
+#             draw_right_label("Address:", height - 230)
+#             canvas.drawString(140, height - 230, store_address)
+            
+#             if store_address2:
+#                 draw_right_label("Address 2:", height - 245)
+#                 canvas.drawString(140, height - 245, store_address2)
+#                 draw_right_label("City/State/Zip:", height - 260)
+#                 canvas.drawString(140, height - 260, f"{store_city}, {store_state}   {store_zip}")
+#             else:
+#                 draw_right_label("City/State/Zip:", height - 245)
+#                 canvas.drawString(140, height - 245, f"{store_city}, {store_state}   {store_zip}")
+            
+#             # Order info
+#             canvas.setFont("Helvetica-Bold", 12)
+#             canvas.drawString(140, height - 185, order_number)
+#             canvas.drawString(140, height - 200, store.store_name)
+            
+#             # Order summary box
+#             right_x = 550
+#             label_x = 435
+            
+#             def format_currency(value):
+#                 try:
+#                     return f"${float(value):.2f}"
+#                 except (ValueError, TypeError):
+#                     return "$0.00"
+            
+#             def draw_right_aligned_label_value(label, value, y_position):
+#                 try:
+#                     float(value)
+#                     value_str = format_currency(value)
+#                 except (ValueError, TypeError):
+#                     value_str = str(value)
+                
+#                 canvas.drawString(label_x, y_position, label)
+#                 value_width = canvas.stringWidth(value_str, "Helvetica", 12)
+#                 canvas.drawString(right_x - value_width, y_position, value_str)
+            
+#             canvas.setFont("Helvetica", 12)
+#             draw_right_aligned_label_value("Subtotal:", subtotal, height - 180)
+#             draw_right_aligned_label_value("Shipping:", shipping, height - 195)
+#             draw_right_aligned_label_value("Credit:", credit, height - 210)
+            
+#             canvas.setFont("Helvetica-Bold", 12)
+#             draw_right_aligned_label_value("Total Due:", total_due, height - 225)
+#             canvas.setFont("Helvetica", 12)
+#             draw_right_aligned_label_value("Term:", "Net 30", height - 245)
+#             draw_right_aligned_label_value("Due Date:", due_date_str, height - 260)
+            
+#             # Box around order summary
+#             canvas.drawString(452, height - 159, "Order Summary")
+#             canvas.line(428, height - 145, 428, height - 265)
+#             canvas.line(558, height - 145, 558, height - 265)
+#             canvas.line(428, height - 145, 558, height - 145)
+#             canvas.line(428, height - 166, 558, height - 166)
+#             canvas.line(428, height - 265, 558, height - 265)
+#             canvas.line(428, height - 232, 558, height - 232)
+            
+#             canvas.line(50, height - 265, width - 300, height - 265)
+        
+#         def on_later_pages(canvas, doc):
+#             canvas.setFont("Helvetica", 13)
+#             canvas.drawString(30, height - 30, f"Order #: {order_number}")
+#             canvas.drawCentredString(width / 2, height - 30, "INVOICE")
+#             canvas.drawRightString(width - 40, height - 30, f"PAGE {doc.page} of {num_pages}")
+#             canvas.line(0, height - 40, width - 0, height - 40)
+        
+#         # Set up the document
+#         doc = BaseDocTemplate(buffer, pagesize=letter)
+#         doc.addPageTemplates([
+#             PageTemplate(id='FirstPage', frames=first_page_frame, onPage=on_first_page),
+#             PageTemplate(id='LaterPages', frames=later_pages_frame, onPage=on_later_pages)
+#         ])
+        
+#         # Build elements list with first page handling
+#         elements = [
+#             NextPageTemplate('LaterPages'),
+#             table
+#         ]
+        
+#         # Build the PDF
+#         doc.build(elements)
+        
+#         # Return the PDF
+#         pdf_data = buffer.getvalue()
+#         buffer.close()
+        
+#         response = HttpResponse(pdf_data, content_type="application/pdf")
+#         clean_filename = f"Uprising_Invoice_{order_number}.pdf"
+#         response["Content-Disposition"] = f'inline; filename="{clean_filename}"'
+#         return response
+        
+#     except Exception as e:
+#         import traceback
+#         traceback.print_exc()
+#         return HttpResponse(f"Error generating PDF: {str(e)}", content_type="text/plain", status=500)
+# @login_required
+# def generate_order_pdf(request, order_id):
+#     """
+#     Generate store invoice PDF matching the Flask version exactly
+#     """
+#     from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, NextPageTemplate, Table, TableStyle
+#     from reportlab.lib.pagesizes import letter
+#     from reportlab.lib import colors
+#     from reportlab.lib.units import inch
+#     from datetime import timedelta
+#     from io import BytesIO
+#     import os
+#     from django.conf import settings
+    
+#     try:
+#         # Get the order and items
+#         order = get_object_or_404(StoreOrder, id=order_id)
+#         order_includes = (
+#             SOIncludes.objects.filter(store_order=order)
+#             .select_related("product__variety")
+#         )
+        
+#         # Get store information
+#         store = order.store
+        
+#         # Extract order data
+#         order_number = order.order_number
+#         shipping = float(order.shipping or 0)
+        
+#         # Calculate subtotal from order items
+#         subtotal = sum(
+#             float(item.quantity or 0) * float(item.price or 0) 
+#             for item in order_includes
+#         )
+        
+#         # Get credit from store returns for first invoice of the year
+#         # Extract year from order number (format: SOXXXX-YY)
+#         try:
+#             year_suffix = order_number.split('-')[1]
+#             invoice_year = 2000 + int(year_suffix)
+            
+#             # Check if this is the first invoice of the year
+#             first_order_of_year = StoreOrder.objects.filter(
+#                 store=store,
+#                 order_number__endswith=f'-{year_suffix}',
+#                 fulfilled_date__isnull=False
+#             ).order_by('fulfilled_date').first()
+            
+#             if first_order_of_year and first_order_of_year.id == order.id:
+#                 # This is the first invoice - apply credit
+#                 from stores.models import StoreReturns
+#                 packets_returned, credit = StoreReturns.get_credit_for_first_invoice(
+#                     store.store_num, 
+#                     invoice_year
+#                 )
+#                 credit = float(credit)
+#             else:
+#                 credit = 0
+#         except (IndexError, ValueError, AttributeError):
+#             credit = 0
+        
+#         total_due = subtotal + shipping - credit
+        
+#         # Get order date and calculate due date (Net 30)
+#         try:
+#             if order.fulfilled_date:
+#                 order_date = order.fulfilled_date
+#                 order_date_formatted = order_date.strftime("%m/%d/%Y")
+#                 due_date = order_date + timedelta(days=30)
+#                 due_date_str = due_date.strftime("%m/%d/%Y")
+#             else:
+#                 order_date_formatted = 'N/A'
+#                 due_date_str = 'N/A'
+#         except:
+#             order_date_formatted = 'N/A'
+#             due_date_str = 'N/A'
+        
+#         # Store address information
+#         store_address = store.store_address or ''
+#         store_address2 = store.store_address2 or ''
+#         store_city = store.store_city or ''
+#         store_state = store.store_state or ''
+#         store_zip = store.store_zip or ''
+        
+#         # Build items data
+#         items = []
+#         for item in order_includes:
+#             variety_name = item.product.variety.var_name if item.product and item.product.variety else 'Unknown'
+#             crop = item.product.variety.crop if item.product and item.product.variety else 'Unknown'
+#             quantity = item.quantity or 0
+#             price = float(settings.PACKET_PRICE)
+            
+#             items.append({
+#                 'variety_name': variety_name,
+#                 'crop': crop,
+#                 'quantity': quantity,
+#                 'price': price
+#             })
+        
+#         # Create PDF buffer
+#         buffer = BytesIO()
+#         width, height = letter
+        
+#         # Calculate pagination based on item count
+#         item_count = len(items)
+#         if item_count <= 25:
+#             num_pages = 1
+#         elif item_count <= 62:
+#             num_pages = 2
+#         elif item_count <= 99:
+#             num_pages = 3
+#         elif item_count <= 136:
+#             num_pages = 4
+#         elif item_count <= 173:
+#             num_pages = 5
+#         elif item_count <= 210:
+#             num_pages = 6
+#         elif item_count <= 247:
+#             num_pages = 7
+#         else:
+#             num_pages = 8
+        
+#         # Build table data - COLUMN ORDER: Qty, Variety, Crop, Unit Price, Extended
+#         data = [["Qty", "Variety", "Crop", "Unit Price", "Extended"]]
+#         for item in items:
+#             variety = item['variety_name']
+#             crop = item['crop']
+#             quantity = item['quantity']
+#             price = item['price']
+#             line_total = quantity * price
+            
+#             data.append([
+#                 str(quantity),
+#                 variety,
+#                 crop,
+#                 f"${price:.2f}",
+#                 f"${line_total:.2f}"
+#             ])
+        
+#         # Create table with exact column widths from Flask
+#         table = Table(data, colWidths=[40, 193, 135, 70, 70], repeatRows=1, hAlign='LEFT')
+        
+#         # Apply exact table styling from Flask
+#         table.setStyle(TableStyle([
+#             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+#             ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+#             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+#             ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+#             ("ALIGN", (0, 0), (0, -1), "CENTER"),
+#             ("ALIGN", (1, 1), (2, -1), "LEFT"),
+#             ("ALIGN", (3, 0), (-1, -1), "RIGHT"),
+#             ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+#         ]))
+        
+#         # Frames with different top margins (matching Flask)
+#         first_page_frame = Frame(
+#             45,
+#             30,
+#             width - 60,
+#             height - 300
+#         )
+        
+#         later_pages_frame = Frame(
+#             45,
+#             30,
+#             width - 60,
+#             height - 80
+#         )
+        
+#         # Logo path - adjust this to match your Django static files setup
+#         # You'll need to use Django's static file finder or hardcode the path
+#         logo_path = os.path.join(settings.STATIC_ROOT or settings.BASE_DIR, 'images', 'logo.png')
+#         # Alternative: logo_path = finders.find('images/logo.png')
+        
+#         # Page header functions
+#         def on_first_page(canvas, doc):
+#             # Top header line with order number and page number
+#             canvas.setFont("Helvetica", 13)
+#             canvas.drawString(30, height - 30, f"Order #: {order_number}")
+#             canvas.drawCentredString(width / 2, height - 30, "INVOICE")
+#             canvas.drawRightString(width - 40, height - 30, f"PAGE 1 of {num_pages}")
+#             canvas.line(0, height - 40, width - 0, height - 40)
+            
+#             # Logo (if logo file exists)
+#             if os.path.exists(logo_path):
+#                 logo_width = 100
+#                 logo_height = 50
+#                 logo_x = width - logo_width - 40
+#                 logo_y = height - logo_height - 50
+#                 canvas.drawImage(logo_path, logo_x, logo_y, width=logo_width, height=logo_height, mask='auto')
+            
+#             # Company info
+#             canvas.setFont("Helvetica-Bold", 14)
+#             canvas.drawString(50, height - 60, "Uprising Seeds")
+#             canvas.setFont("Helvetica", 12)
+#             canvas.drawString(50, height - 75, "1501 Fraser St")
+#             canvas.drawString(50, height - 90, "Suite 105")
+#             canvas.drawString(50, height - 105, "Bellingham, WA 98229")
+#             canvas.drawString(50, height - 120, "360-778-3749")
+#             canvas.drawString(50, height - 135, "wholesale@uprisingorganics.com")
+            
+#             # Ship To box
+#             canvas.line(50, height - 150, width - 300, height - 150)
+#             canvas.setFont("Helvetica-Bold", 12)
+#             canvas.drawString(60, height - 164, "SHIP TO:")
+#             canvas.line(50, height - 150, 50, height - 265)
+#             canvas.line(width - 300, height - 150, width - 300, height - 265)
+#             canvas.line(50, height - 170, width - 300, height - 170)
+            
+#             # Right-aligned label helper
+#             def draw_right_label(label, y):
+#                 text_width = canvas.stringWidth(label, "Helvetica", 12)
+#                 canvas.drawString(130 - text_width, y, label)
+            
+#             canvas.setFont("Helvetica", 12)
+            
+#             # Ship to info
+#             draw_right_label("Order #:", height - 185)
+#             draw_right_label("Name:", height - 200)
+#             draw_right_label("Date:", height - 215)
+#             canvas.drawString(140, height - 215, order_date_formatted)
+#             draw_right_label("Address:", height - 230)
+#             canvas.drawString(140, height - 230, store_address)
+            
+#             if store_address2:
+#                 draw_right_label("Address 2:", height - 245)
+#                 canvas.drawString(140, height - 245, store_address2)
+#                 draw_right_label("City/State/Zip:", height - 260)
+#                 canvas.drawString(140, height - 260, f"{store_city}, {store_state}   {store_zip}")
+#             else:
+#                 draw_right_label("City/State/Zip:", height - 245)
+#                 canvas.drawString(140, height - 245, f"{store_city}, {store_state}   {store_zip}")
+            
+#             # Order info
+#             canvas.setFont("Helvetica-Bold", 12)
+#             canvas.drawString(140, height - 185, order_number)
+#             canvas.drawString(140, height - 200, store.store_name)
+            
+#             # Order summary box
+#             right_x = 550
+#             label_x = 435
+            
+#             def format_currency(value):
+#                 try:
+#                     return f"${float(value):.2f}"
+#                 except (ValueError, TypeError):
+#                     return "$0.00"
+            
+#             def draw_right_aligned_label_value(label, value, y_position):
+#                 try:
+#                     float(value)
+#                     value_str = format_currency(value)
+#                 except (ValueError, TypeError):
+#                     value_str = str(value)
+                
+#                 canvas.drawString(label_x, y_position, label)
+#                 value_width = canvas.stringWidth(value_str, "Helvetica", 12)
+#                 canvas.drawString(right_x - value_width, y_position, value_str)
+            
+#             canvas.setFont("Helvetica", 12)
+#             draw_right_aligned_label_value("Subtotal:", subtotal, height - 180)
+#             draw_right_aligned_label_value("Shipping:", shipping, height - 195)
+#             draw_right_aligned_label_value("Credit:", credit, height - 210)
+            
+#             canvas.setFont("Helvetica-Bold", 12)
+#             draw_right_aligned_label_value("Total Due:", total_due, height - 225)
+#             canvas.setFont("Helvetica", 12)
+#             draw_right_aligned_label_value("Term:", "Net 30", height - 245)
+#             draw_right_aligned_label_value("Due Date:", due_date_str, height - 260)
+            
+#             # Box around order summary
+#             canvas.drawString(452, height - 159, "Order Summary")
+#             canvas.line(428, height - 145, 428, height - 265)
+#             canvas.line(558, height - 145, 558, height - 265)
+#             canvas.line(428, height - 145, 558, height - 145)
+#             canvas.line(428, height - 166, 558, height - 166)
+#             canvas.line(428, height - 265, 558, height - 265)
+#             canvas.line(428, height - 232, 558, height - 232)
+            
+#             canvas.line(50, height - 265, width - 300, height - 265)
+        
+#         def on_later_pages(canvas, doc):
+#             canvas.setFont("Helvetica", 13)
+#             canvas.drawString(30, height - 30, f"Order #: {order_number}")
+#             canvas.drawCentredString(width / 2, height - 30, "INVOICE")
+#             canvas.drawRightString(width - 40, height - 30, f"PAGE {doc.page} of {num_pages}")
+#             canvas.line(0, height - 40, width - 0, height - 40)
+        
+#         # Set up the document
+#         doc = BaseDocTemplate(buffer, pagesize=letter)
+#         doc.addPageTemplates([
+#             PageTemplate(id='FirstPage', frames=first_page_frame, onPage=on_first_page),
+#             PageTemplate(id='LaterPages', frames=later_pages_frame, onPage=on_later_pages)
+#         ])
+        
+#         # Build elements list with first page handling
+#         elements = [
+#             NextPageTemplate('LaterPages'),
+#             table
+#         ]
+        
+#         # Build the PDF
+#         doc.build(elements)
+        
+#         # Return the PDF
+#         pdf_data = buffer.getvalue()
+#         buffer.close()
+        
+#         response = HttpResponse(pdf_data, content_type="application/pdf")
+#         clean_filename = f"Uprising_Invoice_{order_number}.pdf"
+#         response["Content-Disposition"] = f'inline; filename="{clean_filename}"'
+#         return response
+        
+#     except Exception as e:
+#         import traceback
+#         traceback.print_exc()
+#         return HttpResponse(f"Error generating PDF: {str(e)}", content_type="text/plain", status=500)
+# @login_required
+# def generate_order_pdf(request, order_id):
+#     try:
+#         # Get the order and items
+#         order = get_object_or_404(StoreOrder, id=order_id)
+#         order_includes = (
+#             SOIncludes.objects.filter(store_order_id=order)
+#             .select_related("product")
+#         )
+
+#         # Create PDF buffer and document
+#         buffer = BytesIO()
+#         doc = SimpleDocTemplate(
+#             buffer,
+#             pagesize=letter,
+#             topMargin=0.75 * inch,
+#             bottomMargin=0.75 * inch,
+#             leftMargin=0.75 * inch,
+#             rightMargin=0.75 * inch,
+#         )
+
+#         elements = []
+#         styles = getSampleStyleSheet()
+
+#         # Custom styles
+#         header_style = ParagraphStyle(
+#             "CustomHeader",
+#             parent=styles["Heading1"],
+#             fontSize=28,
+#             spaceAfter=8,
+#             textColor=colors.HexColor("#2d4a22"),
+#             alignment=TA_CENTER,
+#             fontName="Helvetica-Bold",
+#         )
+
+#         subheader_style = ParagraphStyle(
+#             "CustomSubHeader",
+#             parent=styles["Normal"],
+#             fontSize=16,
+#             spaceAfter=20,
+#             textColor=colors.HexColor("#4a5568"),
+#             alignment=TA_CENTER,
+#             fontName="Helvetica",
+#         )
+
+#         # Header
+#         elements.append(Paragraph("UPRISING SEEDS", header_style))
+#         elements.append(Paragraph("Wholesale Order Summary", subheader_style))
+#         elements.append(Spacer(1, 20))
+
+#         # Order info
+#         elements.append(
+#             Paragraph(f"<b>Order Number:</b> {order.order_number}", styles["Normal"])
+#         )
+#         elements.append(
+#             Paragraph(
+#                 f"<b>Order Date:</b> {order.date.strftime('%B %d, %Y') if order.date else 'N/A'}",
+#                 styles["Normal"],
+#             )
+#         )
+
+#                 # Add fulfilled date
+#         fulfilled_text = "Pending"
+#         if order.fulfilled_date:
+#             fulfilled_text = order.fulfilled_date.strftime('%B %d, %Y')
+#         elements.append(
+#             Paragraph(f"<b>Fulfilled Date:</b> {fulfilled_text}", styles["Normal"])
+#         )
+
+#         if hasattr(order, "store") and order.store:
+#             elements.append(
+#                 Paragraph(f"<b>Store:</b> {order.store.store_name}", styles["Normal"])
+#             )
+
+#         elements.append(Spacer(1, 25))
+
+#         # Items table
+#         elements.append(Paragraph("Order Items", styles["Heading2"]))
+
+#         table_data = [["Qty", "Variety", "Crop", "Unit Price", "Subtotal"]]
+#         pkt_price = settings.PACKET_PRICE
+#         total_cost = 0
+#         for item in order_includes:
+#             quantity = item.quantity or 0
+#             variety = (
+#                 item.product.variety.var_name if item.product else "N/A"
+#             )
+#             crop = item.product.variety.crop if item.product else "N/A"
+#             line_total = quantity * pkt_price
+
+#             # Truncate long variety names
+#             if len(variety) > 35:
+#                 variety = variety[:32] + "..."
+
+#             table_data.append(
+#                 [
+#                     str(quantity),
+#                     variety,
+#                     crop,
+#                     f"${pkt_price:.2f}",
+#                     f"${line_total:.2f}",
+#                 ]
+#             )
+
+#             total_cost += line_total
+
+#         items_table = Table(
+#             table_data,
+#             colWidths=[0.5 * inch, 2.8 * inch, 1.9 * inch, 0.8 * inch, 0.8 * inch],
+#         )
+#         items_table.setStyle(
+#             TableStyle(
+#                 [
+#                     # Header
+#                     ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d4a22")),
+#                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+#                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+#                     ("FONTSIZE", (0, 0), (-1, 0), 11),
+#                     ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+#                     # Data rows
+#                     ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+#                     ("FONTSIZE", (0, 1), (-1, -1), 10),
+#                     ("ALIGN", (0, 1), (0, -1), "CENTER"),
+#                     ("ALIGN", (1, 1), (2, -1), "LEFT"),
+#                     ("ALIGN", (3, 1), (-1, -1), "RIGHT"),
+#                     # Styling
+#                     ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#e2e8f0")),
+#                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+#                     ("TOPPADDING", (0, 0), (-1, -1), 8),
+#                     ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+#                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
+#                 ]
+#             )
+#         )
+
+#         elements.append(items_table)
+#         elements.append(Spacer(1, 25))
+
+#         # Totals
+#         elements.append(Paragraph("Order Summary", styles["Heading2"]))
+
+#         totals_data = [
+#             ["Subtotal:", f"${total_cost:.2f}"],
+#             ["Shipping:", "TBD"],
+#             ["Total:", "TBD"],
+#         ]
+
+#         totals_table = Table(totals_data, colWidths=[4.5 * inch, 1.5 * inch])
+#         totals_table.setStyle(
+#             TableStyle(
+#                 [
+#                     ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+#                     ("FONTSIZE", (0, 0), (-1, -1), 11),
+#                     ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+#                     ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+#                     ("TOPPADDING", (0, 0), (-1, -1), 4),
+#                     ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+#                 ]
+#             )
+#         )
+
+#         elements.append(totals_table)
+#         elements.append(Spacer(1, 30))
+
+#         # Footer
+#         footer_style = ParagraphStyle(
+#             "FooterStyle",
+#             parent=styles["Normal"],
+#             fontSize=9,
+#             textColor=colors.HexColor("#6c757d"),
+#             alignment=TA_CENTER,
+#         )
+
+#         elements.append(
+#             Paragraph("Thank you for your order!", footer_style)
+#         )
+#         elements.append(
+#             Paragraph(
+#                 "For questions, please contact us at wholesale@uprisingorganics.com.",
+#                 footer_style,
+#             )
+#         )
+
+#          # Metadata callback
+#         def add_pdf_metadata(canvas, doc):
+#             clean_title = f""
+#             canvas.setTitle(clean_title)
+#             canvas.setAuthor("Uprising Seeds")
+#             canvas.setSubject("Wholesale Order Summary")
+
+#         # Build PDF with metadata
+#         doc.build(elements, onFirstPage=add_pdf_metadata)
+
+#         pdf_data = buffer.getvalue()
+#         buffer.close()
+
+#         response = HttpResponse(pdf_data, content_type="application/pdf")
+#         clean_filename = f"Uprising Order {order.order_number}.pdf"
+#         response["Content-Disposition"] = f'inline; filename="{clean_filename}"'
+#         return response
+
+#     except Exception as e:
+#         return HttpResponse(f"Error: {str(e)}", content_type="text/plain")
 
 
 @login_required
