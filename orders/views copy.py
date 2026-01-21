@@ -1155,90 +1155,92 @@ def generate_order_pdf(request, order_id):
 
 
 
-    # Get credit from store returns for first invoice of the year
-            # Order number format: WXXYY-ZZ where XX=store_id, YY=order_seq, ZZ=year
-            # Example: W1501-25 means store 15, first order (01), year 2025
-            try:
-                # Extract parts from order number (format: WXXYY-ZZ)
-                order_parts = order_number.split('-')
-                order_prefix = order_parts[0]  # WXXYY
-                year_suffix = order_parts[1]   # ZZ
-                
-                # Get the YY part (order sequence number - last 2 digits of prefix)
-                order_sequence = order_prefix[-2:]  # Last 2 digits
-                
-                print(f"\n=== CREDIT CALCULATION DEBUG ===")
-                print(f"Order number: {order_number}")
-                print(f"Order prefix: {order_prefix}")
-                print(f"Order sequence: {order_sequence}")
-                print(f"Year suffix: {year_suffix}")
-                
-                # Check if this is the first order of the year (sequence = "01")
-                if order_sequence == "01":
-                    invoice_year = int(year_suffix)  # Keep as 2-digit year (e.g., 25)
-                    previous_year = invoice_year - 1  # e.g., 24
-                    print(f"✓ This IS the first order of year {invoice_year}")
-                    print(f"Looking for returns from previous year: {previous_year}")
-                    
-                    # Apply credit using StoreReturns model
-                    from stores.models import StoreReturns
-                    
-                    # Manually query for returns using 2-digit year
-                    try:
-                        return_record = StoreReturns.objects.get(
-                            store__store_num=store.store_num,
-                            return_year=previous_year
-                        )
-                        print(f"✓ Found return record: {return_record}")
-                        print(f"  Packets returned: {return_record.packets_returned}")
-                        
-                        # Calculate credit using the packet price
-                        from stores.models import WholesalePktPrice
-                        price = WholesalePktPrice.get_price_for_year(previous_year)
-                        print(f"  Price for year {previous_year}: {price}")
-                        
-                        if price:
-                            from decimal import Decimal
-                            credit_amount = Decimal(str(return_record.packets_returned)) * price
-                            credit = float(credit_amount)
-                            print(f"✓ Calculated credit: ${credit}")
-                        else:
-                            print(f"✗ No price found for year {previous_year}")
-                            credit = 0.0
-                    except StoreReturns.DoesNotExist:
-                        print(f"✗ No return record found for store {store.store_num}, year {previous_year}")
-                        credit = 0.0
-                else:
-                    print(f"✗ NOT first order (sequence is {order_sequence}, not 01)")
-                    credit = 0.0
-                
-                print(f"=== CREDIT CALCULATION DEBUG END ===\n")
-            except (IndexError, ValueError, AttributeError) as e:
-                print(f"Error parsing order number for credit: {e}")
-                import traceback
-                traceback.print_exc()
-                credit = 0.0
-                
+            
+            # [KEEP ALL YOUR EXISTING CREDIT CALCULATION CODE HERE]
+            # ... the whole credit calculation block ...
+            
             # Calculate total due
             total_due = subtotal + shipping - credit
 
-       
+        # Get credit from store returns for first invoice of the year
+        # Order number format: WXXYY-ZZ where XX=store_id, YY=order_seq, ZZ=year
+        # Example: W1501-25 means store 15, first order (01), year 2025
+        try:
+            # Extract parts from order number (format: WXXYY-ZZ)
+            order_parts = order_number.split('-')
+            order_prefix = order_parts[0]  # WXXYY
+            year_suffix = order_parts[1]   # ZZ
+            
+            # Get the YY part (order sequence number - last 2 digits of prefix)
+            order_sequence = order_prefix[-2:]  # Last 2 digits
+            
+            print(f"\n=== CREDIT CALCULATION DEBUG ===")
+            print(f"Order number: {order_number}")
+            print(f"Order prefix: {order_prefix}")
+            print(f"Order sequence: {order_sequence}")
+            print(f"Year suffix: {year_suffix}")
+            
+            # Check if this is the first order of the year (sequence = "01")
+            if order_sequence == "01":
+                invoice_year = int(year_suffix)  # Keep as 2-digit year (e.g., 25)
+                previous_year = invoice_year - 1  # e.g., 24
+                print(f"✓ This IS the first order of year {invoice_year}")
+                print(f"Looking for returns from previous year: {previous_year}")
+                
+                # Apply credit using StoreReturns model
+                from stores.models import StoreReturns
+                
+                # Manually query for returns using 2-digit year
+                try:
+                    return_record = StoreReturns.objects.get(
+                        store__store_num=store.store_num,
+                        return_year=previous_year
+                    )
+                    print(f"✓ Found return record: {return_record}")
+                    print(f"  Packets returned: {return_record.packets_returned}")
+                    
+                    # Calculate credit using the packet price
+                    from stores.models import WholesalePktPrice
+                    price = WholesalePktPrice.get_price_for_year(previous_year)
+                    print(f"  Price for year {previous_year}: {price}")
+                    
+                    if price:
+                        from decimal import Decimal
+                        credit_amount = Decimal(str(return_record.packets_returned)) * price
+                        credit = float(credit_amount)
+                        print(f"✓ Calculated credit: ${credit}")
+                    else:
+                        print(f"✗ No price found for year {previous_year}")
+                        credit = 0.0
+                except StoreReturns.DoesNotExist:
+                    print(f"✗ No return record found for store {store.store_num}, year {previous_year}")
+                    credit = 0.0
+            else:
+                print(f"✗ NOT first order (sequence is {order_sequence}, not 01)")
+                credit = 0.0
+            
+            print(f"=== CREDIT CALCULATION DEBUG END ===\n")
+        except (IndexError, ValueError, AttributeError) as e:
+            print(f"Error parsing order number for credit: {e}")
+            import traceback
+            traceback.print_exc()
+            credit = 0.0
         
-        # total_due = subtotal + shipping - credit
+        total_due = subtotal + shipping - credit
         
-        # # Get order date and calculate due date (Net 30)
-        # try:
-        #     if order.fulfilled_date:
-        #         order_date = order.fulfilled_date
-        #         order_date_formatted = order_date.strftime("%m/%d/%Y")
-        #         due_date = order_date + timedelta(days=30)
-        #         due_date_str = due_date.strftime("%m/%d/%Y")
-        #     else:
-        #         order_date_formatted = 'N/A'
-        #         due_date_str = 'N/A'
-        # except:
-        #     order_date_formatted = 'N/A'
-        #     due_date_str = 'N/A'
+        # Get order date and calculate due date (Net 30)
+        try:
+            if order.fulfilled_date:
+                order_date = order.fulfilled_date
+                order_date_formatted = order_date.strftime("%m/%d/%Y")
+                due_date = order_date + timedelta(days=30)
+                due_date_str = due_date.strftime("%m/%d/%Y")
+            else:
+                order_date_formatted = 'N/A'
+                due_date_str = 'N/A'
+        except:
+            order_date_formatted = 'N/A'
+            due_date_str = 'N/A'
         
         # Store address information
         store_address = store.store_address or ''
