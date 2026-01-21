@@ -25,6 +25,7 @@ from django.utils import timezone
 pacific_tz = pytz.timezone("America/Los_Angeles")
 from django.utils.timezone import localtime
 from io import BytesIO
+from django.conf import settings
  
 
 # ReportLab imports
