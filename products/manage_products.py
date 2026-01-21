@@ -1100,14 +1100,121 @@ def find_bulk_products_low_prints():
     print(f"Sorted by {year} printed (lowest first)\n")
 
 
+
 def add_product():
-    """Add a new product - PLACEHOLDER"""
-    print("\n⚠️  ADD PRODUCT - Function placeholder")
-    print("This would allow you to:")
-    print("  - Select variety")
-    print("  - Enter SKU suffix and package size")
-    print("  - Set envelope type and multiplier")
-    print("  - Configure print settings")
+    """Add a new product to an existing variety"""
+    from products.models import Variety, Product
+    
+    print("\n" + "="*50)
+    print("ADD NEW PRODUCT")
+    print("="*50)
+    
+    # Step 1: Get SKU prefix
+    while True:
+        sku_prefix = input("\nEnter SKU prefix (or 'q' to quit): ").strip()
+        
+        if sku_prefix.lower() == 'q':
+            print("Cancelled.")
+            return
+        
+        if not sku_prefix:
+            print("❌ SKU prefix cannot be empty. Please try again.")
+            continue
+        
+        # Try to find the variety
+        try:
+            variety = Variety.objects.get(sku_prefix=sku_prefix)
+            break
+        except Variety.DoesNotExist:
+            print(f"❌ No variety found with SKU prefix '{sku_prefix}'")
+            retry = input("Try again? (y/n): ").strip().lower()
+            if retry != 'y':
+                print("Cancelled.")
+                return
+    
+    # Step 2: Display variety info and existing products
+    print("\n" + "-"*50)
+    print(f"📦 Variety: {variety.var_name or 'No name'}")
+    print(f"   SKU Prefix: {variety.sku_prefix}")
+    print(f"   Crop: {variety.crop or 'N/A'}")
+    print(f"   Subtype: {variety.subtype or 'N/A'}")
+    print("-"*50)
+    
+    # Get existing products for this variety
+    existing_products = Product.objects.filter(variety=variety).order_by('sku_suffix')
+    
+    if existing_products.exists():
+        print("\n📋 Existing Products:")
+        for i, product in enumerate(existing_products, 1):
+            lot_info = ""
+            if product.lot:
+                lot_info = f" (Lot: {product.lot.lot_code})"
+            elif product.mix_lot:
+                lot_info = f" (Mix Lot: {product.mix_lot.mix_lot_code})"
+            
+            print(f"   {i}. {product.variety.sku_prefix}-{product.sku_suffix or 'N/A'} "
+                  f"| Size: {product.pkg_size or 'N/A'}"
+                  f"{lot_info}")
+    else:
+        print("\n📋 No existing products for this variety")
+    
+    # Step 3: Confirm to continue
+    print("\n" + "-"*50)
+    continue_add = input("Continue adding a new product? (y/n): ").strip().lower()
+    
+    if continue_add != 'y':
+        print("Cancelled.")
+        return
+    
+    # Step 4: Get SKU suffix
+    print("\n" + "-"*50)
+    while True:
+        sku_suffix = input("Enter SKU suffix (e.g., 'pkt', 'oz', '4oz'): ").strip()
+        
+        if not sku_suffix:
+            print("❌ SKU suffix cannot be empty. Please try again.")
+            continue
+        
+        # Check if this suffix already exists for this variety
+        if Product.objects.filter(variety=variety, sku_suffix=sku_suffix).exists():
+            print(f"❌ A product with suffix '{sku_suffix}' already exists for this variety!")
+            retry = input("Try a different suffix? (y/n): ").strip().lower()
+            if retry != 'y':
+                print("Cancelled.")
+                return
+            continue
+        
+        break
+    
+    # Step 5: Create the product
+    try:
+        new_product = Product.objects.create(
+            variety=variety,
+            sku_suffix=sku_suffix,
+            # Other fields will be added via the UI
+        )
+        
+        print("\n" + "="*50)
+        print("✅ SUCCESS!")
+        print("="*50)
+        print(f"Created new product: {variety.sku_prefix}-{sku_suffix}")
+        print(f"Product ID: {new_product.id}")
+        print("\n💡 You can now edit additional fields (pkg_size, rack_location, etc.) in the UI")
+        print("="*50 + "\n")
+        
+    except Exception as e:
+        print(f"\n❌ Error creating product: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+# def add_product():
+#     """Add a new product - PLACEHOLDER"""
+#     print("\n⚠️  ADD PRODUCT - Function placeholder")
+#     print("This would allow you to:")
+#     print("  - Select variety")
+#     print("  - Enter SKU suffix and package size")
+#     print("  - Set envelope type and multiplier")
+#     print("  - Configure print settings")
 
 def edit_product():
     """Edit product details - PLACEHOLDER"""
