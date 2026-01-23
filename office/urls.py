@@ -130,6 +130,7 @@ urlpatterns = [
     path('store-sales-details/', store_sales_details, name='store_sales_details'),
     path('set-wholesale-price/', set_wholesale_price, name='set_wholesale_price'),
     path('combine-orders/', combine_store_orders, name='combine_store_orders'),
+    path('set-photos-auto/', set_photos_auto, name='set_photos_auto'),
     
     # ============================================================================
     # ORDER MANAGEMENT

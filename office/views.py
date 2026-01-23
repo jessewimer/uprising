@@ -2500,6 +2500,116 @@ def save_order_changes(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
+
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+def set_photos_auto(request):
+    """
+    Automatically set photo flags based on order history:
+    - First order (01): All photos = True
+    - Subsequent orders: Previously ordered products = False, new products = True
+    """
+    try:
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        
+        # Get the current order
+        current_order = StoreOrder.objects.get(id=order_id)
+        order_number = current_order.order_number
+        store_num = current_order.store.store_num
+        
+        # Parse order number (format: WXXYY-ZZ)
+        parts = order_number.split('-')
+        order_seq = parts[0][-2:]  # Get YY (last 2 digits before dash)
+        order_year = parts[1]  # Get ZZ (2 digit year)
+        
+        print(f"\n=== SET PHOTOS AUTO DEBUG ===")
+        print(f"Order ID: {order_id}")
+        print(f"Order number: {order_number}")
+        print(f"Store num: {store_num}")
+        print(f"Order seq: {order_seq}")
+        print(f"Order year: {order_year}")
+        
+        # Get all items in the current order
+        current_items = SOIncludes.objects.filter(store_order=current_order).select_related('product__variety')
+        print(f"Current order has {current_items.count()} items")
+        
+        photo_settings = []
+        
+        if order_seq == '01':
+            # First order - set all photos to True
+            for item in current_items:
+                photo_settings.append({
+                    'sku_prefix': item.product.variety.sku_prefix,
+                    'has_photo': True
+                })
+            message = "First order - all photos enabled"
+        else:
+            # Not first order - check history
+            # Get all previous orders for this store in the same year
+            previous_orders = StoreOrder.objects.filter(
+                store__store_num=store_num,
+                order_number__endswith=f'-{order_year}',
+                order_number__lt=order_number  # Only orders before this one
+            )
+            
+            print(f"Found {previous_orders.count()} previous orders:")
+            for po in previous_orders:
+                print(f"  - {po.order_number}")
+            
+            # Get all product IDs that were ordered before
+            previously_ordered_products = SOIncludes.objects.filter(
+                store_order__in=previous_orders
+            ).values_list('product_id', flat=True).distinct()
+            
+            previously_ordered_set = set(previously_ordered_products)
+            print(f"Previously ordered product IDs ({len(previously_ordered_set)} total)")
+            
+            new_count = 0
+            repeat_count = 0
+            
+            for item in current_items:
+                sku_prefix = item.product.variety.sku_prefix
+                print(f"  Item: {sku_prefix} (Product ID: {item.product.id})")
+                if item.product.id in previously_ordered_set:
+                    # Previously ordered - no photo needed
+                    has_photo = False
+                    repeat_count += 1
+                    print(f"    -> REPEAT (photo=False)")
+                else:
+                    # New product - needs photo
+                    has_photo = True
+                    new_count += 1
+                    print(f"    -> NEW (photo=True)")
+                
+                photo_settings.append({
+                    'sku_prefix': sku_prefix,
+                    'has_photo': has_photo
+                })
+            
+            message = f"{new_count} new products (photo enabled), {repeat_count} repeat products (photo disabled)"
+        
+        print(f"Result: {message}")
+        print(f"=== SET PHOTOS AUTO DEBUG END ===\n")
+        
+        return JsonResponse({
+            'success': True,
+            'photo_settings': photo_settings,
+            'message': message
+        })
+        
+    except StoreOrder.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        print(f"ERROR in set_photos_auto: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -2517,30 +2627,30 @@ def finalize_order(request):
         credit = 0
         order_number = order.order_number
         
-        print(f"\n=== CREDIT DEBUG START ===")
-        print(f"Order number: {order_number}")
-        print(f"Store number: {order.store.store_num}")
+        # print(f"\n=== CREDIT DEBUG START ===")
+        # print(f"Order number: {order_number}")
+        # print(f"Store number: {order.store.store_num}")
         
         # Extract order sequence from order number (e.g., "W1001-26" -> "01")
         # Format: W[store_id 2 digits][order_num 2 digits]-[year 2 digits]
         try:
             # Get the part before the hyphen (e.g., "W1001")
             before_hyphen = order_number.split('-')[0]
-            print(f"Before hyphen: {before_hyphen}")
+            # print(f"Before hyphen: {before_hyphen}")
             
             # Get the last 2 digits (order number within year)
             order_sequence = before_hyphen[-2:]
-            print(f"Order sequence: {order_sequence}")
+            # print(f"Order sequence: {order_sequence}")
             
             # Check if this is the first order of the year
             if order_sequence == "01":
-                print("✓ This IS the first order of the year")
+                # print("✓ This IS the first order of the year")
                 
                 # Extract year from order number (e.g., "26" from "W1001-26")
                 year_suffix = order_number.split('-')[-1]
                 invoice_year = int(year_suffix)
-                print(f"Invoice year: {invoice_year}")
-                print(f"Will look for returns from year: {invoice_year - 1}")
+                # print(f"Invoice year: {invoice_year}")
+                # print(f"Will look for returns from year: {invoice_year - 1}")
                 
                 # Get credit from previous year's returns
                 from stores.models import StoreReturns
@@ -2549,24 +2659,27 @@ def finalize_order(request):
                     invoice_year
                 )
                 
-                print(f"Packets returned: {packets_returned}")
-                print(f"Credit amount: ${credit}")
+                # print(f"Packets returned: {packets_returned}")
+                # print(f"Credit amount: ${credit}")
                 
                 if credit > 0:
-                    print(f"✓ Applied credit of ${credit} to order {order_number} (from {packets_returned} packets returned)")
+                    pass
+                    # print(f"✓ Applied credit of ${credit} to order {order_number} (from {packets_returned} packets returned)")
                 else:
-                    print(f"✗ No credit applied")
+                    # print(f"✗ No credit applied")
+                    pass
             else:
-                print(f"✗ This is NOT the first order (sequence: {order_sequence})")
+                pass
+                # print(f"✗ This is NOT the first order (sequence: {order_sequence})")
                 
         except (IndexError, ValueError) as e:
-            print(f"✗ Error parsing order number for credit calculation: {e}")
+            # print(f"✗ Error parsing order number for credit calculation: {e}")
             import traceback
             traceback.print_exc()
             credit = 0
         
-        print(f"Final credit value: {credit}")
-        print(f"=== CREDIT DEBUG END ===\n")
+        # print(f"Final credit value: {credit}")
+        # print(f"=== CREDIT DEBUG END ===\n")
        
         # Set fulfilled_date to current timezone-aware datetime
         from django.utils import timezone
@@ -2619,10 +2732,10 @@ def finalize_order(request):
         store = order.store
         so_includes = SOIncludes.objects.filter(store_order=order).select_related('product', 'product__variety')
         
-        print(f"\n=== RESPONSE DEBUG ===")
-        print(f"Credit being returned in response: {credit}")
-        print(f"Credit as float: {float(credit)}")
-        print(f"=== RESPONSE DEBUG END ===\n")
+        # print(f"\n=== RESPONSE DEBUG ===")
+        # print(f"Credit being returned in response: {credit}")
+        # print(f"Credit as float: {float(credit)}")
+        # print(f"=== RESPONSE DEBUG END ===\n")
        
         return JsonResponse({
             'success': True,
@@ -2660,7 +2773,7 @@ def finalize_order(request):
         })
        
     except Exception as e:
-        print(f"Error in finalize_order: {str(e)}")
+        # print(f"Error in finalize_order: {str(e)}")
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)

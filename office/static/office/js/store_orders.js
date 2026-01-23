@@ -259,6 +259,59 @@ async function removeAllPhotos() {
         'success', '✅');
 }
 
+
+
+
+async function setPhotosAutomatically() {
+    if (!currentOrderId) {
+        alert('Error: No order is currently loaded');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/office/set-photos-auto/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                order_id: currentOrderId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update the orderItems with new photo settings using sku_prefix
+            data.photo_settings.forEach(setting => {
+                if (orderItems[setting.sku_prefix]) {
+                    orderItems[setting.sku_prefix].hasPhoto = setting.has_photo;
+                }
+            });
+            
+            markUnsavedChanges();
+            renderOrderTable();
+            updateSaveButton();
+            closeBulkPhotoModal();
+            
+            showNotification('Photos Set Automatically', 
+                'Photos have been set based on order history', 
+                'success', '✅');
+        } else {
+            showNotification('Error', 
+                data.error || 'Failed to set photos automatically', 
+                'error', '❌');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error', 
+            'An error occurred while setting photos automatically', 
+            'error', '❌');
+    }
+}
+
+
 // Function to render order table
 function renderOrderTable(readOnly = false) {
     const container = document.getElementById('order-table-container');
