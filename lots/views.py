@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from uprising.utils.auth import is_employee
-from .models import Lot, GerminationBatch, Germination, Grower, Growout
+from .models import Lot, GerminationBatch, Germination, Grower, Growout, GrowoutPrep
 import json
 from django.views.decorators.http import require_http_methods
 from products.models import Variety
@@ -327,19 +327,68 @@ def update_growout(request, lot_id):
     return JsonResponse({'success': False, 'error': 'Invalid method'})
 
 
-
 def growout_prep(request):
     # Get all varieties with orange or red growout_needed
-    varieties = Variety.objects.filter(
+    base_varieties = Variety.objects.filter(
         growout_needed__in=['orange', 'red']
-    ).order_by('var_name')
+    ).order_by('category', 'crop', 'var_name')
+    
+    # Build enhanced variety list with prep data
+    varieties_with_prep = []
+    for variety in base_varieties:
+        # Get existing prep records for this variety
+        existing_preps = variety.growout_preps.all()
+        
+        if existing_preps.exists():
+            # Add each existing prep record as a separate row
+            for idx, prep in enumerate(existing_preps):
+                # Row is locked if a lot has been created
+                is_locked = prep.created_lot is not None
+                
+                variety_data = {
+                    'id': variety.sku_prefix,
+                    'var_name': variety.var_name,
+                    'sku_prefix': variety.sku_prefix,
+                    'category': variety.category or '',
+                    'crop': variety.crop or '',
+                    'growout_needed': variety.growout_needed,
+                    'prep_id': prep.id,
+                    'assigned_grower': prep.grower,
+                    'prep_year': prep.year,
+                    'prep_quantity': prep.quantity or '',
+                    'prep_price': prep.price_per_lb or '',
+                    'lot_created': prep.lot_created,
+                    'is_first_row': idx == 0,
+                    'is_locked': is_locked,  # New field
+                    'created_lot_code': prep.created_lot.build_lot_code() if prep.created_lot else None,
+                }
+                varieties_with_prep.append(variety_data)
+        else:
+            # No prep records yet - show empty row
+            variety_data = {
+                'id': variety.sku_prefix,
+                'var_name': variety.var_name,
+                'sku_prefix': variety.sku_prefix,
+                'category': variety.category or '',
+                'crop': variety.crop or '',
+                'growout_needed': variety.growout_needed,
+                'prep_id': None,
+                'assigned_grower': None,
+                'prep_year': settings.CURRENT_ORDER_YEAR,
+                'prep_quantity': '',
+                'prep_price': '',
+                'lot_created': False,
+                'is_first_row': True,
+                'is_locked': False,  # New field
+                'created_lot_code': None,
+            }
+            varieties_with_prep.append(variety_data)
     
     # Get all growers, sorted with Uprising first, then alphabetically
     growers = Grower.objects.all()
-    uprising_grower = growers.filter(code='UO').first()  # Changed to 'UO'
+    uprising_grower = growers.filter(code='UO').first()
     other_growers = growers.exclude(code='UO').order_by('name')
     
-    # Combine with Uprising first
     sorted_growers = []
     if uprising_grower:
         sorted_growers.append(uprising_grower)
@@ -355,7 +404,7 @@ def growout_prep(request):
     ).values_list('crop', flat=True).distinct().order_by('crop')
     
     context = {
-        'varieties': varieties,
+        'varieties': varieties_with_prep,
         'growers': sorted_growers,
         'current_order_year': settings.CURRENT_ORDER_YEAR,
         'categories': [c for c in categories if c],
@@ -363,3 +412,173 @@ def growout_prep(request):
     }
     
     return render(request, 'lots/growout_prep.html', context)
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def save_growout_prep(request):
+    """Save or update growout prep records and create lots as needed"""
+    try:
+        data = json.loads(request.body)
+        records = data.get('records', [])
+        
+        saved_records = []
+        created_lots = []
+        errors = []
+        
+        for record in records:
+            sku_prefix = record.get('variety_id')
+            prep_id = record.get('prep_id')
+            is_locked = record.get('is_locked', False)
+            
+            try:
+                if prep_id:
+                    # Update existing
+                    prep = GrowoutPrep.objects.get(id=prep_id)
+                else:
+                    # Create new
+                    prep = GrowoutPrep(variety_id=sku_prefix)
+                
+                # Always update qty and price
+                prep.quantity = record.get('quantity', '')
+                prep.price_per_lb = record.get('price_per_lb') or None
+                
+                # Only update grower/year/lot if NOT locked
+                if not is_locked:
+                    if record.get('grower_code'):
+                        prep.grower_id = record['grower_code']
+                    prep.year = record.get('year')
+                    
+                    lot_should_be_created = record.get('lot_created', False)
+                    
+                    # Handle lot creation
+                    if lot_should_be_created and not prep.created_lot:
+                        # User wants to create a lot and one doesn't exist yet
+                        
+                        # Validate required fields
+                        if not prep.grower_id:
+                            errors.append(f"Cannot create lot for {prep.variety.var_name}: No grower assigned")
+                            continue
+                        
+                        # Check if lot already exists with these parameters
+                        existing_lot = Lot.objects.filter(
+                            variety_id=sku_prefix,
+                            grower_id=prep.grower_id,
+                            year=prep.year % 100,  # Convert to 2-digit year
+                            harvest__isnull=True
+                        ).first()
+                        
+                        if existing_lot:
+                            # Lot already exists, just link it
+                            prep.created_lot = existing_lot
+                            prep.lot_created = True
+                        else:
+                            # Create new lot
+                            new_lot = Lot.objects.create(
+                                variety_id=sku_prefix,
+                                grower_id=prep.grower_id,
+                                year=prep.year % 100,  # 2-digit year
+                                harvest=None
+                            )
+                            prep.created_lot = new_lot
+                            prep.lot_created = True
+                            created_lots.append({
+                                'lot_code': new_lot.build_lot_code(),
+                                'variety': prep.variety.var_name
+                            })
+                    else:
+                        # Just update the boolean
+                        prep.lot_created = lot_should_be_created
+                
+                prep.save()
+                saved_records.append({
+                    'prep_id': prep.id,
+                    'variety_id': prep.variety_id,
+                    'lot_created': prep.lot_created,
+                    'created_lot_id': prep.created_lot_id if prep.created_lot else None
+                })
+            
+            except Exception as e:
+                errors.append(f"Error saving {sku_prefix}: {str(e)}")
+                continue
+        
+        response_data = {
+            'success': True,
+            'saved_records': saved_records,
+            'created_lots': created_lots
+        }
+        
+        if errors:
+            response_data['errors'] = errors
+        
+        return JsonResponse(response_data)
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+    
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def add_growout_prep_row(request):
+    """Add a new prep row for an existing variety"""
+    try:
+        data = json.loads(request.body)
+        sku_prefix = data.get('variety_id')  # This will be sku_prefix
+        
+        # Create new blank prep record
+        prep = GrowoutPrep.objects.create(
+            variety_id=sku_prefix,
+            year=settings.CURRENT_ORDER_YEAR
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'prep_id': prep.id,
+            'year': prep.year
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+    
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def delete_growout_prep_row(request):
+    """Delete a growout prep record"""
+    try:
+        data = json.loads(request.body)
+        prep_id = data.get('prep_id')
+        
+        if not prep_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'No prep_id provided'
+            }, status=400)
+        
+        # Get and delete the prep record
+        prep = GrowoutPrep.objects.get(id=prep_id)
+        prep.delete()
+        
+        return JsonResponse({
+            'success': True
+        })
+    
+    except GrowoutPrep.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Record not found'
+        }, status=404)
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)

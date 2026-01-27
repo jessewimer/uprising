@@ -361,3 +361,50 @@ class MixBatch(models.Model):
     
     def __str__(self):
         return f"{self.mix_lot} - Batch on {self.date} ({self.final_weight} lbs)"
+
+
+class GrowoutPrep(models.Model):
+    """
+    Tracks planned growouts for varieties that need seed production.
+    Multiple entries per variety allow for different growers in same year.
+    """
+    variety = models.ForeignKey(
+        'products.Variety',
+        on_delete=models.CASCADE,
+        related_name='growout_preps',
+        to_field='sku_prefix'
+    )
+    grower = models.ForeignKey(
+        Grower,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='growout_preps'
+    )
+    year = models.PositiveIntegerField()
+    quantity = models.CharField(max_length=100, blank=True, null=True)
+    price_per_lb = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    lot_created = models.BooleanField(default=False)
+    created_lot = models.ForeignKey(
+        Lot,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='prep_record'
+    )
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['variety__var_name', '-year', 'grower__code']
+        # Allow multiple prep records per variety (different growers/years)
+    
+    def __str__(self):
+        grower_code = self.grower.code if self.grower else 'Unassigned'
+        return f"{self.variety.var_name} - {grower_code} - {self.year}"

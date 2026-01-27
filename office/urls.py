@@ -97,6 +97,10 @@ urlpatterns = [
     path('update-growout/<int:lot_id>/', lot_views.update_growout, name='update_growout'),
     path('create-growout/', create_growout, name='create_growout'),
     path('growout-prep/', lot_views.growout_prep, name='growout_prep'),
+    path('growout-prep/save/', lot_views.save_growout_prep, name='save_growout_prep'),
+    path('growout-prep/add-row/', lot_views.add_growout_prep_row, name='add_growout_prep_row'),
+    path('growout-prep/delete-row/', lot_views.delete_growout_prep_row, name='delete_growout_prep_row'),
+
     
     # ============================================================================
     # STOCK SEED & BATCHING

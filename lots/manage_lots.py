@@ -496,6 +496,131 @@ def view_and_delete_mix_lot():
         print("\n❌ Deletion cancelled.")
 
 
+
+
+
+def sync_existing_lots_to_growout_prep():
+    """
+    Sync existing lots to growout_prep table.
+    Finds all lots for a given year (or higher) and creates corresponding
+    growout_prep records with lot_created=True.
+    """
+    from lots.models import Lot, GrowoutPrep, Grower
+    from products.models import Variety
+    from django.db.models import Q
+    
+    print("\n" + "="*60)
+    print("SYNC EXISTING LOTS TO GROWOUT PREP")
+    print("="*60)
+    
+    # Prompt for year
+    while True:
+        year_input = input("\nEnter 2-digit year (e.g., 26 for 2026) or higher: ").strip()
+        try:
+            year = int(year_input)
+            if year < 0 or year > 99:
+                print("Please enter a valid 2-digit year (00-99)")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number")
+    
+    # Find all lots with this year or higher
+    lots = Lot.objects.filter(year__gte=year).select_related('variety', 'grower')
+    
+    if not lots.exists():
+        print(f"\nNo lots found with year >= {year}")
+        return
+    
+    print(f"\nFound {lots.count()} lots with year >= {year}")
+    
+    # Show preview
+    print("\nPreview of lots to sync:")
+    preview_count = min(10, lots.count())
+    for lot in lots[:preview_count]:
+        print(f"  - {lot.build_lot_code()} ({lot.variety.var_name})")
+    
+    if lots.count() > preview_count:
+        print(f"  ... and {lots.count() - preview_count} more")
+    
+    # Confirm
+    confirm = input(f"\nCreate/update growout_prep records for these {lots.count()} lots? (yes/no): ").strip().lower()
+    if confirm not in ['yes', 'y']:
+        print("Cancelled.")
+        return
+    
+    # Process lots
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    errors = []
+    
+    print("\nProcessing...")
+    
+    for lot in lots:
+        try:
+            # Convert 2-digit year to 4-digit year for growout_prep
+            # Assume years 00-49 are 2000s, 50-99 are 1900s
+            full_year = 2000 + lot.year if lot.year < 50 else 1900 + lot.year
+            
+            # First check: Is this lot already linked to ANY growout_prep record?
+            already_linked = GrowoutPrep.objects.filter(created_lot=lot).exists()
+            
+            if already_linked:
+                skipped_count += 1
+                print(f"  - Skipped (lot already linked): {lot.build_lot_code()}")
+                continue
+            
+            # Second check: Does a growout_prep record exist for this variety/grower/year?
+            existing_prep = GrowoutPrep.objects.filter(
+                variety=lot.variety,
+                grower=lot.grower,
+                year=full_year
+            ).first()
+            
+            if existing_prep:
+                # Update existing record to link this lot
+                existing_prep.created_lot = lot
+                existing_prep.lot_created = True
+                existing_prep.save()
+                updated_count += 1
+                print(f"  ✓ Updated existing prep: {lot.build_lot_code()}")
+            else:
+                # Create new growout_prep record
+                GrowoutPrep.objects.create(
+                    variety=lot.variety,
+                    grower=lot.grower,
+                    year=full_year,
+                    quantity='',
+                    price_per_lb=None,
+                    lot_created=True,
+                    created_lot=lot
+                )
+                created_count += 1
+                print(f"  ✓ Created new prep: {lot.build_lot_code()}")
+        
+        except Exception as e:
+            error_msg = f"Error processing {lot.build_lot_code()}: {str(e)}"
+            errors.append(error_msg)
+            print(f"  ✗ {error_msg}")
+    
+    # Summary
+    print("\n" + "="*60)
+    print("SYNC COMPLETE")
+    print("="*60)
+    print(f"Created: {created_count} new growout_prep records")
+    print(f"Updated: {updated_count} existing records (linked lot)")
+    print(f"Skipped: {skipped_count} (lot already linked to prep)")
+    
+    if errors:
+        print(f"\nErrors ({len(errors)}):")
+        for error in errors:
+            print(f"  - {error}")
+    
+    print()
+
+
+
 def mix_lot_menu():
     """Mix lot management submenu"""
     while True:
@@ -533,9 +658,10 @@ def lot_menu():
         print("7. Delete all mix variety lots")
         print("8. Find lots with pending germination")
         print("9. View/delete mixed lots")
+        print("10. Sync existing lots to growout prep (ADMIN)")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
         
         if choice == '0':
             break
@@ -565,6 +691,9 @@ def lot_menu():
             pause()
         elif choice == '9':
             view_and_delete_mix_lot()
+            pause()
+        elif choice == '10':
+            sync_existing_lots_to_growout_prep()
             pause()
 
 
@@ -1366,48 +1495,6 @@ def remove_retired_status():
             print("\n❌ Invalid selection!")
     except ValueError:
         print("\n❌ Invalid input! Please enter a number.")
-# def remove_retired_status():
-#     """Un-retire a regular lot by deleting its RetiredLot entry"""
-#     retired_lots = RetiredLot.objects.select_related('lot', 'lot__variety', 'lot__grower').all()
-    
-#     if not retired_lots.exists():
-#         print("\nNo retired lots found!")
-#         return
-    
-#     print("\n" + "="*60)
-#     print("RETIRED LOTS")
-#     print("="*60)
-    
-#     for i, retired in enumerate(retired_lots, 1):
-#         lot = retired.lot
-#         print(f"\n{i}. {lot.build_lot_code()}")
-#         print(f"   Variety: {lot.variety.var_name}")
-#         print(f"   Retired: {retired.retired_date}")
-#         print(f"   Remaining: {retired.lbs_remaining} lbs")
-#         if retired.notes:
-#             print(f"   Notes: {retired.notes}")
-    
-#     print("\n0. Cancel")
-    
-#     try:
-#         selection = int(input("\nSelect lot to un-retire: "))
-#         if selection == 0:
-#             return
-        
-#         if 1 <= selection <= len(retired_lots):
-#             retired = list(retired_lots)[selection - 1]
-#             lot = retired.lot
-            
-#             confirm = input(f"\nUn-retire {lot.build_lot_code()}? (yes/no): ").lower()
-#             if confirm == 'yes':
-#                 retired.delete()
-#                 print(f"\n✓ {lot.build_lot_code()} has been un-retired!")
-#             else:
-#                 print("\nCancelled.")
-#         else:
-#             print("\nInvalid selection!")
-#     except ValueError:
-#         print("\nInvalid input!")
 
 def update_retired_lot_lbs():
     """Update lbs remaining for a retired lot"""

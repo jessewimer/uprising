@@ -13,45 +13,7 @@
 <body>
 
     <div class="container">
-        {% comment %} <!-- Header Section -->
-        <div class="header">
-            <a href="/office/dashboard/" class="back-button">
-                <span>← Dashboard</span>
-            </a>
-            
-            <div class="header-content">
-                <h1 class="brand-title">Growout Prep</h1>
-            </div>
-
-            <!-- Filter Controls -->
-            <div class="filter-controls">
-                <select id="statusFilter" class="filter-dropdown">
-                    <option value="">All Statuses</option>
-                    <option value="orange">Orange</option>
-                    <option value="red">Red</option>
-                </select>
-
-                <select id="categoryFilter" class="filter-dropdown">
-                    <option value="">All Categories</option>
-                    {% for category in categories %}
-                        <option value="{{ category }}">{{ category }}</option>
-                    {% endfor %}
-                </select>
-
-                <select id="cropFilter" class="filter-dropdown">
-                    <option value="">All Crops</option>
-                    {% for crop in crops %}
-                        <option value="{{ crop }}">{{ crop }}</option>
-                    {% endfor %}
-                </select>
-
-                <button id="saveChangesBtn" class="save-button" disabled onclick="saveChanges()">
-                    Save Changes
-                </button>
-            </div>
-        </div> {% endcomment %}
-
-
+        
         <!-- Header Section -->
         <div class="header">
             <a href="/office/dashboard/" class="back-button">
@@ -111,28 +73,52 @@
                                 <th>Price</th>
                             </tr>
                         </thead>
+
+
+
                         <tbody id="tableBody">
                             {% for variety in varieties %}
                                 <tr data-variety-id="{{ variety.id }}"
+                                    data-prep-id="{{ variety.prep_id|default:'' }}"
                                     data-variety-name="{{ variety.var_name }}"
                                     data-sku-prefix="{{ variety.sku_prefix }}"
                                     data-category="{{ variety.category|default:'' }}"
                                     data-crop="{{ variety.crop|default:'' }}"
-                                    data-status="{{ variety.growout_needed }}">
+                                    data-status="{{ variety.growout_needed }}"
+                                    data-locked="{{ variety.is_locked|yesno:'true,false' }}"
+                                    {% if variety.is_locked %}class="locked-row"{% endif %}>
                                     
                                     <td class="variety-cell">
                                         <div class="variety-cell-content">
+                                            {% if variety.is_first_row %}
+                                                <button class="add-row-btn" 
+                                                        data-variety-id="{{ variety.id }}"
+                                                        onclick="addVarietyRow(this)"
+                                                        title="Add another grower for this variety">+</button>
+                                            {% elif variety.is_locked %}
+                                                <div class="lock-indicator" title="Lot created: {{ variety.created_lot_code }}">🔒</div>
+                                            {% else %}
+                                                <button class="remove-row-btn" 
+                                                        data-variety-id="{{ variety.id }}"
+                                                        data-prep-id="{{ variety.prep_id }}"
+                                                        onclick="removeVarietyRow(this)"
+                                                        title="Remove this row">−</button>
+                                            {% endif %}
                                             <div class="growout-box-display growout-{{ variety.growout_needed }}" 
-                                                 title="{{ variety.growout_needed|title }} status"></div>
-                                            <span>{{ variety.var_name }}</span>
+                                                title="{{ variety.growout_needed|title }} status"></div>
+                                            <span class="variety-name">{{ variety.var_name }}</span>
                                         </div>
                                     </td>
 
                                     <td class="grower-cell">
-                                        <select class="grower-select" data-variety-id="{{ variety.id }}">
+                                        <select class="grower-select" 
+                                                data-variety-id="{{ variety.id }}"
+                                                data-prep-id="{{ variety.prep_id|default:'' }}"
+                                                {% if variety.is_locked %}disabled{% endif %}>
                                             <option value="">Select grower...</option>
                                             {% for grower in growers %}
-                                                <option value="{{ grower.code }}">
+                                                <option value="{{ grower.code }}"
+                                                        {% if variety.assigned_grower and variety.assigned_grower.code == grower.code %}selected{% endif %}>
                                                     {{ grower.code }} – {{ grower.name }}
                                                 </option>
                                             {% endfor %}
@@ -143,42 +129,54 @@
                                         <div class="year-controls">
                                             <button class="year-btn year-decrease" 
                                                     data-variety-id="{{ variety.id }}"
-                                                    onclick="decreaseYear(this)">−</button>
+                                                    data-prep-id="{{ variety.prep_id|default:'' }}"
+                                                    onclick="decreaseYear(this)"
+                                                    {% if variety.is_locked %}disabled{% endif %}>−</button>
                                             <input type="text" 
-                                                   class="year-input" 
-                                                   value="{{ current_order_year }}"
-                                                   data-variety-id="{{ variety.id }}"
-                                                   data-min-year="{{ current_order_year }}"
-                                                   readonly>
+                                                class="year-input" 
+                                                value="{{ variety.prep_year }}"
+                                                data-variety-id="{{ variety.id }}"
+                                                data-prep-id="{{ variety.prep_id|default:'' }}"
+                                                data-min-year="{{ current_order_year }}"
+                                                {% if variety.is_locked %}disabled{% endif %}
+                                                readonly>
                                             <button class="year-btn year-increase" 
                                                     data-variety-id="{{ variety.id }}"
-                                                    onclick="increaseYear(this)">+</button>
+                                                    data-prep-id="{{ variety.prep_id|default:'' }}"
+                                                    onclick="increaseYear(this)"
+                                                    {% if variety.is_locked %}disabled{% endif %}>+</button>
                                         </div>
                                     </td>
 
                                     <td class="create-lot-cell">
                                         <button class="create-lot-btn" 
                                                 data-variety-id="{{ variety.id }}"
-                                                data-created="false"
-                                                onclick="toggleCreateLot(this)">
-                                            ✗
+                                                data-prep-id="{{ variety.prep_id|default:'' }}"
+                                                data-created="{{ variety.lot_created|yesno:'true,false' }}"
+                                                onclick="toggleCreateLot(this)"
+                                                {% if variety.is_locked %}disabled{% endif %}>
+                                            {% if variety.lot_created %}✓{% else %}✗{% endif %}
                                         </button>
                                     </td>
 
                                     <td class="qty-cell">
                                         <input type="text" 
-                                               class="qty-input editable-input" 
-                                               data-variety-id="{{ variety.id }}"
-                                               placeholder="Qty"
-                                               oninput="handleInputChange()">
+                                            class="qty-input editable-input" 
+                                            value="{{ variety.prep_quantity }}"
+                                            data-variety-id="{{ variety.id }}"
+                                            data-prep-id="{{ variety.prep_id|default:'' }}"
+                                            placeholder="Qty"
+                                            oninput="handleInputChange()">
                                     </td>
 
                                     <td class="price-cell">
                                         <input type="text" 
-                                               class="price-input editable-input" 
-                                               data-variety-id="{{ variety.id }}"
-                                               placeholder="$/lb"
-                                               oninput="handleInputChange()">
+                                            class="price-input editable-input" 
+                                            value="{{ variety.prep_price }}"
+                                            data-variety-id="{{ variety.id }}"
+                                            data-prep-id="{{ variety.prep_id|default:'' }}"
+                                            placeholder="$/lb"
+                                            oninput="handleInputChange()">
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -193,6 +191,24 @@
             </div>
         </div>
     </div>
+
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Deletion</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure you want to remove this row?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         // Pass Django data to JavaScript
