@@ -27,6 +27,7 @@ import csv
 import io
 import shopify
 from django.db import transaction
+from decimal import Decimal
 
 
 BASE_COMPONENT_MIXES = {
@@ -349,8 +350,8 @@ def print_product_labels(request):
             add_to_bulk_pre_pack = data.get('add_to_bulk_pre_pack', False)
             bulk_pre_pack_qty = int(data.get('bulk_pre_pack_qty', 0))
             
-            print(f"Packed for year: {packed_for_year}")
-            print(f"Add to bulk pre-pack: {add_to_bulk_pre_pack}, Qty: {bulk_pre_pack_qty}")
+            # print(f"Packed for year: {packed_for_year}")
+            # print(f"Add to bulk pre-pack: {add_to_bulk_pre_pack}, Qty: {bulk_pre_pack_qty}")
             
             product = Product.objects.get(pk=product_id)
             
@@ -364,7 +365,7 @@ def print_product_labels(request):
                     product.bulk_pre_pack = 0
                 product.bulk_pre_pack += bulk_pre_pack_qty
                 product.save()
-                print(f"Updated bulk_pre_pack: added {bulk_pre_pack_qty}, new total: {product.bulk_pre_pack}")
+                # print(f"Updated bulk_pre_pack: added {bulk_pre_pack_qty}, new total: {product.bulk_pre_pack}")
             
             # Only log if not printing back-only labels
             if print_type not in ['back_single', 'back_sheet']:
@@ -403,7 +404,7 @@ def print_product_labels(request):
                     # Add to existing quantity
                     existing_print.qty += actual_qty
                     existing_print.save()
-                    print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
+                    #print(f"Updated existing print job: added {actual_qty} to existing {existing_print.qty - actual_qty}")
                 else:
                     # Create new print job with appropriate lot assignment
                     create_kwargs = {
@@ -424,9 +425,9 @@ def print_product_labels(request):
                         create_kwargs['mix_lot'] = None
                     
                     LabelPrint.objects.create(**create_kwargs)
-                    print(f"Created new print job for {actual_qty} labels")
+                    # print(f"Created new print job for {actual_qty} labels")
             
-            print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
+            # print(f"Printing {quantity} {print_type} labels for product: {product.variety_id}")
             
             return JsonResponse({
                 'success': True,
@@ -863,16 +864,16 @@ def get_top_selling_products(limit=4):
     full_year = 2000 + int(current_year)  # 25 -> 2025
     
     # DEBUG: Print what year we're looking for
-    print(f"DEBUG: Looking for orders from year {full_year}")
-    print(f"DEBUG: CURRENT_ORDER_YEAR setting = {current_year}")
+    # print(f"DEBUG: Looking for orders from year {full_year}")
+    # print(f"DEBUG: CURRENT_ORDER_YEAR setting = {current_year}")
     
     # DEBUG: Check if we have any orders from this year
     total_orders = OnlineOrder.objects.filter(date__year=full_year).count()
-    print(f"DEBUG: Found {total_orders} orders from {full_year}")
+    # print(f"DEBUG: Found {total_orders} orders from {full_year}")
     
     # DEBUG: Check if we have any OOIncludes from this year
     total_includes = OOIncludes.objects.filter(order__date__year=full_year).count()
-    print(f"DEBUG: Found {total_includes} OOIncludes entries from {full_year}")
+    # print(f"DEBUG: Found {total_includes} OOIncludes entries from {full_year}")
     
     # Query OOIncludes for orders from that year, aggregate by product
     top_products = (
@@ -906,14 +907,14 @@ def get_top_selling_products(limit=4):
     # Convert to the format expected by frontend
     result = []
     for item in top_products:
-        print(f"DEBUG: Processing item: {item}")
+        # print(f"DEBUG: Processing item: {item}")
         result.append({
             'name': item['display_name'] or 'Unknown Product',
             'packets': int(item['total_packets'] or 0),
             'revenue': float(item['total_revenue'] or 0)
         })
     
-    print(f"DEBUG: Final result: {result}")
+    # print(f"DEBUG: Final result: {result}")
     return result
 
 def get_detailed_top_sellers(limit=50):
@@ -956,7 +957,7 @@ def store_sales_details(request):
         current_year = getattr(settings, 'CURRENT_ORDER_YEAR', str(timezone.now().year)[-2:])
         year_suffix = str(current_year)[-2:]
         
-        print(f"DEBUG: Looking for orders ending with: -{year_suffix}")
+        # print(f"DEBUG: Looking for orders ending with: -{year_suffix}")
         
         # Base queryset for fulfilled orders this year
         base_orders = StoreOrder.objects.filter(
@@ -964,7 +965,7 @@ def store_sales_details(request):
             fulfilled_date__isnull=False
         ).select_related('store').prefetch_related('items__product__variety')
         
-        print(f"DEBUG: Found {base_orders.count()} fulfilled orders")
+        # print(f"DEBUG: Found {base_orders.count()} fulfilled orders")
         
         # 1. Sales over time - group by fulfilled date
         sales_over_time = []
@@ -979,7 +980,7 @@ def store_sales_details(request):
                     'total_sales': float(day['total_sales'])
                 })
         
-        print(f"DEBUG: Sales over time entries: {len(sales_over_time)}")
+        # print(f"DEBUG: Sales over time entries: {len(sales_over_time)}")
         
         # 2. Sales by store
         sales_by_store = []
@@ -998,7 +999,7 @@ def store_sales_details(request):
                     'total_packets': store['total_packets'] or 0
                 })
         
-        print(f"DEBUG: Sales by store entries: {len(sales_by_store)}")
+        # print(f"DEBUG: Sales by store entries: {len(sales_by_store)}")
         
         # 3. Sales by product - Use var_name with crop in parentheses
         sales_by_product = []
@@ -1027,7 +1028,7 @@ def store_sales_details(request):
                     'total_packets': product['total_packets'] or 0
                 })
         
-        print(f"DEBUG: Sales by product entries: {len(sales_by_product)}")
+        # print(f"DEBUG: Sales by product entries: {len(sales_by_product)}")
         
         response_data = {
             'sales_over_time': sales_over_time,
@@ -1035,7 +1036,7 @@ def store_sales_details(request):
             'sales_by_product': sales_by_product
         }
         
-        print(f"DEBUG: Returning response with {len(response_data)} keys")
+        # print(f"DEBUG: Returning response with {len(response_data)} keys")
         return JsonResponse(response_data)
         
     except Exception as e:
@@ -1156,7 +1157,7 @@ def retire_lot(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            print("Backend data:", data)
+            # print("Backend data:", data)
             lot_id = data.get('lot_id')
             is_mix = data.get('is_mix', False)
             notes = data.get('notes', '')
@@ -1261,7 +1262,7 @@ def record_germination(request):
                 germ_record = lot.get_germ_record_with_no_test_date()
                 
                 if not germ_record:
-                    print("DEBUG: No empty germination record found to update")
+                    # print("DEBUG: No empty germination record found to update")
                     germ_record = lot.get_most_recent_germination()
                 
                 # Update the germination record
@@ -1684,7 +1685,7 @@ def germination_inventory_data(request):
         # print(f"Returning {len(inventory_data)} records")
         germ_year = settings.FOR_YEAR
         website_stock_enabled = settings.WEBSITE_STOCK
-        print(f"Website stock enabled: {website_stock_enabled}")
+        # print(f"Website stock enabled: {website_stock_enabled}")
         return JsonResponse({
             'inventory_data': inventory_data,
             'germ_years': germ_years,
@@ -1716,13 +1717,13 @@ def create_growout(request):
         qty = data.get('qty')
         price_per_lb = data.get('price_per_lb')
 
-        print('--- GROWOUT RECORD RECEIVED ---')
-        print('Variety SKU:', variety_sku)
-        print('Grower code:', grower_code)
-        print('Year (2-digit):', year)
-        print('Quantity (lbs):', qty)
-        print('Price / lb:', price_per_lb)
-        print('-------------------------------')
+        # print('--- GROWOUT RECORD RECEIVED ---')
+        # print('Variety SKU:', variety_sku)
+        # print('Grower code:', grower_code)
+        # print('Year (2-digit):', year)
+        # print('Quantity (lbs):', qty)
+        # print('Price / lb:', price_per_lb)
+        # print('-------------------------------')
 
         # --- Validate required fields ---
         if not variety_sku or not grower_code or not year:
@@ -1789,66 +1790,6 @@ def create_growout(request):
             status=500
         )
 
-# @login_required(login_url='/office/login/')
-# @user_passes_test(is_employee)
-# @require_http_methods(["POST"])
-# def create_growout(request):
-#     try:
-#         data = json.loads(request.body)
-
-#         variety_sku = data.get('variety_sku')
-#         grower_code = data.get('grower')
-#         year = data.get('year')
-#         qty = data.get('qty')
-#         price_per_lb = data.get('price_per_lb')
-
-#         print('--- GROWOUT RECORD RECEIVED ---')
-#         print('Variety SKU:', variety_sku)
-#         print('Grower code:', grower_code)
-#         print('Year (2-digit):', year)
-#         print('Quantity (lbs):', qty)
-#         print('Price / lb:', price_per_lb)
-#         print('-------------------------------')
-
-#         # --- Validate required fields ---
-#         if not variety_sku or not grower_code or not year:
-#             return JsonResponse(
-#                 {'error': 'Missing required fields'},
-#                 status=400
-#             )
-
-#         # --- Lookups ---
-#         variety = get_object_or_404(Variety, sku_prefix=variety_sku)
-#         grower = get_object_or_404(Grower, code=grower_code)
-
-#         # --- Create Lot ---
-#         lot = Lot.objects.create(
-#             variety=variety,
-#             grower=grower,
-#             year=year
-#         )
-
-#         # --- Create Growout (only if data provided) ---
-#         if qty or price_per_lb:
-#             Growout.objects.create(
-#                 lot=lot,
-#                 quantity=qty if qty else None,
-#                 price_per_lb=price_per_lb if price_per_lb else None
-#             )
-
-#         return JsonResponse({
-#             'success': True,
-#             'lot_id': lot.id,
-#             'message': 'Growout recorded successfully'
-#         })
-
-#     except Exception as e:
-#         print('ERROR creating growout:', str(e))
-#         return JsonResponse(
-#             {'error': str(e)},
-#             status=500
-#         )
-    
 
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
@@ -2429,7 +2370,7 @@ def get_order_details(request, order_id):
         for item in order_items:
             # Access variety data through the product relationship
             variety = item.product.variety
-            print(f"DEBUG: item.product = {item.product}, variety = {variety}")
+            # print(f"DEBUG: item.product = {item.product}, variety = {variety}")
             if variety:  # Make sure variety exists
                 formatted_items.append({
                     'sku_prefix': variety.sku_prefix,
@@ -4123,27 +4064,7 @@ def get_mix_lot_details(request, mix_lot_id):
     """Get detailed information about a specific mix lot"""
     try:
         mix_lot = MixLot.objects.get(id=mix_lot_id)
-        
-        # Get components
-        # components = []
-        # for comp in mix_lot.components.select_related('lot__variety', 'lot__grower'):
-        #     lot = comp.lot
-        #     germ = lot.germinations.filter(
-        #         status='active',
-        #         for_year=settings.CURRENT_ORDER_YEAR
-        #     ).first()
-            
-        #     components.append({
-        #         'variety_name': lot.variety.var_name,
-        #         'variety_sku': lot.variety.sku_prefix,
-        #         'lot_code': lot.get_four_char_lot_code(),
-        #         'is_retired': hasattr(mix_lot, 'retired_mix_info') and mix_lot.retired_mix_info is not None,
-        #         'created_date': mix_lot.created_date.strftime('%Y-%m-%d'),
-        #         'full_lot_code': str(lot),
-        #         'germ_rate': germ.germination_rate if germ else None,
-        #         'parts': comp.parts
-        #     })
-        # Get components
+      
         # Get components
         components = []
         for comp in mix_lot.components.select_related('lot__variety', 'lot__grower', 'sub_mix_lot__variety'):
@@ -4494,178 +4415,6 @@ def check_active_germination(variant_sku, current_order_year):
     return has_active_germ
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-# @login_required(login_url='/office/login/')
-# @user_passes_test(is_employee)
-# @require_http_methods(["POST"])
-# def process_pre_opening_report_v2(request):
-#     """
-#     Process uploaded CSV and generate pre-opening report
-#     """
-#     try:
-#         current_order_year = settings.CURRENT_ORDER_YEAR
-        
-#         csv_file = request.FILES.get('csv_file')
-#         if not csv_file:
-#             return JsonResponse({'error': 'No file uploaded'}, status=400)
-        
-#         if not csv_file.name.endswith('.csv'):
-#             return JsonResponse({'error': 'File must be a CSV'}, status=400)
-        
-#         # Read entire CSV into memory
-#         decoded_file = csv_file.read().decode('utf-8')
-#         csv_reader = csv.DictReader(io.StringIO(decoded_file))
-        
-#         # Store CSV data with title forward-filling
-#         csv_products = {}
-#         last_title = ""
-        
-#         for row in csv_reader:
-#             sku = row.get('Variant SKU', '').strip()
-#             title = row.get('Title', '').strip()
-            
-#             # Forward-fill title if blank (same variety, different variant)
-#             if title:
-#                 last_title = title
-#             elif last_title:
-#                 title = last_title
-            
-#             if sku:
-#                 csv_products[sku] = {
-#                     'title': title,
-#                     'tracker': row.get('Variant Inventory Tracker', '').strip(),
-#                     'qty': int(row.get('Variant Inventory Qty', '0').strip() or 0)
-#                 }
-        
-#         # Check 1: Products in CSV not in database
-#         products_not_in_db = []
-#         for sku, data in csv_products.items():
-#             if not check_product_exists(sku):
-#                 products_not_in_db.append({
-#                     'sku': sku,
-#                     'title': data['title'],
-#                     'tracker': data['tracker'],
-#                     'qty': data['qty']
-#                 })
-        
-#         # Check 2: Tracked products without active germinations
-#         products_without_germ = []
-#         for sku, data in csv_products.items():
-#             if data['tracker'].lower() == 'shopify':
-#                 if check_product_exists(sku) and not check_active_germination(sku, current_order_year):
-#                     products_without_germ.append({
-#                         'sku': sku,
-#                         'title': data['title'],
-#                         'qty': data['qty']
-#                     })
-        
-#         # Check 3: Varieties with active germ but pkt product inventory <=0
-#         varieties_with_germ_but_no_inventory = []
-        
-#         varieties_with_active_germ = Variety.objects.filter(
-#             lots__germinations__status='active',
-#             lots__germinations__for_year=current_order_year
-#         ).distinct()
-        
-#         for variety in varieties_with_active_germ:
-#             pkt_sku = f"{variety.sku_prefix}-pkt"
-            
-#             if pkt_sku in csv_products:
-#                 csv_data = csv_products[pkt_sku]
-                
-#                 # Check if tracked and inventory <=0
-#                 if csv_data['tracker'].lower() == 'shopify' and csv_data['qty'] <= 0:
-#                     varieties_with_germ_but_no_inventory.append({
-#                         'variety': variety.sku_prefix,
-#                         'var_name': variety.var_name or '',
-#                         'sku': pkt_sku,
-#                         'qty': csv_data['qty'],
-#                         'title': csv_data['title']
-#                     })
-        
-#         report_data = {
-#             'current_order_year': current_order_year,
-#             'products_not_in_db': products_not_in_db,
-#             'products_without_germ': products_without_germ,
-#             'varieties_with_germ_but_no_inventory': varieties_with_germ_but_no_inventory,
-#             'summary': {
-#                 'total_not_in_db': len(products_not_in_db),
-#                 'total_without_germ': len(products_without_germ),
-#                 'total_germ_but_no_inv': len(varieties_with_germ_but_no_inventory),
-#                 'total_csv_products': len(csv_products)
-#             }
-#         }
-        
-#         return JsonResponse({
-#             'success': True,
-#             'report': report_data
-#         })
-        
-#     except Exception as e:
-#         import traceback
-#         return JsonResponse({
-#             'error': str(e),
-#             'traceback': traceback.format_exc()
-#         }, status=500)
-
-
-# def check_product_exists(variant_sku):
-#     """
-#     Check if a product exists in either Product or MiscProduct table
-#     """
-#     # Check MiscProduct first (simpler - just match SKU)
-#     if MiscProduct.objects.filter(sku=variant_sku).exists():
-#         return True
-    
-#     # Check Product table (need to parse SKU)
-#     # SKU format: PREFIX-SUFFIX (e.g., "PEA-SP-pkt")
-#     parts = variant_sku.rsplit('-', 1)  # Split from right, only once
-    
-#     if len(parts) == 2:
-#         sku_prefix = parts[0]
-#         sku_suffix = parts[1]
-        
-#         if Product.objects.filter(
-#             variety__sku_prefix=sku_prefix,
-#             sku_suffix=sku_suffix
-#         ).exists():
-#             return True
-    
-#     return False
-
-
-# def check_active_germination(variant_sku, current_order_year):
-#     """
-#     Check if a product has an active germination for the current order year
-#     """
-#     # Parse SKU to get variety prefix
-#     parts = variant_sku.rsplit('-', 1)
-    
-#     if len(parts) != 2:
-#         return False
-    
-#     sku_prefix = parts[0]
-    
-#     # Check if variety has any lots with active germinations for current year
-#     has_active_germ = Germination.objects.filter(
-#         lot__variety__sku_prefix=sku_prefix,
-#         status='active',
-#         for_year=current_order_year
-#     ).exists()
-    
-#     return has_active_germ
-
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -4768,207 +4517,140 @@ def check_shopify_inventory(request, sku_prefix):
     finally:
         if shopify.ShopifyResource.site:
             shopify.ShopifyResource.clear_session()
-# def check_shopify_inventory(request, sku_prefix):
-#     try:
-#         # Get your variety by sku_prefix (the primary key)
-#         variety = Variety.objects.get(pk=sku_prefix)
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+def shipping_view(request):
+    """
+    Display all fulfilled orders with calculated totals and credit information.
+    Orders are sorted by fulfilled_date descending (newest first).
+    """
+    # Get all fulfilled orders (orders with a fulfilled_date)
+    orders = StoreOrder.objects.filter(
+        fulfilled_date__isnull=False
+    ).select_related('store').prefetch_related('items__product').order_by('-fulfilled_date')
+    
+    # Extract available years from order numbers (last 2 digits)
+    year_suffixes = set()
+    for order in orders:
+        if order.order_number and '-' in order.order_number:
+            parts = order.order_number.split('-')
+            if len(parts) == 2:
+                year_suffix = parts[1]  # Get the ZZ part
+                year_suffixes.add(year_suffix)
+    
+    # Convert 2-digit years to 4-digit years and sort
+    available_years = sorted([f"20{year}" for year in year_suffixes], reverse=True)
+    
+    # Prepare order data with calculations
+    orders_data = []
+    for order in orders:
+        # Calculate total packets from SOIncludes
+        total_packets = order.items.aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
         
-#         if not variety.sku_prefix:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': 'Variety has no SKU prefix'
-#             })
+        # Calculate subtotal (price × quantity for all items)
+        subtotal = order.items.aggregate(
+            total=Sum(F('price') * F('quantity'))
+        )['total'] or Decimal('0')
         
-#         # Configure Shopify session
-#         session = shopify.Session(
-#             settings.SHOPIFY_SHOP_URL,
-#             settings.SHOPIFY_API_VERSION,
-#             settings.SHOPIFY_ACCESS_TOKEN
-#         )
-#         shopify.ShopifyResource.activate_session(session)
+        # Determine if this is the first order of the year and calculate credit
+        # Determine if this is the first order of the year and calculate credit
+        credit = Decimal('0')
+        order_parts = order.order_number.split('-')
+        if len(order_parts) == 2:
+            order_num_part = order_parts[0]  # WXXYY
+            year_suffix = order_parts[1]      # ZZ
+            
+            # Extract the sequential order number (YY is the last 2 digits of WXXYY)
+            if len(order_num_part) >= 2:
+                sequential_num = order_num_part[-2:]  # Get last 2 digits
+                
+                # If this is order 01, calculate credit from previous year's returns
+                if sequential_num == '01':
+                    invoice_year = int(year_suffix)  # Convert ZZ to full year
+                    packets_returned, credit_amount = StoreReturns.get_credit_for_first_invoice(
+                        order.store.store_num,
+                        invoice_year
+                    )
+                    credit = credit_amount
         
-#         # Get all products and filter by variant SKU prefix
-#         all_products = []
-#         page = 1
-#         max_pages = 10  # This would get up to 2500 products
-#         while page <= max_pages:
-#             products = shopify.Product.find(limit=250, page=page)
-#             if not products:
-#                 break
-#             all_products.extend(products)
-#             page += 1
+        # Calculate grand total
+        grand_total = subtotal + order.shipping - credit
         
-#         matching_variants = []
+        # Add year suffix for filtering
+        year_suffix_for_filter = order_parts[1] if len(order_parts) == 2 else ''
         
-#         for product in all_products:
-#             for variant in product.variants:
-#                 if variant.sku and variant.sku.startswith(sku_prefix):
-#                     # Check if inventory is tracked
-#                     is_tracked = variant.inventory_management == 'shopify'
-#                     inventory_display = variant.inventory_quantity if is_tracked else 'No limit'
-                    
-#                     matching_variants.append({
-#                         'product_title': product.title,
-#                         'variant_title': variant.title,
-#                         'sku': variant.sku,
-#                         'inventory_quantity': inventory_display,
-#                         'is_tracked': is_tracked,
-#                         'price': str(variant.price)
-#                     })
+        orders_data.append({
+            'id': order.id,
+            'fulfilled_date': order.fulfilled_date,
+            'order_number': order.order_number,
+            'store': order.store,
+            'total_packets': total_packets,
+            'subtotal': subtotal,
+            'shipping': order.shipping,
+            'credit': credit,
+            'grand_total': grand_total,
+            'quickbooks_invoice': order.quickbooks_invoice,
+            'year_suffix': year_suffix_for_filter
+        })
+    
+    context = {
+        'orders': orders_data,
+        'available_years': available_years,
+    }
+    
+    return render(request, 'office/shipping.html', context)
+
+
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def update_quickbooks_ajax(request):
+    """
+    AJAX endpoint to update the quickbooks_invoice status for an order.
+    """
+    try:
+        # Parse JSON data from request
+        data = json.loads(request.body)
+        order_id = data.get('order_id')
+        quickbooks_status = data.get('quickbooks_invoice')
         
-#         shopify.ShopifyResource.clear_session()
+        # Validate input
+        if order_id is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'Order ID is required'
+            }, status=400)
         
-#         if not matching_variants:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': f'No products found with SKU prefix "{sku_prefix}"'
-#             })
+        # Get the order and update quickbooks_invoice status
+        try:
+            order = StoreOrder.objects.get(id=order_id)
+            order.quickbooks_invoice = quickbooks_status
+            order.save()
+            
+            return JsonResponse({
+                'success': True,
+                'order_number': order.order_number,
+                'quickbooks_invoice': order.quickbooks_invoice
+            })
         
-#         return JsonResponse({
-#             'success': True,
-#             'sku_prefix': sku_prefix,
-#             'variants': matching_variants,
-#             'total_found': len(matching_variants),
-#             'website_bulk': variety.website_bulk
-#         })
-        
-#     except Variety.DoesNotExist:
-#         return JsonResponse({
-#             'success': False,
-#             'error': 'Variety not found'
-#         }, status=404)
-#     except Exception as e:
-#         return JsonResponse({
-#             'success': False,
-#             'error': str(e)
-#         }, status=500)
-#     finally:
-#         if shopify.ShopifyResource.site:
-#             shopify.ShopifyResource.clear_session()
-# def check_shopify_inventory(request, sku_prefix):
-#     try:
-#         # Get your variety by sku_prefix (the primary key)
-#         variety = Variety.objects.get(pk=sku_prefix)
-        
-#         if not variety.sku_prefix:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': 'Variety has no SKU prefix'
-#             })
-        
-#         # Configure Shopify session
-#         session = shopify.Session(
-#             settings.SHOPIFY_SHOP_URL,
-#             settings.SHOPIFY_API_VERSION,
-#             settings.SHOPIFY_ACCESS_TOKEN
-#         )
-#         shopify.ShopifyResource.activate_session(session)
-        
-#         # Get all products and filter by variant SKU prefix
-#         all_products = shopify.Product.find(limit=250)
-        
-#         matching_variants = []
-        
-#         for product in all_products:
-#             for variant in product.variants:
-#                 if variant.sku and variant.sku.startswith(sku_prefix):
-#                     matching_variants.append({
-#                         'product_title': product.title,
-#                         'variant_title': variant.title,
-#                         'sku': variant.sku,
-#                         'inventory_quantity': variant.inventory_quantity,
-#                         'price': str(variant.price)
-#                     })
-        
-#         shopify.ShopifyResource.clear_session()
-        
-#         if not matching_variants:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': f'No products found with SKU prefix "{sku_prefix}"'
-#             })
-        
-#         return JsonResponse({
-#             'success': True,
-#             'sku_prefix': sku_prefix,
-#             'variants': matching_variants,
-#             'total_found': len(matching_variants),
-#             'website_bulk': variety.website_bulk  # Add this line
-#         })
-        
-#     except Variety.DoesNotExist:
-#         return JsonResponse({
-#             'success': False,
-#             'error': 'Variety not found'
-#         }, status=404)
-#     except Exception as e:
-#         return JsonResponse({
-#             'success': False,
-#             'error': str(e)
-#         }, status=500)
-#     finally:
-#         if shopify.ShopifyResource.site:
-#             shopify.ShopifyResource.clear_session()
-# def check_shopify_inventory(request, sku_prefix):
-#     try:
-#         # Get your variety by sku_prefix (the primary key)
-#         variety = Variety.objects.get(sku_prefix=sku_prefix)
-        
-#         if not variety.sku_prefix:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': 'Variety has no SKU prefix'
-#             })
-        
-#         # Configure Shopify session
-#         session = shopify.Session(
-#             settings.SHOPIFY_SHOP_URL,
-#             settings.SHOPIFY_API_VERSION,
-#             settings.SHOPIFY_ACCESS_TOKEN
-#         )
-#         shopify.ShopifyResource.activate_session(session)
-        
-#         # Get all products and filter by variant SKU prefix
-#         all_products = shopify.Product.find(limit=250)
-        
-#         matching_variants = []
-        
-#         for product in all_products:
-#             for variant in product.variants:
-#                 if variant.sku and variant.sku.startswith(sku_prefix):
-#                     matching_variants.append({
-#                         'product_title': product.title,
-#                         'variant_title': variant.title,
-#                         'sku': variant.sku,
-#                         'inventory_quantity': variant.inventory_quantity,
-#                         'price': str(variant.price)
-#                     })
-        
-#         shopify.ShopifyResource.clear_session()
-        
-#         if not matching_variants:
-#             return JsonResponse({
-#                 'success': False,
-#                 'error': f'No products found with SKU prefix "{sku_prefix}"'
-#             })
-        
-#         return JsonResponse({
-#             'success': True,
-#             'sku_prefix': sku_prefix,
-#             'variants': matching_variants,
-#             'total_found': len(matching_variants)
-#         })
-        
-#     except Variety.DoesNotExist:
-#         return JsonResponse({
-#             'success': False,
-#             'error': 'Variety not found'
-#         }, status=404)
-#     except Exception as e:
-#         return JsonResponse({
-#             'success': False,
-#             'error': str(e)
-#         }, status=500)
-#     finally:
-#         if shopify.ShopifyResource.site:
-#             shopify.ShopifyResource.clear_session()
+        except StoreOrder.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Order not found'
+            }, status=404)
+    
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

@@ -1,0 +1,105 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping & Invoicing - Uprising Seeds</title>
+    <link rel="stylesheet" href="{% static 'office/css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'office/css/shipping.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <a href="{% url 'office_landing' %}" class="back-button">← Dashboard</a>
+            <div class="header-content">
+                <h1 class="brand-title">Shipping & Invoicing</h1>
+                <p class="brand-subtitle">Order Fulfillment & QuickBooks Tracking</p>
+            </div>
+            <div class="year-filter-header">
+                <label for="yearSelect">Year:</label>
+                <select id="yearSelect" class="year-select">
+                    {% for year in available_years %}
+                    <option value="{{ year }}" {% if forloop.first %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+            <!-- Year Filter -->
+            {% comment %} <div class="year-filter">
+                <label for="yearSelect">Filter by Year:</label>
+                <select id="yearSelect" class="year-select">
+                    <option value="">Order Year</option>
+                    {% for year in available_years %}
+                    <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div> {% endcomment %}
+
+            <!-- Success Message -->
+            <div id="successMessage" class="success-message"></div>
+
+            <!-- Table Wrapper -->
+            <div class="table-wrapper">
+                <table class="shipping-table">
+                    <thead>
+                        <tr>
+                            <th>Fulfilled Date</th>
+                            <th>Order Number</th>
+                            <th>Store Name</th>
+                            <th># Pkts</th>
+                            <th>Subtotal</th>
+                            <th>Shipping</th>
+                            <th>Credit</th>
+                            <th>Grand Total</th>
+                            <th>QuickBooks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        {% for order in orders %}
+                        <tr data-order-id="{{ order.id }}" data-year="{{ order.year_suffix }}">
+                            <td>{{ order.fulfilled_date|date:"m/d/Y" }}</td>
+                            <td class="order-number">{{ order.order_number }}</td>
+                            <td class="store-name">{{ order.store.store_name }}</td>
+                            <td class="text-center">{{ order.total_packets }}</td>
+                            <td class="money-value">${{ order.subtotal|floatformat:2 }}</td>
+                            <td class="money-value">${{ order.shipping|floatformat:2 }}</td>
+                            <td class="credit-value">
+                                {% if order.credit > 0 %}
+                                -${{ order.credit|floatformat:2 }}
+                                {% else %}
+                                $0.00
+                                {% endif %}
+                            </td>
+                            <td class="total-value">${{ order.grand_total|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <input 
+                                    type="checkbox" 
+                                    class="quickbooks-checkbox" 
+                                    data-order-id="{{ order.id }}"
+                                    {% if order.quickbooks_invoice %}checked{% endif %}
+                                >
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
+                                No fulfilled orders found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'office/js/shipping.js' %}"></script>
+</body>
+</html>

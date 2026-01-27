@@ -105,6 +105,7 @@ class StoreOrder(models.Model):
     fulfilled_date = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     shipping = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    quickbooks_invoice = models.BooleanField(default=False, blank=True, null=True)
 
     def __str__(self):
         return f"Order {self.order_number} for {self.store.store_name}" 

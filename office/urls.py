@@ -135,6 +135,8 @@ urlpatterns = [
     path('set-wholesale-price/', set_wholesale_price, name='set_wholesale_price'),
     path('combine-orders/', combine_store_orders, name='combine_store_orders'),
     path('set-photos-auto/', set_photos_auto, name='set_photos_auto'),
+    path('shipping/', shipping_view, name='shipping'),
+    path('ajax/update-quickbooks/', update_quickbooks_ajax, name='update_quickbooks_ajax'),
     
     # ============================================================================
     # ORDER MANAGEMENT
