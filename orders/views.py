@@ -313,8 +313,8 @@ def process_online_orders(request):
     """
     Order Processing Page
     """
-    # Get the latest 20 BatchMetadata objects, newest first
-    recent_batches = BatchMetadata.objects.order_by('-batch_date')[:20]
+    # Get the latest 5 BatchMetadata objects, newest first
+    recent_batches = BatchMetadata.objects.order_by('-batch_date')[:5]
     batch_list = []
     
     """ Dict should take this form: {SKU: [print_qty, pull_qty]} """
