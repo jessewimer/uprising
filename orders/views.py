@@ -126,7 +126,7 @@ def calculate_bulk_pull_and_print(bulk_items):
                 }
 
                 if product.print_back:
-                    print(f"Processing print back for SKU {sku}")
+                    # print(f"Processing print back for SKU {sku}")
                     entry.update({
                         "back1": product.variety.back1,
                         "back2": product.variety.back2,
@@ -183,8 +183,8 @@ def calculate_bulk_pull_and_print(bulk_items):
     return bulk_to_print, bulk_to_pull
 
 def enrich_bulk_to_pull_and_print(bulk_items):
-    print(f"DEBUG - enrich_bulk_to_pull_and_print received: {list(bulk_items.keys())}")
-    print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
+    # print(f"DEBUG - enrich_bulk_to_pull_and_print received: {list(bulk_items.keys())}")
+    # print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
     # print("Enriching bulk items:", bulk_items)
     bulk_to_print = {}
     bulk_to_pull = {}
@@ -629,8 +629,8 @@ def process_orders(request):
 
         if bulk_items:
 
-            print(f"DEBUG - bulk_items keys: {list(bulk_items.keys())}")
-            print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
+            # print(f"DEBUG - bulk_items keys: {list(bulk_items.keys())}")
+            # print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
 
             # get the last batch record
             last_batch = BatchMetadata.objects.order_by("-id").first()
@@ -820,7 +820,7 @@ def reprint_packing_slip(request, order_id):
         if not order_number:
             return JsonResponse({'success': False, 'error': 'Order number required'})
        
-        print(f"Reprinting order: {order_number}")
+        # print(f"Reprinting order: {order_number}")
        
         # Get the order and related data
         order = OnlineOrder.objects.filter(order_number=order_number).first()
@@ -896,7 +896,7 @@ def reprint_packing_slip(request, order_id):
             float(x.get('rack_location', 0)) if x.get('rack_location') else 0
         ))
 
-        print(f"Made it this far!")
+        # print(f"Made it this far!")
         return JsonResponse({
             'success': True,
             'order_data': order_data
@@ -921,7 +921,7 @@ def reprocess_order(request, order_id):
         if not order_number:
             return JsonResponse({'success': False, 'error': 'Order number required'})
        
-        print(f"Reprocessing order: {order_number}")
+        # print(f"Reprocessing order: {order_number}")
        
         # Get the order and related data (same as reprint)
         order = OnlineOrder.objects.filter(order_number=order_number).first()
@@ -973,7 +973,7 @@ def reprocess_order(request, order_id):
                 else:
                     order_data['bulk_items'].append(line_item)
                     sku = f"{include.product.variety_id}-{include.product.sku_suffix}"
-                    print(f"Adding bulk item SKU: {sku} Qty: {include.qty}")
+                    # print(f"Adding bulk item SKU: {sku} Qty: {include.qty}")
                     bulk_items[sku] = bulk_items.get(sku, 0) + include.qty
 
 
@@ -996,8 +996,8 @@ def reprocess_order(request, order_id):
         ))
         
         bulk_to_print, bulk_to_pull = calculate_bulk_pull_and_print(bulk_items)
-        print(f"Bulk to print: {bulk_to_print}")
-        print(f"Bulk to pull: {bulk_to_pull}")
+        # print(f"Bulk to print: {bulk_to_print}")
+        # print(f"Bulk to pull: {bulk_to_pull}")
 
         return JsonResponse({
             'success': True,
@@ -1021,7 +1021,7 @@ def get_order_id_by_number(request, order_number):
     """
     API endpoint to get order ID by order number
     """
-    print(f"Fetching order ID for order number: {order_number}")
+    # print(f"Fetching order ID for order number: {order_number}")
     try:
         order = StoreOrder.objects.get(order_number=order_number)
         return JsonResponse({'order_id': order.id})
@@ -1090,16 +1090,17 @@ def generate_order_pdf(request, order_id):
                 pdfmetrics.registerFont(TTFont('Calibri', paths['regular']))
                 pdfmetrics.registerFont(TTFont('Calibri-Bold', paths['bold']))
                 use_calibri = True
-                print(f"✓ Calibri fonts loaded from: {paths['regular']}")
+                # print(f"✓ Calibri fonts loaded from: {paths['regular']}")
                 break
         except Exception as e:
-            print(f"Failed to load Calibri from {paths['regular']}: {e}")
+            # print(f"Failed to load Calibri from {paths['regular']}: {e}")
             continue
     
     if not use_calibri:
-        print("⚠ Warning: Calibri font not found, using Helvetica (may not display Turkish characters correctly)")
-        print(f"  Searched paths: {[p['regular'] for p in font_paths]}")
-        print(f"  To fix: Create a 'fonts' folder at {os.path.join(settings.BASE_DIR, 'fonts')} and add calibri.ttf and calibrib.ttf")
+        pass
+        # print("⚠ Warning: Calibri font not found, using Helvetica (may not display Turkish characters correctly)")
+        # print(f"  Searched paths: {[p['regular'] for p in font_paths]}")
+        # print(f"  To fix: Create a 'fonts' folder at {os.path.join(settings.BASE_DIR, 'fonts')} and add calibri.ttf and calibrib.ttf")
     
     try:
         # Get the order and items
@@ -1168,18 +1169,18 @@ def generate_order_pdf(request, order_id):
                 # Get the YY part (order sequence number - last 2 digits of prefix)
                 order_sequence = order_prefix[-2:]  # Last 2 digits
                 
-                print(f"\n=== CREDIT CALCULATION DEBUG ===")
-                print(f"Order number: {order_number}")
-                print(f"Order prefix: {order_prefix}")
-                print(f"Order sequence: {order_sequence}")
-                print(f"Year suffix: {year_suffix}")
+                # print(f"\n=== CREDIT CALCULATION DEBUG ===")
+                # print(f"Order number: {order_number}")
+                # print(f"Order prefix: {order_prefix}")
+                # print(f"Order sequence: {order_sequence}")
+                # print(f"Year suffix: {year_suffix}")
                 
                 # Check if this is the first order of the year (sequence = "01")
                 if order_sequence == "01":
                     invoice_year = int(year_suffix)  # Keep as 2-digit year (e.g., 25)
                     previous_year = invoice_year - 1  # e.g., 24
-                    print(f"✓ This IS the first order of year {invoice_year}")
-                    print(f"Looking for returns from previous year: {previous_year}")
+                    # print(f"✓ This IS the first order of year {invoice_year}")
+                    # print(f"Looking for returns from previous year: {previous_year}")
                     
                     # Apply credit using StoreReturns model
                     from stores.models import StoreReturns
@@ -1190,32 +1191,32 @@ def generate_order_pdf(request, order_id):
                             store__store_num=store.store_num,
                             return_year=previous_year
                         )
-                        print(f"✓ Found return record: {return_record}")
-                        print(f"  Packets returned: {return_record.packets_returned}")
+                        # print(f"✓ Found return record: {return_record}")
+                        # print(f"  Packets returned: {return_record.packets_returned}")
                         
                         # Calculate credit using the packet price
                         from stores.models import WholesalePktPrice
                         price = WholesalePktPrice.get_price_for_year(previous_year)
-                        print(f"  Price for year {previous_year}: {price}")
+                        # print(f"  Price for year {previous_year}: {price}")
                         
                         if price:
                             from decimal import Decimal
                             credit_amount = Decimal(str(return_record.packets_returned)) * price
                             credit = float(credit_amount)
-                            print(f"✓ Calculated credit: ${credit}")
+                            # print(f"✓ Calculated credit: ${credit}")
                         else:
-                            print(f"✗ No price found for year {previous_year}")
+                            # print(f"✗ No price found for year {previous_year}")
                             credit = 0.0
                     except StoreReturns.DoesNotExist:
-                        print(f"✗ No return record found for store {store.store_num}, year {previous_year}")
+                        # print(f"✗ No return record found for store {store.store_num}, year {previous_year}")
                         credit = 0.0
                 else:
-                    print(f"✗ NOT first order (sequence is {order_sequence}, not 01)")
+                    # print(f"✗ NOT first order (sequence is {order_sequence}, not 01)")
                     credit = 0.0
                 
-                print(f"=== CREDIT CALCULATION DEBUG END ===\n")
+                # print(f"=== CREDIT CALCULATION DEBUG END ===\n")
             except (IndexError, ValueError, AttributeError) as e:
-                print(f"Error parsing order number for credit: {e}")
+                # print(f"Error parsing order number for credit: {e}")
                 import traceback
                 traceback.print_exc()
                 credit = 0.0
