@@ -356,6 +356,36 @@ def process_online_orders(request):
 
 
 
+def sanitize_note(note_value):
+    """
+    Sanitize note text by removing or replacing problematic characters.
+    Returns cleaned string or placeholder if cleaning fails.
+    """
+    if pd.isna(note_value):
+        return ""
+    
+    try:
+        # Convert to string and strip whitespace
+        note = str(note_value).strip()
+        
+        # Replace common line breaks
+        note = note.replace('\r\n', '\n').replace('\r', '\n')
+        
+        # Encode to ASCII, replacing unknown chars with '?', then decode back
+        # This removes emojis and other non-ASCII characters
+        note = note.encode('ascii', errors='ignore').decode('ascii')
+        
+        # If the note became empty after cleaning, indicate there was content
+        if not note and str(note_value).strip():
+            return "**Customer Note - See Shopify**"
+        
+        return note
+        
+    except Exception:
+        # If any error occurs during sanitization
+        return "**Customer Note - See Shopify**"
+    
+
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
@@ -471,32 +501,6 @@ def process_orders(request):
                         item.order = current_order
                         item.save()
 
-                # Parse dates with multiple format fallbacks
-                # date_string = row['Created at'].strip()
-                # formats = [
-                #     '%m/%d/%Y %H:%M',
-                #     '%Y-%m-%d %H:%M:%S %z',
-                #     '%Y-%m-%d %H:%M:%S',
-                # ]
-                # for fmt in formats:
-                #     try:
-                #         date = datetime.strptime(date_string, fmt)
-                        
-                #         # Handle timezone properly based on whether date already has timezone info
-                #         if date.tzinfo is None:
-                #             # Naive datetime - localize to Pacific timezone
-                #             date = pacific_tz.localize(date)
-                #         else:
-                #             # Already has timezone info - convert to Pacific timezone
-                #             date = date.astimezone(pacific_tz)
-                #         break
-                #     except ValueError:
-                #         continue
-                # else:
-                #     raise ValueError(f"Unexpected date format: {date_string}")
-
-
-
                 # === BEGIN NEW DATE PARSING LOGIC === 1/14/26
                 # Parse date and extract just the date portion  
                 date_string = row['Created at'].strip()
@@ -523,12 +527,6 @@ def process_orders(request):
 
                 # === END NEW DATE PARSING LOGIC ===
 
-
-
-
-
-
-                # date = date.date()
                 order_start_date = min(order_start_date, date) if order_start_date else date
                 order_end_date = max(order_end_date, date) if order_end_date else date
 
@@ -545,8 +543,10 @@ def process_orders(request):
                 if pd.isna(address2) or str(address2).strip() == "" or isinstance(address2, float):
                     address2 = ""
 
+                # note = row['Notes'] if not pd.isna(row['Notes']) else ""
+                # note = str(note).strip().replace('\r\n', '\n').replace('\r', '\n')
                 note = row['Notes'] if not pd.isna(row['Notes']) else ""
-                note = str(note).strip().replace('\r\n', '\n').replace('\r', '\n')
+                note = sanitize_note(note) 
 
                 current_order = OnlineOrder(
                     order_number=order_number,
