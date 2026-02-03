@@ -11,18 +11,49 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('statusFilter').addEventListener('change', applyFilters);
     document.getElementById('categoryFilter').addEventListener('change', applyFilters);
     document.getElementById('cropFilter').addEventListener('change', applyFilters);
-    
+    document.getElementById('growerFilter').addEventListener('change', applyFilters);
+
     // Set up grower select change handlers
     document.querySelectorAll('.grower-select').forEach(select => {
         select.addEventListener('change', handleInputChange);
     });
+
+    populateGrowerFilter();
 });
+
+
+// Populate grower filter with assigned growers from the table
+function populateGrowerFilter() {
+    const growerFilter = document.getElementById('growerFilter');
+    const growerSelects = document.querySelectorAll('.grower-select');
+    const assignedGrowers = new Set();
+    
+    // Collect all assigned growers
+    growerSelects.forEach(select => {
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption.value) {
+            assignedGrowers.add(selectedOption.value + '|' + selectedOption.text);
+        }
+    });
+    
+    // Sort and populate the filter
+    const sortedGrowers = Array.from(assignedGrowers).sort();
+    sortedGrowers.forEach(growerData => {
+        const [code, text] = growerData.split('|');
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = text;
+        growerFilter.appendChild(option);
+    });
+}
 
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const categoryFilter = document.getElementById('categoryFilter').value;
     const cropFilter = document.getElementById('cropFilter').value;
     
+    const growerFilterValue = document.getElementById('growerFilter').value.toLowerCase();
+
     let visibleCount = 0;
     
     allRows.forEach(row => {
@@ -43,7 +74,15 @@ function applyFilters() {
         if (cropFilter && rowCrop !== cropFilter) {
             showRow = false;
         }
-        
+
+        if (growerFilterValue) {
+            const growerSelect = row.querySelector('.grower-select');
+            const selectedGrowerCode = growerSelect.value.toLowerCase();
+            if (selectedGrowerCode !== growerFilterValue) {
+                showRow = false;
+            }
+        }
+                
         if (showRow) {
             row.style.display = '';
             visibleCount++;
