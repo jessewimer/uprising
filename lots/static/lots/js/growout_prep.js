@@ -47,13 +47,60 @@ function populateGrowerFilter() {
     });
 }
 
+// function applyFilters() {
+//     const statusFilter = document.getElementById('statusFilter').value;
+//     const categoryFilter = document.getElementById('categoryFilter').value;
+//     const cropFilter = document.getElementById('cropFilter').value;
+    
+//     const growerFilterValue = document.getElementById('growerFilter').value.toLowerCase();
+
+//     let visibleCount = 0;
+    
+//     allRows.forEach(row => {
+//         const rowStatus = row.dataset.status;
+//         const rowCategory = row.dataset.category;
+//         const rowCrop = row.dataset.crop;
+        
+//         let showRow = true;
+        
+//         if (statusFilter && rowStatus !== statusFilter) {
+//             showRow = false;
+//         }
+        
+//         if (categoryFilter && rowCategory !== categoryFilter) {
+//             showRow = false;
+//         }
+        
+//         if (cropFilter && rowCrop !== cropFilter) {
+//             showRow = false;
+//         }
+
+//         if (growerFilterValue) {
+//             const growerSelect = row.querySelector('.grower-select');
+//             const selectedGrowerCode = growerSelect.value.toLowerCase();
+//             if (selectedGrowerCode !== growerFilterValue) {
+//                 showRow = false;
+//             }
+//         }
+                
+//         if (showRow) {
+//             row.style.display = '';
+//             visibleCount++;
+//         } else {
+//             row.style.display = 'none';
+//         }
+//     });
+    
+//     document.getElementById('varietyCount').textContent = `${visibleCount} varieties`;
+// }
+
+
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const categoryFilter = document.getElementById('categoryFilter').value;
     const cropFilter = document.getElementById('cropFilter').value;
-    
     const growerFilterValue = document.getElementById('growerFilter').value.toLowerCase();
-
+    
     let visibleCount = 0;
     
     allRows.forEach(row => {
@@ -74,12 +121,21 @@ function applyFilters() {
         if (cropFilter && rowCrop !== cropFilter) {
             showRow = false;
         }
-
+        
         if (growerFilterValue) {
             const growerSelect = row.querySelector('.grower-select');
             const selectedGrowerCode = growerSelect.value.toLowerCase();
-            if (selectedGrowerCode !== growerFilterValue) {
-                showRow = false;
+            
+            if (growerFilterValue === '__unallocated__') {
+                // Show only rows with no grower assigned
+                if (selectedGrowerCode !== '') {
+                    showRow = false;
+                }
+            } else {
+                // Normal grower filtering
+                if (selectedGrowerCode !== growerFilterValue) {
+                    showRow = false;
+                }
             }
         }
                 
@@ -91,8 +147,10 @@ function applyFilters() {
         }
     });
     
-    document.getElementById('varietyCount').textContent = `${visibleCount} varieties`;
+    // Update the variety count
+    document.getElementById('varietyCount').textContent = `${visibleCount} showing`;
 }
+
 
 function decreaseYear(button) {
     const varietyId = button.dataset.varietyId;
