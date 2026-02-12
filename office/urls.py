@@ -151,4 +151,10 @@ urlpatterns = [
     # ANALYTICS & REPORTING
     # ============================================================================
     path('top-sellers-details/', top_sellers_details, name='top_sellers_details'),
+
+    # ============================================================================
+    # SUPPLIES MANAGEMENT
+    # ============================================================================
+    path('supplies/', supplies, name='supplies'),
+    path('supplies/save/', save_supplies, name='save_supplies'),
 ]

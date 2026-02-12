@@ -4654,3 +4654,68 @@ def update_quickbooks_ajax(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# Add this view function for the supplies page
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+def supplies(request):
+    """Display office supplies management page"""
+    from .models import OfficeSupply  # Import your model
+    
+    supplies = OfficeSupply.objects.all().order_by('item')
+    
+    context = {
+        'supplies': supplies,
+    }
+    
+    return render(request, 'office/supplies.html', context)
+
+
+# Add this view function to handle saving supplies
+@login_required(login_url='/office/login/')
+@user_passes_test(is_employee)
+@require_http_methods(["POST"])
+def save_supplies(request):
+    """Save changes to office supplies"""
+    from .models import OfficeSupply  # Import your model
+    
+    try:
+        data = json.loads(request.body)
+        supplies_data = data.get('supplies', [])
+        
+        for supply_data in supplies_data:
+            supply_id = supply_data.get('id')
+            
+            # Handle new supplies
+            if supply_id == 'new':
+                # Don't create if item name is empty
+                if not supply_data.get('item', '').strip():
+                    continue
+                    
+                OfficeSupply.objects.create(
+                    item=supply_data.get('item', ''),
+                    item_num=supply_data.get('item_num', ''),
+                    vendor=supply_data.get('vendor', ''),
+                    description=supply_data.get('description', ''),
+                    notes=supply_data.get('notes', ''),
+                    url=supply_data.get('url', '') or None
+                )
+            else:
+                # Update existing supply
+                try:
+                    supply = OfficeSupply.objects.get(id=supply_id)
+                    supply.item = supply_data.get('item', '')
+                    supply.item_num = supply_data.get('item_num', '')
+                    supply.vendor = supply_data.get('vendor', '')
+                    supply.description = supply_data.get('description', '')
+                    supply.notes = supply_data.get('notes', '')
+                    supply.url = supply_data.get('url', '') or None
+                    supply.save()
+                except OfficeSupply.DoesNotExist:
+                    continue
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
