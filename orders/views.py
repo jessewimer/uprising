@@ -386,10 +386,10 @@ def sanitize_note(note_value):
         return "**Customer Note - See Shopify**"
     
 
+
 @login_required(login_url='/office/login/')
 @user_passes_test(is_employee)
 @require_http_methods(["POST"])
-@transaction.atomic
 def process_orders(request):
     """
     Process uploaded CSV file for orders
@@ -400,6 +400,9 @@ def process_orders(request):
     - bulk_items_to_pull: [{'name': str, 'quantity': int}, ...]
     """
     try:
+        # ============================================================
+        # STEP 1: FILE VALIDATION
+        # ============================================================
         if 'csv_file' not in request.FILES:
             return JsonResponse({'success': False, 'error': 'No CSV file provided'})
         
@@ -410,9 +413,10 @@ def process_orders(request):
     
         df = pd.read_csv(csv_file, header=0, encoding="utf-8", quoting=csv.QUOTE_MINIMAL)
 
-        # Extract unique SKUs from the "Lineitem sku" column
+        # ============================================================
+        # STEP 2: VALIDATE ALL SKUS EXIST (NO DATABASE WRITES YET)
+        # ============================================================
         skus_in_csv = df["Lineitem sku"].dropna().unique()
-
         missing_skus = []
 
         for full_sku in skus_in_csv:
@@ -433,14 +437,12 @@ def process_orders(request):
 
             # Fallback: check full sku in MiscProduct table
             if not found:
-                # MiscProduct lookup
                 found = MiscProduct.objects.filter(sku=full_sku).first() is not None
 
             if not found:
                 missing_skus.append(full_sku)
 
-
-        # Show a message box and halt if any SKUs are missing
+        # Halt if any SKUs are missing
         if missing_skus:
             missing_str = "\n".join(sorted(missing_skus))
             return JsonResponse({
@@ -448,261 +450,252 @@ def process_orders(request):
                 'error': f"The following SKUs are missing from the database:\n{missing_str}"
             })
         
-
-        # find unique order numbers
+        # ============================================================
+        # STEP 3: VALIDATE ORDERS DON'T ALREADY EXIST
+        # ============================================================
         order_numbers = df['Name'].unique()
+        
+        # Check if any orders already exist in database
+        existing_orders = OnlineOrder.objects.filter(
+            order_number__in=order_numbers
+        ).values_list('order_number', flat=True)
+        
+        if existing_orders:
+            existing_list = ', '.join(existing_orders)
+            return JsonResponse({
+                'success': False,
+                'error': f'The following orders have already been processed: {existing_list}'
+            })
 
-        # Strip 'S' prefix and convert to integers
+        # ============================================================
+        # STEP 4: CHECK FOR MISSING ORDERS IN SEQUENCE
+        # ============================================================
         order_numbers_int = [int(order[1:]) for order in order_numbers]
-        # Get the lowest and highest order numbers
         first_order = min(order_numbers_int)
         last_order = max(order_numbers_int)
         
         missing_orders = []
-        print(f"First Order: {first_order}, Last Order: {last_order}")
-        # check to see if any of the orders in the range are not present
         for order_number in range(first_order, last_order + 1):
             if order_number not in order_numbers_int:
                 missing_orders.append(order_number)
 
-        # check each unique order to see if it exists in the database
-        for order_number in order_numbers:
-            order = OnlineOrder.objects.filter(order_number=order_number).first()
-            if order:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'One or more of these orders have already been printed.'
-                })
-        
-        current_order = None
-        current_order_items = []
-        current_order_misc_items = []
-        bulk_orders = []
-        customer_orders = {}
-        bulk_items = {}
-        misc_orders = []
-        order_start_date = None
-        order_end_date = None
+        # ============================================================
+        # STEP 5: ALL VALIDATION PASSED - NOW PROCESS WITH TRANSACTION
+        # ============================================================
+        with transaction.atomic():
+            current_order = None
+            current_order_items = []
+            current_order_misc_items = []
+            bulk_orders = []
+            customer_orders = {}
+            bulk_items = {}
+            misc_orders = []
+            order_start_date = None
+            order_end_date = None
 
-        for index, row in df.iterrows():
-            order_number = row['Name']
-            product_sku = str(row['Lineitem sku']).strip()
-            product_qty = int(row['Lineitem quantity'])
+            for index, row in df.iterrows():
+                order_number = row['Name']
+                product_sku = str(row['Lineitem sku']).strip()
+                product_qty = int(row['Lineitem quantity'])
 
-            # Detect new order
-            if current_order is None or order_number != current_order.order_number:
-                # Save the previous order if it exists
-                if current_order is not None:
-                    current_order.save()
-                    for item in current_order_items:
-                        item.order = current_order
-                        item.save()
-                    for item in current_order_misc_items:
-                        item.order = current_order
-                        item.save()
+                # Detect new order
+                if current_order is None or order_number != current_order.order_number:
+                    # Save the previous order if it exists
+                    if current_order is not None:
+                        current_order.save()
+                        for item in current_order_items:
+                            item.order = current_order
+                            item.save()
+                        for item in current_order_misc_items:
+                            item.order = current_order
+                            item.save()
 
-                # === BEGIN NEW DATE PARSING LOGIC === 1/14/26
-                # Parse date and extract just the date portion  
-                date_string = row['Created at'].strip()
-                formats = [
-                    '%m/%d/%Y %H:%M',
-                    '%Y-%m-%d %H:%M:%S %z',
-                    '%Y-%m-%d %H:%M:%S',
-                ]
-                parsed_date = None
-                for fmt in formats:
-                    try:
-                        parsed_datetime = datetime.strptime(date_string, fmt)
-                        parsed_date = parsed_datetime.date()  # Extract just the date (1/8/2026)
-                        break
-                    except ValueError:
-                        continue
+                    # Parse date and extract just the date portion  
+                    date_string = row['Created at'].strip()
+                    formats = [
+                        '%m/%d/%Y %H:%M',
+                        '%Y-%m-%d %H:%M:%S %z',
+                        '%Y-%m-%d %H:%M:%S',
+                    ]
+                    parsed_date = None
+                    for fmt in formats:
+                        try:
+                            parsed_datetime = datetime.strptime(date_string, fmt)
+                            parsed_date = parsed_datetime.date()
+                            break
+                        except ValueError:
+                            continue
 
-                if parsed_date is None:
-                    raise ValueError(f"Unexpected date format: {date_string}")
+                    if parsed_date is None:
+                        raise ValueError(f"Unexpected date format: {date_string}")
 
-                # Create datetime at noon Pacific time - this ensures it stays the same date in any timezone
-                date = pacific_tz.localize(datetime.combine(parsed_date, datetime.strptime('12:00', '%H:%M').time()))
+                    # Create datetime at noon Pacific time
+                    date = pacific_tz.localize(datetime.combine(parsed_date, datetime.strptime('12:00', '%H:%M').time()))
 
+                    order_start_date = min(order_start_date, date) if order_start_date else date
+                    order_end_date = max(order_end_date, date) if order_end_date else date
 
-                # === END NEW DATE PARSING LOGIC ===
+                    # Parse address fields
+                    postal_code = str(row['Shipping Zip']).lstrip("'") if not pd.isna(row['Shipping Zip']) else str(row['Billing Zip'])
+                    address = row['Shipping Address1'] if not pd.isna(row['Shipping Address1']) else row['Billing Address1']
+                    address2 = row['Shipping Address2'] if not pd.isna(row['Shipping Address2']) else row['Billing Address2']
+                    country = row['Shipping Country'] if not pd.isna(row['Shipping Country']) else row['Billing Country']
+                    city = row['Shipping City'] if not pd.isna(row['Shipping City']) else row['Billing City']
+                    state = row['Shipping Province'] if not pd.isna(row['Shipping Province']) else row['Billing Province']
+                    customer_name = row['Shipping Name']
+                    if pd.isna(customer_name) or str(customer_name).strip() == "":
+                        customer_name = row['Billing Name']
+                    
+                    # Sanitize address2
+                    if pd.isna(address2) or str(address2).strip() == "" or isinstance(address2, float):
+                        address2 = ""
 
-                order_start_date = min(order_start_date, date) if order_start_date else date
-                order_end_date = max(order_end_date, date) if order_end_date else date
+                    # Sanitize note
+                    note = row['Notes'] if not pd.isna(row['Notes']) else ""
+                    note = sanitize_note(note)
 
-                postal_code = str(row['Shipping Zip']).lstrip("'") if not pd.isna(row['Shipping Zip']) else str(row['Billing Zip'])
-                address = row['Shipping Address1'] if not pd.isna(row['Shipping Address1']) else row['Billing Address1']
-                address2 = row['Shipping Address2'] if not pd.isna(row['Shipping Address2']) else row['Billing Address2']
-                country = row['Shipping Country'] if not pd.isna(row['Shipping Country']) else row['Billing Country']
-                city = row['Shipping City'] if not pd.isna(row['Shipping City']) else row['Billing City']
-                state = row['Shipping Province'] if not pd.isna(row['Shipping Province']) else row['Billing Province']
-                customer_name = row['Shipping Name']
-                if pd.isna(customer_name) or str(customer_name).strip() == "":
-                    customer_name = row['Billing Name']
-                # sanitize: make sure it's a string and empty if missing
-                if pd.isna(address2) or str(address2).strip() == "" or isinstance(address2, float):
-                    address2 = ""
+                    # Create new order object
+                    current_order = OnlineOrder(
+                        order_number=order_number,
+                        shipping_company=row['Shipping Company'],
+                        address=address,
+                        address2=address2,
+                        city=city,
+                        state=state,
+                        postal_code=postal_code,
+                        country=country,
+                        shipping=row['Shipping'],
+                        customer_name=customer_name,
+                        tax=row['Taxes'],
+                        subtotal=row['Subtotal'],
+                        total=row['Total'],
+                        date=date,
+                        note=note,
+                    )
 
-                # note = row['Notes'] if not pd.isna(row['Notes']) else ""
-                # note = str(note).strip().replace('\r\n', '\n').replace('\r', '\n')
-                note = row['Notes'] if not pd.isna(row['Notes']) else ""
-                note = sanitize_note(note) 
+                    # Track duplicates per customer
+                    if customer_name in customer_orders:
+                        customer_orders[customer_name].append(order_number)
+                    else:
+                        customer_orders[customer_name] = [order_number]
 
-                current_order = OnlineOrder(
-                    order_number=order_number,
-                    shipping_company=row['Shipping Company'],
-                    address=address,
-                    address2=address2,
-                    city=city,
-                    state=state,
-                    postal_code=postal_code,
-                    country=country,
-                    shipping=row['Shipping'],
-                    customer_name=customer_name,
-                    tax=row['Taxes'],
-                    subtotal=row['Subtotal'],
-                    total=row['Total'],
-                    date=date,
-                    note=note,
-                )
+                    current_order_items = []
+                    current_order_misc_items = []
 
-                # # Track duplicates per customer
-                if customer_name in customer_orders:
-                    customer_orders[customer_name].append(order_number)
-                else:
-                    customer_orders[customer_name] = [order_number]
+                # Product lookups
+                product = Product.objects.filter(
+                    variety=product_sku[:6],
+                    sku_suffix=product_sku[7:]
+                ).first()
 
-                current_order_items = []
-                current_order_misc_items = []
-
-            # Product lookups
-            product = Product.objects.filter(
-                variety=product_sku[:6],
-                sku_suffix=product_sku[7:]
-            ).first()
-
-            if not product:
-                product = MiscProduct.objects.filter(sku=product_sku).first()
                 if not product:
-                    print(f"Product with SKU {product_sku} not found, skipping…")
-                    continue
-                else:
+                    product = MiscProduct.objects.filter(sku=product_sku).first()
+                    if not product:
+                        print(f"Product with SKU {product_sku} not found, skipping…")
+                        continue
+                    else:
+                        misc_item = OOIncludesMisc(
+                            order=current_order,
+                            price=row['Lineitem price'],
+                            qty=product_qty,
+                            sku=product_sku,
+                        )
+                        current_order_misc_items.append(misc_item)
 
-                    misc_item = OOIncludesMisc(
+                        if order_number not in misc_orders:
+                            current_order.misc = True
+                            misc_orders.append(order_number)
+                else:
+                    # bulk vs packet logic
+                    is_bulk_item = "pkt" not in product_sku.lower()
+                    if is_bulk_item:
+                        bulk_items[product_sku] = bulk_items.get(product_sku, 0) + product_qty
+                        if order_number not in bulk_orders:
+                            current_order.bulk = True
+                            bulk_orders.append(order_number)
+
+                    item = OOIncludes(
                         order=current_order,
                         price=row['Lineitem price'],
                         qty=product_qty,
-                        sku=product_sku,
+                        product=product,
                     )
-                    current_order_misc_items.append(misc_item)
+                    current_order_items.append(item)
 
-                    if order_number not in misc_orders:
-                        current_order.misc = True
-                        misc_orders.append(order_number)
-            else:
-                # bulk vs packet logic
-                is_bulk_item = "pkt" not in product_sku.lower()
-                if is_bulk_item:
-                    bulk_items[product_sku] = bulk_items.get(product_sku, 0) + product_qty
-                    if order_number not in bulk_orders:
-                        current_order.bulk = True
-                        bulk_orders.append(order_number)
+            # Save last order
+            if current_order is not None:
+                current_order.save()
+                for item in current_order_items:
+                    item.order = current_order
+                    item.save()
+                for item in current_order_misc_items:
+                    item.order = current_order
+                    item.save()
 
-                item = OOIncludes(
-                    order=current_order,
-                    price=row['Lineitem price'],
-                    qty=product_qty,
-                    product=product,
+            # ============================================================
+            # STEP 6: CREATE BATCH METADATA FOR BULK ITEMS
+            # ============================================================
+            bulk_to_print = {}
+            bulk_to_pull = {}
+            
+            if bulk_items:
+                # Get the last batch record
+                last_batch = BatchMetadata.objects.order_by("-id").first()
+                if last_batch:
+                    last_batch_number = int(last_batch.batch_identifier.split("-")[1])
+                else:
+                    last_batch_number = 0
+
+                new_batch_number = last_batch_number + 1
+                meta_batch_id = f"{now().strftime('%y%m%d')}-{new_batch_number}"
+
+                # Create the BatchMetadata record
+                bulk_batch = BatchMetadata.objects.create(
+                    batch_date=localtime(timezone.now(), pacific_tz).date(),
+                    batch_identifier=meta_batch_id,
+                    start_order_number=first_order,
+                    end_order_number=last_order,
+                    start_order_date=order_start_date,
+                    end_order_date=order_end_date,
                 )
-                current_order_items.append(item)
 
-        # Save last order
-        if current_order is not None:
-            current_order.save()
-            for item in current_order_items:
-                item.order = current_order
-                item.save()
-            for item in current_order_misc_items:
-                item.order = current_order
-                item.save()
+                # Calculate bulk items
+                bulk_to_print, bulk_to_pull = calculate_bulk_pull_and_print(bulk_items)
 
+                # Add "print" bulk items
+                if bulk_to_print:
+                    for sku, details in bulk_to_print.items():
+                        BulkBatch.objects.create(
+                            batch_identifier=bulk_batch,
+                            bulk_type="print",
+                            sku=sku,
+                            quantity=details['quantity'],
+                        )
 
-        if bulk_items:
+                # Add "pull" bulk items
+                if bulk_to_pull:
+                    for sku, details in bulk_to_pull.items():
+                        BulkBatch.objects.create(
+                            batch_identifier=bulk_batch,
+                            bulk_type="pull",
+                            sku=sku,
+                            quantity=details['quantity'],
+                        )
 
-            # print(f"DEBUG - bulk_items keys: {list(bulk_items.keys())}")
-            # print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
-
-            # get the last batch record
-            last_batch = BatchMetadata.objects.order_by("-id").first()
-            if last_batch:
-                last_batch_number = int(last_batch.batch_identifier.split("-")[1])
-            else:
-                last_batch_number = 0
-
-            new_batch_number = last_batch_number + 1
-            meta_batch_id = f"{now().strftime('%y%m%d')}-{new_batch_number}"
-
-            # create the BatchMetadata record
-            bulk_batch = BatchMetadata.objects.create(
-                batch_date=localtime(timezone.now(), pacific_tz).date(),
-                batch_identifier=meta_batch_id,
-                start_order_number=first_order,
-                end_order_number=last_order,
-                start_order_date=order_start_date,
-                end_order_date=order_end_date,
-            )
-
-            # calculate bulk items
-            bulk_to_print, bulk_to_pull = calculate_bulk_pull_and_print(bulk_items)
-
-
-            # print(f"Bulk to print: {bulk_to_print}")
-            # print(f"Bulk to pull: {bulk_to_pull}")
-
-            # add "print" bulk items
-            if bulk_to_print:
-                for sku, details in bulk_to_print.items():
-                    BulkBatch.objects.create(
-                        batch_identifier=bulk_batch,
-                        bulk_type="print",
-                        sku=sku,
-                        quantity=details['quantity'],  # <-- extract the number
-                    )
-
-            # add "pull" bulk items
-            if bulk_to_pull:
-                for sku, details in bulk_to_pull.items():
-                    BulkBatch.objects.create(
-                        batch_identifier=bulk_batch,
-                        bulk_type="pull",
-                        sku=sku,
-                        quantity=details['quantity'],  # <-- extract the number
-                    )
-
-
-        # ------------------------------------------------------------
-        # Build a comprehensive dict to hold all order data
-        # Keys = order numbers
-        # Values = compound dicts with:
-        #   - metadata from OnlineOrder
-        #   - items grouped into:
-        #       "misc_items"  (from OOIncludesMisc)
-        #       "bulk_items"  (Product.sku_suffix != "pkt")
-        #       "pkt_items"   (Product.sku_suffix == "pkt")
-        # Items are sorted by: quantity DESC, then product.rack_location
-        # ------------------------------------------------------------
+        # ============================================================
+        # STEP 7: BUILD ORDER DATA FOR RESPONSE (OUTSIDE TRANSACTION)
+        # ============================================================
         order_data = {}
 
         all_orders = OnlineOrder.objects.filter(
             order_number__in=order_numbers
         ).prefetch_related(
-            "includes__product__variety",   # replaces ooincludes_set
-            "includes_misc"                 # replaces ooincludesmisc_set
+            "includes__product__variety",
+            "includes_misc"
         )
 
-
         for order in all_orders:
-            # collect base order info
+            # Collect base order info
             order_dict = {
                 "order_number": order.order_number,
                 "customer_name": order.customer_name,
@@ -724,10 +717,8 @@ def process_orders(request):
                 "pkt_items": [],
             }
 
-            # -------------------------
             # Misc items
-            # -------------------------
-            for misc in order.includes_misc.all():   # ✅ use related_name
+            for misc in order.includes_misc.all():
                 misc_product = MiscProduct.objects.get(sku=misc.sku)
                 lineitem_name = misc_product.lineitem_name
                 order_dict["misc_items"].append({
@@ -737,10 +728,8 @@ def process_orders(request):
                     "lineitem": lineitem_name,
                 })
 
-            # -------------------------
             # Regular items (bulk / pkt)
-            # -------------------------
-            for inc in order.includes.all():   # ✅ use related_name
+            for inc in order.includes.all():
                 product = inc.product
                 variety = product.variety
 
@@ -760,10 +749,7 @@ def process_orders(request):
                 else:
                     order_dict["bulk_items"].append(entry)
 
-
-            # -------------------------
             # Sort groups
-            # -------------------------
             def sort_key(item):
                 return (-item["qty"], item.get("rack_location") or "")
 
@@ -774,25 +760,26 @@ def process_orders(request):
             # Save into global dict
             order_data[order.order_number] = order_dict
 
-        # ------------------------------------------------------------
-            current_batch = BatchMetadata.objects.order_by("-batch_date").first()
+        # ============================================================
+        # STEP 8: GET BATCH METADATA FOR RESPONSE
+        # ============================================================
+        current_batch = BatchMetadata.objects.order_by("-batch_date").first()
 
-            # serialize batch metadata
-            batch_metadata_dict = None
-            bulk_batches_list = []
+        batch_metadata_dict = None
+        if current_batch:
+            batch_metadata_dict = {
+                "id": current_batch.id,
+                "batch_identifier": current_batch.batch_identifier,
+                "batch_date": current_batch.batch_date.isoformat(),
+                "start_order_number": current_batch.start_order_number,
+                "end_order_number": current_batch.end_order_number,
+                "start_order_date": current_batch.start_order_date.isoformat(),
+                "end_order_date": current_batch.end_order_date.isoformat(),
+            }
 
-            if current_batch:
-                batch_metadata_dict = {
-                    "id": current_batch.id,
-                    "batch_identifier": current_batch.batch_identifier,
-                    "batch_date": current_batch.batch_date.isoformat(),
-                    "start_order_number": current_batch.start_order_number,
-                    "end_order_number": current_batch.end_order_number,
-                    "start_order_date": current_batch.start_order_date.isoformat(),
-                    "end_order_date": current_batch.end_order_date.isoformat(),
-                }
-            
-
+        # ============================================================
+        # STEP 9: RETURN SUCCESS RESPONSE
+        # ============================================================
         return JsonResponse({
             'success': True,
             'message': f"Processed orders from {order_start_date} to {order_end_date}",
@@ -808,6 +795,428 @@ def process_orders(request):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': f"Error processing orders: {e}"})
+# @login_required(login_url='/office/login/')
+# @user_passes_test(is_employee)
+# @require_http_methods(["POST"])
+# @transaction.atomic
+# def process_orders(request):
+#     """
+#     Process uploaded CSV file for orders
+#     Expected response format:
+#     - success: True/False
+#     - message: 'wrong file' | 'orders already processed' | success message
+#     - bulk_items_to_print: [{'name': str, 'quantity': int}, ...]
+#     - bulk_items_to_pull: [{'name': str, 'quantity': int}, ...]
+#     """
+#     try:
+#         if 'csv_file' not in request.FILES:
+#             return JsonResponse({'success': False, 'error': 'No CSV file provided'})
+        
+#         csv_file = request.FILES['csv_file']
+
+#         if not csv_file.name.endswith('.csv'):
+#             return JsonResponse({'success': False, 'error': 'Only CSV files are allowed'})
+    
+#         df = pd.read_csv(csv_file, header=0, encoding="utf-8", quoting=csv.QUOTE_MINIMAL)
+
+#         # Extract unique SKUs from the "Lineitem sku" column
+#         skus_in_csv = df["Lineitem sku"].dropna().unique()
+
+#         missing_skus = []
+
+#         for full_sku in skus_in_csv:
+#             full_sku = full_sku.strip()
+#             found = False
+
+#             # First, try splitting into prefix and suffix for Product table
+#             try:
+#                 parts = full_sku.split("-")
+#                 if len(parts) >= 3:
+#                     sku_prefix = "-".join(parts[:-1])
+#                     sku_suffix = parts[-1]
+#                     found = Product.objects.filter(
+#                         variety_id=sku_prefix, sku_suffix=sku_suffix
+#                     ).first() is not None
+#             except Exception:
+#                 pass  # safe to ignore — fallback to misc below
+
+#             # Fallback: check full sku in MiscProduct table
+#             if not found:
+#                 # MiscProduct lookup
+#                 found = MiscProduct.objects.filter(sku=full_sku).first() is not None
+
+#             if not found:
+#                 missing_skus.append(full_sku)
+
+
+#         # Show a message box and halt if any SKUs are missing
+#         if missing_skus:
+#             missing_str = "\n".join(sorted(missing_skus))
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': f"The following SKUs are missing from the database:\n{missing_str}"
+#             })
+        
+
+#         # find unique order numbers
+#         order_numbers = df['Name'].unique()
+
+#         # Strip 'S' prefix and convert to integers
+#         order_numbers_int = [int(order[1:]) for order in order_numbers]
+#         # Get the lowest and highest order numbers
+#         first_order = min(order_numbers_int)
+#         last_order = max(order_numbers_int)
+        
+#         missing_orders = []
+#         print(f"First Order: {first_order}, Last Order: {last_order}")
+#         # check to see if any of the orders in the range are not present
+#         for order_number in range(first_order, last_order + 1):
+#             if order_number not in order_numbers_int:
+#                 missing_orders.append(order_number)
+
+#         # check each unique order to see if it exists in the database
+#         for order_number in order_numbers:
+#             order = OnlineOrder.objects.filter(order_number=order_number).first()
+#             if order:
+#                 return JsonResponse({
+#                     'success': False,
+#                     'error': 'One or more of these orders have already been printed.'
+#                 })
+        
+#         current_order = None
+#         current_order_items = []
+#         current_order_misc_items = []
+#         bulk_orders = []
+#         customer_orders = {}
+#         bulk_items = {}
+#         misc_orders = []
+#         order_start_date = None
+#         order_end_date = None
+
+#         for index, row in df.iterrows():
+#             order_number = row['Name']
+#             product_sku = str(row['Lineitem sku']).strip()
+#             product_qty = int(row['Lineitem quantity'])
+
+#             # Detect new order
+#             if current_order is None or order_number != current_order.order_number:
+#                 # Save the previous order if it exists
+#                 if current_order is not None:
+#                     current_order.save()
+#                     for item in current_order_items:
+#                         item.order = current_order
+#                         item.save()
+#                     for item in current_order_misc_items:
+#                         item.order = current_order
+#                         item.save()
+
+#                 # === BEGIN NEW DATE PARSING LOGIC === 1/14/26
+#                 # Parse date and extract just the date portion  
+#                 date_string = row['Created at'].strip()
+#                 formats = [
+#                     '%m/%d/%Y %H:%M',
+#                     '%Y-%m-%d %H:%M:%S %z',
+#                     '%Y-%m-%d %H:%M:%S',
+#                 ]
+#                 parsed_date = None
+#                 for fmt in formats:
+#                     try:
+#                         parsed_datetime = datetime.strptime(date_string, fmt)
+#                         parsed_date = parsed_datetime.date()  # Extract just the date (1/8/2026)
+#                         break
+#                     except ValueError:
+#                         continue
+
+#                 if parsed_date is None:
+#                     raise ValueError(f"Unexpected date format: {date_string}")
+
+#                 # Create datetime at noon Pacific time - this ensures it stays the same date in any timezone
+#                 date = pacific_tz.localize(datetime.combine(parsed_date, datetime.strptime('12:00', '%H:%M').time()))
+
+
+#                 # === END NEW DATE PARSING LOGIC ===
+
+#                 order_start_date = min(order_start_date, date) if order_start_date else date
+#                 order_end_date = max(order_end_date, date) if order_end_date else date
+
+#                 postal_code = str(row['Shipping Zip']).lstrip("'") if not pd.isna(row['Shipping Zip']) else str(row['Billing Zip'])
+#                 address = row['Shipping Address1'] if not pd.isna(row['Shipping Address1']) else row['Billing Address1']
+#                 address2 = row['Shipping Address2'] if not pd.isna(row['Shipping Address2']) else row['Billing Address2']
+#                 country = row['Shipping Country'] if not pd.isna(row['Shipping Country']) else row['Billing Country']
+#                 city = row['Shipping City'] if not pd.isna(row['Shipping City']) else row['Billing City']
+#                 state = row['Shipping Province'] if not pd.isna(row['Shipping Province']) else row['Billing Province']
+#                 customer_name = row['Shipping Name']
+#                 if pd.isna(customer_name) or str(customer_name).strip() == "":
+#                     customer_name = row['Billing Name']
+#                 # sanitize: make sure it's a string and empty if missing
+#                 if pd.isna(address2) or str(address2).strip() == "" or isinstance(address2, float):
+#                     address2 = ""
+
+#                 # note = row['Notes'] if not pd.isna(row['Notes']) else ""
+#                 # note = str(note).strip().replace('\r\n', '\n').replace('\r', '\n')
+#                 note = row['Notes'] if not pd.isna(row['Notes']) else ""
+#                 note = sanitize_note(note) 
+
+#                 current_order = OnlineOrder(
+#                     order_number=order_number,
+#                     shipping_company=row['Shipping Company'],
+#                     address=address,
+#                     address2=address2,
+#                     city=city,
+#                     state=state,
+#                     postal_code=postal_code,
+#                     country=country,
+#                     shipping=row['Shipping'],
+#                     customer_name=customer_name,
+#                     tax=row['Taxes'],
+#                     subtotal=row['Subtotal'],
+#                     total=row['Total'],
+#                     date=date,
+#                     note=note,
+#                 )
+
+#                 # # Track duplicates per customer
+#                 if customer_name in customer_orders:
+#                     customer_orders[customer_name].append(order_number)
+#                 else:
+#                     customer_orders[customer_name] = [order_number]
+
+#                 current_order_items = []
+#                 current_order_misc_items = []
+
+#             # Product lookups
+#             product = Product.objects.filter(
+#                 variety=product_sku[:6],
+#                 sku_suffix=product_sku[7:]
+#             ).first()
+
+#             if not product:
+#                 product = MiscProduct.objects.filter(sku=product_sku).first()
+#                 if not product:
+#                     print(f"Product with SKU {product_sku} not found, skipping…")
+#                     continue
+#                 else:
+
+#                     misc_item = OOIncludesMisc(
+#                         order=current_order,
+#                         price=row['Lineitem price'],
+#                         qty=product_qty,
+#                         sku=product_sku,
+#                     )
+#                     current_order_misc_items.append(misc_item)
+
+#                     if order_number not in misc_orders:
+#                         current_order.misc = True
+#                         misc_orders.append(order_number)
+#             else:
+#                 # bulk vs packet logic
+#                 is_bulk_item = "pkt" not in product_sku.lower()
+#                 if is_bulk_item:
+#                     bulk_items[product_sku] = bulk_items.get(product_sku, 0) + product_qty
+#                     if order_number not in bulk_orders:
+#                         current_order.bulk = True
+#                         bulk_orders.append(order_number)
+
+#                 item = OOIncludes(
+#                     order=current_order,
+#                     price=row['Lineitem price'],
+#                     qty=product_qty,
+#                     product=product,
+#                 )
+#                 current_order_items.append(item)
+
+#         # Save last order
+#         if current_order is not None:
+#             current_order.save()
+#             for item in current_order_items:
+#                 item.order = current_order
+#                 item.save()
+#             for item in current_order_misc_items:
+#                 item.order = current_order
+#                 item.save()
+
+
+#         if bulk_items:
+
+#             # print(f"DEBUG - bulk_items keys: {list(bulk_items.keys())}")
+#             # print(f"DEBUG - GRE-AS-5lb in bulk_items: {'GRE-AS-5lb' in bulk_items}")
+
+#             # get the last batch record
+#             last_batch = BatchMetadata.objects.order_by("-id").first()
+#             if last_batch:
+#                 last_batch_number = int(last_batch.batch_identifier.split("-")[1])
+#             else:
+#                 last_batch_number = 0
+
+#             new_batch_number = last_batch_number + 1
+#             meta_batch_id = f"{now().strftime('%y%m%d')}-{new_batch_number}"
+
+#             # create the BatchMetadata record
+#             bulk_batch = BatchMetadata.objects.create(
+#                 batch_date=localtime(timezone.now(), pacific_tz).date(),
+#                 batch_identifier=meta_batch_id,
+#                 start_order_number=first_order,
+#                 end_order_number=last_order,
+#                 start_order_date=order_start_date,
+#                 end_order_date=order_end_date,
+#             )
+
+#             # calculate bulk items
+#             bulk_to_print, bulk_to_pull = calculate_bulk_pull_and_print(bulk_items)
+
+
+#             # print(f"Bulk to print: {bulk_to_print}")
+#             # print(f"Bulk to pull: {bulk_to_pull}")
+
+#             # add "print" bulk items
+#             if bulk_to_print:
+#                 for sku, details in bulk_to_print.items():
+#                     BulkBatch.objects.create(
+#                         batch_identifier=bulk_batch,
+#                         bulk_type="print",
+#                         sku=sku,
+#                         quantity=details['quantity'],  # <-- extract the number
+#                     )
+
+#             # add "pull" bulk items
+#             if bulk_to_pull:
+#                 for sku, details in bulk_to_pull.items():
+#                     BulkBatch.objects.create(
+#                         batch_identifier=bulk_batch,
+#                         bulk_type="pull",
+#                         sku=sku,
+#                         quantity=details['quantity'],  # <-- extract the number
+#                     )
+
+
+#         # ------------------------------------------------------------
+#         # Build a comprehensive dict to hold all order data
+#         # Keys = order numbers
+#         # Values = compound dicts with:
+#         #   - metadata from OnlineOrder
+#         #   - items grouped into:
+#         #       "misc_items"  (from OOIncludesMisc)
+#         #       "bulk_items"  (Product.sku_suffix != "pkt")
+#         #       "pkt_items"   (Product.sku_suffix == "pkt")
+#         # Items are sorted by: quantity DESC, then product.rack_location
+#         # ------------------------------------------------------------
+#         order_data = {}
+
+#         all_orders = OnlineOrder.objects.filter(
+#             order_number__in=order_numbers
+#         ).prefetch_related(
+#             "includes__product__variety",   # replaces ooincludes_set
+#             "includes_misc"                 # replaces ooincludesmisc_set
+#         )
+
+
+#         for order in all_orders:
+#             # collect base order info
+#             order_dict = {
+#                 "order_number": order.order_number,
+#                 "customer_name": order.customer_name,
+#                 "address": order.address,
+#                 "address2": order.address2,
+#                 "city": order.city,
+#                 "state": order.state,
+#                 "postal_code": order.postal_code,
+#                 "country": order.country,
+#                 "shipping_company": order.shipping_company,
+#                 "shipping": order.shipping,
+#                 "tax": order.tax,
+#                 "subtotal": order.subtotal,
+#                 "total": order.total,
+#                 "date": order.date.isoformat() if order.date else None,
+#                 "note": order.note,
+#                 "misc_items": [],
+#                 "bulk_items": [],
+#                 "pkt_items": [],
+#             }
+
+#             # -------------------------
+#             # Misc items
+#             # -------------------------
+#             for misc in order.includes_misc.all():   # ✅ use related_name
+#                 misc_product = MiscProduct.objects.get(sku=misc.sku)
+#                 lineitem_name = misc_product.lineitem_name
+#                 order_dict["misc_items"].append({
+#                     "sku": misc.sku,
+#                     "qty": misc.qty,
+#                     "price": misc.price,
+#                     "lineitem": lineitem_name,
+#                 })
+
+#             # -------------------------
+#             # Regular items (bulk / pkt)
+#             # -------------------------
+#             for inc in order.includes.all():   # ✅ use related_name
+#                 product = inc.product
+#                 variety = product.variety
+
+#                 entry = {
+#                     "sku": f"{product.variety_id}-{product.sku_suffix}",
+#                     "qty": inc.qty,
+#                     "price": inc.price,
+#                     "rack_location": product.rack_location or "",
+#                     "variety_name": variety.var_name,
+#                     "crop": variety.crop,
+#                     "pkg_size": product.pkg_size,
+#                     'lineitem': product.lineitem_name or "",
+#                 }
+
+#                 if product.sku_suffix.lower() == "pkt":
+#                     order_dict["pkt_items"].append(entry)
+#                 else:
+#                     order_dict["bulk_items"].append(entry)
+
+
+#             # -------------------------
+#             # Sort groups
+#             # -------------------------
+#             def sort_key(item):
+#                 return (-item["qty"], item.get("rack_location") or "")
+
+#             order_dict["misc_items"].sort(key=sort_key)
+#             order_dict["bulk_items"].sort(key=sort_key)
+#             order_dict["pkt_items"].sort(key=sort_key)
+
+#             # Save into global dict
+#             order_data[order.order_number] = order_dict
+
+#         # ------------------------------------------------------------
+#             current_batch = BatchMetadata.objects.order_by("-batch_date").first()
+
+#             # serialize batch metadata
+#             batch_metadata_dict = None
+#             bulk_batches_list = []
+
+#             if current_batch:
+#                 batch_metadata_dict = {
+#                     "id": current_batch.id,
+#                     "batch_identifier": current_batch.batch_identifier,
+#                     "batch_date": current_batch.batch_date.isoformat(),
+#                     "start_order_number": current_batch.start_order_number,
+#                     "end_order_number": current_batch.end_order_number,
+#                     "start_order_date": current_batch.start_order_date.isoformat(),
+#                     "end_order_date": current_batch.end_order_date.isoformat(),
+#                 }
+            
+
+#         return JsonResponse({
+#             'success': True,
+#             'message': f"Processed orders from {order_start_date} to {order_end_date}",
+#             'bulk_to_print': bulk_to_print,
+#             'bulk_to_pull': bulk_to_pull,
+#             'customer_orders': customer_orders,
+#             'missing_orders': missing_orders,
+#             'bulk_orders': bulk_orders,
+#             'misc_orders': misc_orders,
+#             'order_data': order_data,
+#             'batch_metadata': batch_metadata_dict,
+#         })
+
+#     except Exception as e:
+#         return JsonResponse({'success': False, 'error': f"Error processing orders: {e}"})
  
 
 @login_required(login_url='/office/login/')

@@ -270,6 +270,95 @@ def find_hybrid_orders():
     print("=" * 70)
 
 
+def delete_orders_from_number():
+    """Delete all orders starting from a specific order number"""
+    print("\n" + "=" * 70)
+    print("DELETE ORDERS FROM SPECIFIC ORDER NUMBER ONWARD")
+    print("=" * 70)
+    
+    order_number = input("\nEnter starting order number (e.g., S88983): ").strip().upper()
+    
+    if not order_number:
+        print("\n✗ Order number cannot be empty!")
+        return
+    
+    # Validate format (should start with S and have digits)
+    if not order_number.startswith('S') or not order_number[1:].isdigit():
+        print("\n✗ Invalid order number format! Should be like S88983")
+        return
+    
+    # Extract the numeric part
+    try:
+        start_number = int(order_number[1:])
+    except ValueError:
+        print("\n✗ Could not parse order number!")
+        return
+    
+    # Find all orders with number >= start_number
+    all_orders = OnlineOrder.objects.all()
+    orders_to_delete = []
+    
+    for order in all_orders:
+        try:
+            order_num = int(order.order_number[1:])
+            if order_num >= start_number:
+                orders_to_delete.append(order)
+        except (ValueError, IndexError):
+            # Skip orders with unexpected format
+            continue
+    
+    if not orders_to_delete:
+        print(f"\n✓ No orders found with number >= {order_number}")
+        return
+    
+    # Sort by order number for display
+    orders_to_delete.sort(key=lambda x: int(x.order_number[1:]))
+    
+    print(f"\n⚠️  Found {len(orders_to_delete)} orders to delete:")
+    print("-" * 70)
+    print(f"  First order: {orders_to_delete[0].order_number}")
+    print(f"  Last order:  {orders_to_delete[-1].order_number}")
+    print(f"  Total:       {len(orders_to_delete)} orders")
+    
+    # Count related records that will be deleted
+    order_ids = [o.order_number for o in orders_to_delete]
+    includes_count = OOIncludes.objects.filter(order__in=order_ids).count()
+    misc_includes_count = OOIncludesMisc.objects.filter(order__in=order_ids).count()
+    
+    print(f"\n  Related records to be deleted:")
+    print(f"    - {includes_count} OOIncludes records")
+    print(f"    - {misc_includes_count} OOIncludesMisc records")
+    print(f"    - Total: {len(orders_to_delete) + includes_count + misc_includes_count} records")
+    
+    if not confirm_action(f"Delete all orders from {order_number} onward?"):
+        print("\n✗ Operation cancelled.")
+        return
+    
+    # Double confirmation for safety
+    if not confirm_action("Type 'y' again to confirm deletion"):
+        print("\n✗ Operation cancelled.")
+        return
+    
+    try:
+        with transaction.atomic():
+            # Delete orders (cascade will handle OOIncludes and OOIncludesMisc)
+            deleted_info = OnlineOrder.objects.filter(order_number__in=order_ids).delete()
+            total_deleted = deleted_info[0]
+            
+            # deleted_info[1] is a dict with counts by model
+            by_model = deleted_info[1]
+            
+        print("\n✓ Successfully deleted:")
+        for model_name, count in by_model.items():
+            print(f"  - {count} {model_name} records")
+        print(f"\n  Total: {total_deleted} records deleted")
+        
+    except Exception as e:
+        print(f"\n✗ Error during deletion: {str(e)}")
+        print("  No changes were made (transaction rolled back)")
+
+
+
 def main_menu():
     """Display and handle main menu"""
     while True:
@@ -283,9 +372,10 @@ def main_menu():
         print("  3. Refresh counts")
         print("  4. Search for an order by order number")
         print("  5. Find hybrid orders (misc + bulk + packets)")
+        print("  6. Delete orders from specific order number onward")
         print("  0. Exit")
         
-        choice = input("\nEnter choice (0-5): ").strip()
+        choice = input("\nEnter choice (0-6): ").strip()
         
         if choice == '0':
             print("\nGoodbye!")
@@ -303,6 +393,9 @@ def main_menu():
             input("\nPress Enter to continue...")
         elif choice == '5':
             find_hybrid_orders()
+            input("\nPress Enter to continue...")
+        elif choice == '6':
+            delete_orders_from_number()
             input("\nPress Enter to continue...")
         else:
             print("\n✗ Invalid choice!")
