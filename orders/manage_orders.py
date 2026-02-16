@@ -472,6 +472,84 @@ def list_orders_in_range():
     
     print("-" * 70)
 
+
+def find_orphaned_includes():
+    """Find OOIncludes records that reference non-existent orders"""
+    print("\n" + "=" * 70)
+    print("SEARCHING FOR ORPHANED INCLUDES RECORDS")
+    print("=" * 70)
+    
+    # Get all unique order_ids from OOIncludes
+    includes_order_ids = OOIncludes.objects.values_list('order_id', flat=True).distinct()
+    
+    orphaned = []
+    for order_id in includes_order_ids:
+        if not OnlineOrder.objects.filter(order_number=order_id).exists():
+            orphaned.append(order_id)
+    
+    if not orphaned:
+        print("\n✓ No orphaned OOIncludes records found!")
+    else:
+        print(f"\n⚠️  Found {len(orphaned)} orphaned order references in OOIncludes:")
+        print("-" * 70)
+        
+        for order_id in sorted(orphaned):
+            count = OOIncludes.objects.filter(order_id=order_id).count()
+            print(f"  {order_id}: {count} orphaned OOIncludes records")
+        
+        total_orphaned = OOIncludes.objects.filter(order_id__in=orphaned).count()
+        print("-" * 70)
+        print(f"  Total orphaned OOIncludes records: {total_orphaned}")
+        
+        if confirm_action("\nDelete these orphaned records?"):
+            try:
+                with transaction.atomic():
+                    deleted_count = OOIncludes.objects.filter(order_id__in=orphaned).delete()[0]
+                print(f"\n✓ Successfully deleted {deleted_count} orphaned OOIncludes records")
+            except Exception as e:
+                print(f"\n✗ Error during deletion: {str(e)}")
+        else:
+            print("\n✗ Operation cancelled.")
+    
+    # Also check OOIncludesMisc
+    print("\n" + "-" * 70)
+    print("Checking OOIncludesMisc...")
+    print("-" * 70)
+    
+    misc_order_ids = OOIncludesMisc.objects.values_list('order_id', flat=True).distinct()
+    
+    orphaned_misc = []
+    for order_id in misc_order_ids:
+        if not OnlineOrder.objects.filter(order_number=order_id).exists():
+            orphaned_misc.append(order_id)
+    
+    if not orphaned_misc:
+        print("\n✓ No orphaned OOIncludesMisc records found!")
+    else:
+        print(f"\n⚠️  Found {len(orphaned_misc)} orphaned order references in OOIncludesMisc:")
+        print("-" * 70)
+        
+        for order_id in sorted(orphaned_misc):
+            count = OOIncludesMisc.objects.filter(order_id=order_id).count()
+            print(f"  {order_id}: {count} orphaned OOIncludesMisc records")
+        
+        total_orphaned_misc = OOIncludesMisc.objects.filter(order_id__in=orphaned_misc).count()
+        print("-" * 70)
+        print(f"  Total orphaned OOIncludesMisc records: {total_orphaned_misc}")
+        
+        if confirm_action("\nDelete these orphaned records?"):
+            try:
+                with transaction.atomic():
+                    deleted_count = OOIncludesMisc.objects.filter(order_id__in=orphaned_misc).delete()[0]
+                print(f"\n✓ Successfully deleted {deleted_count} orphaned OOIncludesMisc records")
+            except Exception as e:
+                print(f"\n✗ Error during deletion: {str(e)}")
+        else:
+            print("\n✗ Operation cancelled.")
+    
+    print("=" * 70)
+
+
 def main_menu():
     """Display and handle main menu"""
     while True:
@@ -488,9 +566,10 @@ def main_menu():
         print("  6. Delete orders from specific order number onward")
         print("  7. List recent orders")
         print("  8. List orders in specific range")
+        print("  9. Find and clean orphaned includes records")
         print("  0. Exit")
         
-        choice = input("\nEnter choice (0-8): ").strip()
+        choice = input("\nEnter choice (0-9): ").strip()
         
         if choice == '0':
             print("\nGoodbye!")
@@ -517,6 +596,9 @@ def main_menu():
             input("\nPress Enter to continue...")
         elif choice == '8':
             list_orders_in_range()
+            input("\nPress Enter to continue...")
+        elif choice == '9':
+            find_orphaned_includes()
             input("\nPress Enter to continue...")
         else:
             print("\n✗ Invalid choice!")
