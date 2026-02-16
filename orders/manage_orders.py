@@ -359,6 +359,119 @@ def delete_orders_from_number():
 
 
 
+def list_recent_orders():
+    """List the most recent orders in the database"""
+    print("\n" + "=" * 70)
+    print("RECENT ORDERS IN DATABASE")
+    print("=" * 70)
+    
+    count = input("\nHow many recent orders to display? (default: 20): ").strip()
+    if not count:
+        count = 20
+    else:
+        try:
+            count = int(count)
+        except ValueError:
+            print("\n✗ Invalid number!")
+            return
+    
+    orders = OnlineOrder.objects.order_by('-order_number')[:count]
+    
+    if not orders.exists():
+        print("\n✗ No orders found in database!")
+        return
+    
+    print(f"\nShowing {orders.count()} most recent orders:")
+    print("-" * 70)
+    print(f"{'Order Number':<15} {'Customer':<30} {'Date':<20} {'Total':<10}")
+    print("-" * 70)
+    
+    for order in orders:
+        date_str = order.date.strftime('%Y-%m-%d %H:%M:%S') if order.date else 'N/A'
+        customer = order.customer_name[:28] if order.customer_name else 'N/A'
+        print(f"{order.order_number:<15} {customer:<30} {date_str:<20} ${order.total:<9.2f}")
+    
+    print("-" * 70)
+    print(f"\nTotal orders in database: {OnlineOrder.objects.count()}")
+    
+    # Show the range
+    all_orders = OnlineOrder.objects.all()
+    if all_orders.exists():
+        order_numbers = []
+        for order in all_orders:
+            try:
+                num = int(order.order_number[1:])
+                order_numbers.append(num)
+            except (ValueError, IndexError):
+                continue
+        
+        if order_numbers:
+            print(f"Order number range: S{min(order_numbers)} to S{max(order_numbers)}")
+
+
+def list_orders_in_range():
+    """List all orders within a specific range"""
+    print("\n" + "=" * 70)
+    print("LIST ORDERS IN RANGE")
+    print("=" * 70)
+    
+    start = input("\nEnter start order number (e.g., S82500): ").strip().upper()
+    end = input("Enter end order number (e.g., S82600): ").strip().upper()
+    
+    if not start or not end:
+        print("\n✗ Both order numbers required!")
+        return
+    
+    # Validate and extract numbers
+    try:
+        if not (start.startswith('S') and start[1:].isdigit()):
+            print(f"\n✗ Invalid start order format: {start}")
+            return
+        if not (end.startswith('S') and end[1:].isdigit()):
+            print(f"\n✗ Invalid end order format: {end}")
+            return
+        
+        start_num = int(start[1:])
+        end_num = int(end[1:])
+        
+        if start_num > end_num:
+            print("\n✗ Start order must be less than or equal to end order!")
+            return
+    except ValueError:
+        print("\n✗ Could not parse order numbers!")
+        return
+    
+    # Find all orders in range
+    all_orders = OnlineOrder.objects.all()
+    orders_in_range = []
+    
+    for order in all_orders:
+        try:
+            order_num = int(order.order_number[1:])
+            if start_num <= order_num <= end_num:
+                orders_in_range.append(order)
+        except (ValueError, IndexError):
+            continue
+    
+    if not orders_in_range:
+        print(f"\n✓ No orders found in range {start} to {end}")
+        return
+    
+    # Sort by order number
+    orders_in_range.sort(key=lambda x: int(x.order_number[1:]))
+    
+    print(f"\nFound {len(orders_in_range)} orders in range {start} to {end}:")
+    print("-" * 70)
+    print(f"{'Order Number':<15} {'Customer':<30} {'Date':<20} {'Total':<10}")
+    print("-" * 70)
+    
+    for order in orders_in_range:
+        date_str = order.date.strftime('%Y-%m-%d %H:%M:%S') if order.date else 'N/A'
+        customer = order.customer_name[:28] if order.customer_name else 'N/A'
+        print(f"{order.order_number:<15} {customer:<30} {date_str:<20} ${order.total:<9.2f}")
+    
+    print("-" * 70)
+
 def main_menu():
     """Display and handle main menu"""
     while True:
@@ -373,9 +486,11 @@ def main_menu():
         print("  4. Search for an order by order number")
         print("  5. Find hybrid orders (misc + bulk + packets)")
         print("  6. Delete orders from specific order number onward")
+        print("  7. List recent orders")
+        print("  8. List orders in specific range")
         print("  0. Exit")
         
-        choice = input("\nEnter choice (0-6): ").strip()
+        choice = input("\nEnter choice (0-8): ").strip()
         
         if choice == '0':
             print("\nGoodbye!")
@@ -396,6 +511,12 @@ def main_menu():
             input("\nPress Enter to continue...")
         elif choice == '6':
             delete_orders_from_number()
+            input("\nPress Enter to continue...")
+        elif choice == '7':
+            list_recent_orders()
+            input("\nPress Enter to continue...")
+        elif choice == '8':
+            list_orders_in_range()
             input("\nPress Enter to continue...")
         else:
             print("\n✗ Invalid choice!")
