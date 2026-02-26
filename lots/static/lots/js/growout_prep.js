@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up filter event listeners
     document.getElementById('statusFilter').addEventListener('change', applyFilters);
     document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-    document.getElementById('cropFilter').addEventListener('change', applyFilters);
+    // document.getElementById('cropFilter').addEventListener('change', applyFilters);
+    document.getElementById('groupFilter').addEventListener('change', applyFilters);
     document.getElementById('growerFilter').addEventListener('change', applyFilters);
 
     // Set up grower select change handlers
@@ -98,7 +99,8 @@ function populateGrowerFilter() {
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const categoryFilter = document.getElementById('categoryFilter').value;
-    const cropFilter = document.getElementById('cropFilter').value;
+    // const cropFilter = document.getElementById('cropFilter').value;
+    const groupFilter = document.getElementById('groupFilter').value;
     const growerFilterValue = document.getElementById('growerFilter').value.toLowerCase();
     
     let visibleCount = 0;
@@ -106,7 +108,7 @@ function applyFilters() {
     allRows.forEach(row => {
         const rowStatus = row.dataset.status;
         const rowCategory = row.dataset.category;
-        const rowCrop = row.dataset.crop;
+        const rowGroup = row.dataset.group;
         
         let showRow = true;
         
@@ -118,7 +120,7 @@ function applyFilters() {
             showRow = false;
         }
         
-        if (cropFilter && rowCrop !== cropFilter) {
+        if (groupFilter && rowGroup !== groupFilter) {
             showRow = false;
         }
         

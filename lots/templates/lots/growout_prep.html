@@ -37,10 +37,16 @@
                     {% endfor %}
                 </select>
 
-                <select id="cropFilter" class="filter-dropdown">
+                {% comment %} <select id="cropFilter" class="filter-dropdown">
                     <option value="">All Crops</option>
                     {% for crop in crops %}
                         <option value="{{ crop }}">{{ crop }}</option>
+                    {% endfor %}
+                </select> {% endcomment %}
+                <select id="groupFilter" class="filter-dropdown">
+                    <option value="">All Groups</option>
+                    {% for group in groups %}
+                        <option value="{{ group }}">{{ group }}</option>
                     {% endfor %}
                 </select>
 
@@ -88,7 +94,8 @@
                                     data-variety-name="{{ variety.var_name }}"
                                     data-sku-prefix="{{ variety.sku_prefix }}"
                                     data-category="{{ variety.category|default:'' }}"
-                                    data-crop="{{ variety.crop|default:'' }}"
+                                    data-group="{{ variety.group|default:'' }}"
+                                    {% comment %} data-crop="{{ variety.crop|default:'' }}" {% endcomment %}
                                     data-status="{{ variety.growout_needed }}"
                                     data-locked="{{ variety.is_locked|yesno:'true,false' }}"
                                     {% if variety.is_locked %}class="locked-row"{% endif %}>
@@ -222,7 +229,7 @@
             csrfToken: '{{ csrf_token }}'
         };
     </script>
-    <script src="{% static 'lots/js/growout_prep.js' %}"></script>
+    <script src="{% static 'lots/js/growout_prep.js' %}?v=2"></script>
     
 </body>
 </html>

@@ -370,7 +370,8 @@ def growout_prep(request):
                 'var_name': variety.var_name,
                 'sku_prefix': variety.sku_prefix,
                 'category': variety.category or '',
-                'crop': variety.crop or '',
+                # 'crop': variety.crop or '',
+                'group': variety.group or '',
                 'growout_needed': variety.growout_needed,
                 'prep_id': None,
                 'assigned_grower': None,
@@ -399,16 +400,20 @@ def growout_prep(request):
         growout_needed__in=['orange', 'red']
     ).values_list('category', flat=True).distinct().order_by('category')
     
-    crops = Variety.objects.filter(
+    # crops = Variety.objects.filter(
+    #     growout_needed__in=['orange', 'red']
+    # ).values_list('crop', flat=True).distinct().order_by('crop')
+        
+    groups = Variety.objects.filter(
         growout_needed__in=['orange', 'red']
-    ).values_list('crop', flat=True).distinct().order_by('crop')
+    ).values_list('group', flat=True).distinct().order_by('group')
     
     context = {
         'varieties': varieties_with_prep,
         'growers': sorted_growers,
         'current_order_year': settings.CURRENT_ORDER_YEAR,
         'categories': [c for c in categories if c],
-        'crops': [c for c in crops if c],
+        'groups': [g for g in groups if g],
     }
     
     return render(request, 'lots/growout_prep.html', context)
