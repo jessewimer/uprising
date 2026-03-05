@@ -1649,6 +1649,28 @@ def edit_growout():
     """Edit growout information - PLACEHOLDER"""
     print("\n⚠️  EDIT GROWOUT - Function placeholder")
 
+def clear_growout_planted_dates():
+    """Clear all planted_date values from Growout records"""
+    growouts_with_dates = Growout.objects.exclude(planted_date__isnull=True).exclude(planted_date='')
+    count = growouts_with_dates.count()
+
+    if count == 0:
+        print("\n✅ No planted_date values to clear.")
+        return
+
+    print(f"\n⚠️  WARNING: This will clear planted_date from {count} growout record(s).")
+    print("\nAffected lots:")
+    for g in growouts_with_dates.select_related('lot__variety', 'lot__grower'):
+        print(f"  - {g.lot.build_lot_code()}: '{g.planted_date}'")
+
+    confirm = input("\nType 'YES' to confirm: ").strip()
+    if confirm == 'YES':
+        growouts_with_dates.update(planted_date=None)
+        print(f"✅ Cleared planted_date from {count} growout record(s).")
+    else:
+        print("❌ Operation cancelled.")
+
+
 def growout_menu():
     """Growout management submenu"""
     while True:
@@ -1659,9 +1681,10 @@ def growout_menu():
         print("1. View growouts")
         print("2. Add growout")
         print("3. Edit growout")
+        print("4. Clear all planted dates")
         print("0. Back to main menu")
         
-        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3'])
+        choice = get_choice("\nSelect option: ", ['0', '1', '2', '3', '4'])
         
         if choice == '0':
             break
@@ -1674,7 +1697,9 @@ def growout_menu():
         elif choice == '3':
             edit_growout()
             pause()
-
+        elif choice == '4':
+            clear_growout_planted_dates()
+            pause() 
 
 # ============================================================================
 # MAIN MENU
