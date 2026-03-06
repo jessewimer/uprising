@@ -476,6 +476,12 @@ body {
     min-width: 140px; /* Adjusted for text badges */
 }
 
+
+.date-input::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);  /* adjust to match your color scheme */
+    cursor: pointer;
+}
+
 /* Animations */
 @keyframes fadeIn {
     from { opacity: 0; }

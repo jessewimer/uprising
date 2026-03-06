@@ -233,8 +233,9 @@ class LotNote(models.Model):
 
 class Growout(models.Model):
     lot = models.OneToOneField("lots.Lot", on_delete=models.CASCADE, related_name="growout_info")
-    planted_date = models.CharField(max_length=100, blank=True, null=True)
-    transplant_date = models.CharField(max_length=100, blank=True, null=True)
+    target_date = models.DateField(blank=True, null=True)
+    planted_date = models.DateField(blank=True, null=True)
+    transplant_date = models.DateField(blank=True, null=True)
     quantity = models.CharField(max_length=100, blank=True, null=True)
     price_per_lb = models.CharField(max_length=100, blank=True, null=True)
     bed_ft = models.CharField(max_length=100, blank=True, null=True)
@@ -243,8 +244,19 @@ class Growout(models.Model):
 
     def __str__(self):
         return f"Growout for {self.lot}"
-    
+# class Growout(models.Model):
+#     lot = models.OneToOneField("lots.Lot", on_delete=models.CASCADE, related_name="growout_info")
+#     planted_date = models.CharField(max_length=100, blank=True, null=True)
+#     transplant_date = models.CharField(max_length=100, blank=True, null=True)
+#     quantity = models.CharField(max_length=100, blank=True, null=True)
+#     price_per_lb = models.CharField(max_length=100, blank=True, null=True)
+#     bed_ft = models.CharField(max_length=100, blank=True, null=True)
+#     amt_sown = models.CharField(max_length=100, blank=True, null=True)
+#     notes = models.TextField(blank=True, null=True)
 
+#     def __str__(self):
+#         return f"Growout for {self.lot}"
+    
 class MixLot(models.Model):
     """
     Mixed lot like UO26A

@@ -66,7 +66,8 @@
                             <tr>
                                 <th>Variety</th>
                                 <th>Lot (Inv. / Germ sent)</th>
-                                <th>Planted Date</th>
+                                <th>Target Date</th>
+                                <th>Date Sown</th>
                                 <th>Transplant Date</th>
                                 <th>Quantity</th>
                                 <th>Price/lb</th>
@@ -105,14 +106,36 @@
                                             <span class="status-badge status-missing" title="No germ sample for {{ current_for_year }}">germ</span>
                                         {% endif %}
                                     </td>
+                                    <td class="data-cell {% if not lot.growout_info.target_date %}empty-data{% endif %}"
+                                        data-field="target_date"
+                                        data-raw="{{ lot.growout_info.target_date|date:'Y-m-d'|default:'' }}">
+                                        {{ lot.growout_info.target_date|date:"M j, Y"|default:"—" }}
+                                    </td>
+
+                                    <td class="data-cell {% if not lot.growout_info.planted_date %}empty-data{% endif %}"
+                                        data-field="planted_date"
+                                        data-raw="{{ lot.growout_info.planted_date|date:'Y-m-d'|default:'' }}">
+                                        {{ lot.growout_info.planted_date|date:"M j, Y"|default:"—" }}
+                                    </td>
+
+                                    <td class="data-cell {% if not lot.growout_info.transplant_date %}empty-data{% endif %}"
+                                        data-field="transplant_date"
+                                        data-raw="{{ lot.growout_info.transplant_date|date:'Y-m-d'|default:'' }}">
+                                        {{ lot.growout_info.transplant_date|date:"M j, Y"|default:"—" }}
+                                    </td>
+                                    {% comment %} <td class="data-cell {% if not lot.growout_info.target_date %}empty-data{% endif %}"
+                                        data-field="target_date">
+                                        {{ lot.growout_info.target_date|date:"M j, Y"|default:"—" }}
+                                    </td>
                                     <td class="data-cell {% if not lot.growout_info.planted_date %}empty-data{% endif %}"
                                         data-field="planted_date">
-                                        {{ lot.growout_info.planted_date|default:"—" }}
+                                        {{ lot.growout_info.planted_date|date:"M j, Y"|default:"—" }}
                                     </td>
                                     <td class="data-cell {% if not lot.growout_info.transplant_date %}empty-data{% endif %}"
                                         data-field="transplant_date">
-                                        {{ lot.growout_info.transplant_date|default:"—" }}
-                                    </td>
+                                     
+                                        {{ lot.growout_info.transplant_date|date:"M j, Y"|default:"—" }}
+                                    </td> {% endcomment %}
                                     <td class="{% if lot.growout_info.quantity %}quantity-cell{% else %}data-cell empty-data{% endif %}"
                                         data-field="quantity">
                                         {{ lot.growout_info.quantity|default:"—" }}
@@ -157,12 +180,16 @@
             </div>
             <form class="modal-form" id="editForm">
                 <div class="form-group">
-                    <label class="form-label" for="editPlantedDate">Planted Date</label>
-                    <input type="text" id="editPlantedDate" name="planted_date" class="form-input" placeholder="e.g., Spring 2024, March 15">
+                    <label class="form-label" for="editTargetDate">Target Date</label>
+                    <input type="date" id="editTargetDate" name="target_date" class="form-input date-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="editPlantedDate">Date Sown</label>
+                    <input type="date" id="editPlantedDate" name="planted_date" class="form-input date-input">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="editTransplantDate">Transplant Date</label>
-                    <input type="text" id="editTransplantDate" name="transplant_date" class="form-input" placeholder="e.g., May 1, 2024">
+                    <input type="date" id="editTransplantDate" name="transplant_date" class="form-input date-input">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="editQuantity">Quantity</label>
@@ -192,7 +219,7 @@
         </div>
     </div>
 
-    <script src="{% static 'lots/js/growouts.js' %}"></script>
+    <script src="{% static 'lots/js/growouts.js' %}?v=2"></script>
     
 </body>
 </html>

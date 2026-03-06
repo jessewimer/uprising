@@ -101,59 +101,56 @@ function applyFilters() {
 function openEditModal(lotId) {
     currentEditingLotId = parseInt(lotId);
     const row = document.querySelector(`tr[data-lot-id="${lotId}"]`);
-    
+
     if (!row) {
         console.error('Row not found for lot ID:', lotId);
         return;
     }
-    
-    // Get current values from the row
+
+    // Set modal subtitle
     const varietyName = row.dataset.variety;
-    const lotCode = row.querySelector('.lot-cell').textContent;
-    
-    // Update modal subtitle
+    const lotCode = row.querySelector('.lot-cell').textContent.trim();
     document.getElementById('editModalSubtitle').textContent = `${varietyName} - Lot ${lotCode}`;
-    
-    // Helper function to get cell value
+
     function getCellValue(fieldName) {
         const cell = row.querySelector(`[data-field="${fieldName}"]`);
         if (!cell) return '';
-        
-        // For notes, use title attribute to get full text (not truncated)
-        if (fieldName === 'notes') {
-            const titleValue = cell.getAttribute('title');
-            return titleValue && titleValue.trim() !== '' ? titleValue.trim() : '';
+
+        // Date fields: read raw YYYY-MM-DD from data-raw attribute
+        if (cell.hasAttribute('data-raw')) {
+            return cell.getAttribute('data-raw') || '';
         }
-        
-        // For other fields, use text content
-        const textValue = cell.textContent.trim();
-        return textValue === '—' ? '' : textValue;
+
+        // Notes: read full text from title attribute (display is truncated)
+        if (fieldName === 'notes') {
+            const title = cell.getAttribute('title');
+            return title && title.trim() !== '' ? title.trim() : '';
+        }
+
+        // All other fields: read text content
+        const text = cell.textContent.trim();
+        return text === '—' ? '' : text;
     }
-    
-    // Map field names to input IDs and prefill
+
     const fieldMappings = {
-        'planted_date': 'editPlantedDate',
-        'transplant_date': 'editTransplantDate',
-        'quantity': 'editQuantity',
-        'price_per_lb': 'editPricePerLb',
-        'bed_ft': 'editBedFt',
-        'amt_sown': 'editAmtSown',
-        'notes': 'editNotes'
+        'target_date':      'editTargetDate',
+        'planted_date':     'editPlantedDate',
+        'transplant_date':  'editTransplantDate',
+        'quantity':         'editQuantity',
+        'price_per_lb':     'editPricePerLb',
+        'bed_ft':           'editBedFt',
+        'amt_sown':         'editAmtSown',
+        'notes':            'editNotes'
     };
-    
-    // Prefill form with current values
+
     Object.entries(fieldMappings).forEach(([fieldName, inputId]) => {
         const input = document.getElementById(inputId);
-        if (input) {
-            const value = getCellValue(fieldName);
-            input.value = value;
-            console.log(`Set ${inputId} to: "${value}"`); // Debug log
-        }
+        if (input) input.value = getCellValue(fieldName);
     });
-    
-    // Show modal
+
     document.getElementById('editModal').classList.add('visible');
 }
+
 
 function closeEditModal() {
     document.getElementById('editModal').classList.remove('visible');
@@ -174,6 +171,7 @@ function saveGrowout() {
     
     // Collect form data
     const formData = {
+        target_date: document.getElementById('editTargetDate').value,
         planted_date: document.getElementById('editPlantedDate').value,
         transplant_date: document.getElementById('editTransplantDate').value,
         quantity: document.getElementById('editQuantity').value,

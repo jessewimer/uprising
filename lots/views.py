@@ -298,32 +298,33 @@ def growouts(request):
    
     return render(request, 'lots/growouts.html', context)
 
-@login_required(login_url='/office/login/')
-@user_passes_test(is_employee)
+
 def update_growout(request, lot_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             lot = Lot.objects.get(id=lot_id)
-            
-            # Get or create growout info
             growout, created = Growout.objects.get_or_create(lot=lot)
-            
-            # Update fields
-            growout.planted_date = data.get('planted_date', '')
-            growout.transplant_date = data.get('transplant_date', '')
+
+            # Helper: convert empty string to None for date fields
+            def parse_date(val):
+                return val if val else None
+
+            growout.target_date = parse_date(data.get('target_date', ''))
+            print(f"DEBUG target_date: {data.get('target_date')}") 
+            growout.planted_date = parse_date(data.get('planted_date', ''))
+            growout.transplant_date = parse_date(data.get('transplant_date', ''))
             growout.quantity = data.get('quantity', '')
             growout.price_per_lb = data.get('price_per_lb', '')
             growout.bed_ft = data.get('bed_ft', '')
             growout.amt_sown = data.get('amt_sown', '')
             growout.notes = data.get('notes', '')
-            
+
             growout.save()
-            
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
-    
+
     return JsonResponse({'success': False, 'error': 'Invalid method'})
 
 
