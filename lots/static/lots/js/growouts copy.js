@@ -152,53 +152,6 @@ function openEditModal(lotId) {
 }
 
 
-function formatDisplayDate(isoDate) {
-    if (!isoDate) return '—';
-    // Parse as local date to avoid UTC offset shifting the day
-    const [year, month, day] = isoDate.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function updateRowInPlace(lotId, formData) {
-    const row = document.querySelector(`tr[data-lot-id="${lotId}"]`);
-    if (!row) return;
-
-    const dateFields = ['target_date', 'planted_date', 'transplant_date'];
-    const textFields = ['quantity', 'price_per_lb', 'bed_ft', 'amt_sown', 'notes'];
-
-    dateFields.forEach(field => {
-        const cell = row.querySelector(`[data-field="${field}"]`);
-        if (!cell) return;
-        const val = formData[field];
-        cell.setAttribute('data-raw', val || '');
-        if (val) {
-            cell.textContent = formatDisplayDate(val);
-            cell.classList.remove('empty-data');
-        } else {
-            cell.textContent = '—';
-            cell.classList.add('empty-data');
-        }
-    });
-
-    textFields.forEach(field => {
-        const cell = row.querySelector(`[data-field="${field}"]`);
-        if (!cell) return;
-        const val = formData[field];
-        if (field === 'notes') {
-            cell.setAttribute('title', val || '');
-            cell.textContent = val ? (val.length > 40 ? val.substring(0, 37) + '...' : val) : '—';
-        } else {
-            cell.textContent = val || '—';
-        }
-        if (val) {
-            cell.classList.remove('empty-data');
-        } else {
-            cell.classList.add('empty-data');
-        }
-    });
-}
-
 function closeEditModal() {
     document.getElementById('editModal').classList.remove('visible');
     currentEditingLotId = null;
@@ -240,8 +193,10 @@ function saveGrowout() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            updateRowInPlace(currentEditingLotId, formData);
+            // Close modal
             closeEditModal();
+            // Reload page to show updated data
+            location.reload();
         } else {
             alert('Error saving changes: ' + (data.error || 'Unknown error'));
         }

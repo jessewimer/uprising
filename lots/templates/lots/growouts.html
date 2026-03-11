@@ -123,19 +123,7 @@
                                         data-raw="{{ lot.growout_info.transplant_date|date:'Y-m-d'|default:'' }}">
                                         {{ lot.growout_info.transplant_date|date:"M j, Y"|default:"—" }}
                                     </td>
-                                    {% comment %} <td class="data-cell {% if not lot.growout_info.target_date %}empty-data{% endif %}"
-                                        data-field="target_date">
-                                        {{ lot.growout_info.target_date|date:"M j, Y"|default:"—" }}
-                                    </td>
-                                    <td class="data-cell {% if not lot.growout_info.planted_date %}empty-data{% endif %}"
-                                        data-field="planted_date">
-                                        {{ lot.growout_info.planted_date|date:"M j, Y"|default:"—" }}
-                                    </td>
-                                    <td class="data-cell {% if not lot.growout_info.transplant_date %}empty-data{% endif %}"
-                                        data-field="transplant_date">
-                                     
-                                        {{ lot.growout_info.transplant_date|date:"M j, Y"|default:"—" }}
-                                    </td> {% endcomment %}
+    
                                     <td class="{% if lot.growout_info.quantity %}quantity-cell{% else %}data-cell empty-data{% endif %}"
                                         data-field="quantity">
                                         {{ lot.growout_info.quantity|default:"—" }}
@@ -219,7 +207,7 @@
         </div>
     </div>
 
-    <script src="{% static 'lots/js/growouts.js' %}?v=3"></script>
+    <script src="{% static 'lots/js/growouts.js' %}?v=4"></script>
     
 </body>
 </html>
